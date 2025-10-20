@@ -1,0 +1,20 @@
+﻿{
+  "name": "490-team-alpha",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=server & npm run dev --workspace=web",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:web": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=server && npm run build --workspace=web",
+    "build:server": "npm run build --workspace=server",
+    "build:web": "npm run build --workspace=web",
+    "start:server": "npm run start --workspace=server",
+    "start:web": "npm run start --workspace=web"
+  },
+  "devDependencies": {}
+}
