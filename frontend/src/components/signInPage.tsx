@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, validatePassword } from "firebase/auth";
 import { useState } from "react";
 import { auth } from "../../firebaseConfig";
 
@@ -21,33 +21,43 @@ export function SignupForm({
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [matchError, setMatchError] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setEmailError("");
+        setPasswordError("");
 
         if (password !== confirmPassword) {
-        setMatchError("Passwords do not match");
-        return;
-    }
-        // Add any additional validation if needed
+            setMatchError("Passwords do not match");
+            return;
+        }
+        setMatchError("");  
+        
+        createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+            // Signed up 
+            const user = userCredential.user;
+        })
+        .catch((error) => {
+            console.log(error.code);
+            if (error.code === 'auth/email-already-in-use') {
+                setEmailError("Email already in use");
+            }
+            else if (error.code === 'auth/invalid-email') {
+                setEmailError("Invalid email address");
+            }
+            else if (error.code === 'auth/password-does-not-meet-requirements') {
+                setPasswordError("Invalid password. ");
+            }
+        });
     }
 
-    
-    createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-        // Signed up 
-        const user = userCredential.user;
-        // ...
-    })
-    .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        // ..
-    });
 
     return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
-        <FieldGroup onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className) } {...props}>
+        <FieldGroup >
             <div className="flex flex-col items-center gap-1 text-center">
                 <h1 className="text-2xl font-bold">Create your account</h1>
                 <p className="text-muted-foreground text-sm text-balance">
@@ -65,8 +75,10 @@ export function SignupForm({
                     type="email" 
                     placeholder="m@example.com" 
                     onChange={(e) => setEmail(e.target.value)}
-                    required 
-                />
+                    className={emailError ? "border-destructive" : ""}  
+                    required
+                 />
+                <FieldDescription>{emailError ? emailError : ""}</FieldDescription>
             </Field>
             <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -74,11 +86,10 @@ export function SignupForm({
                     id="password" 
                     type="password" 
                     required
-                    onChange={(e) => setPassword(e.target.value)}  
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={matchError ? "border-destructive" : passwordError ? "border-destructive" : ""}  
                 />
-                <FieldDescription>
-                Least 8 characters long, with at least 1 uppercase letter and 1 number.
-                </FieldDescription>
+                <FieldDescription>{passwordError ? passwordError : ""}Least 8 characters long, with at least 1 uppercase letter and 1 number.</FieldDescription>
             </Field>
             <Field>
                 <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
@@ -87,8 +98,9 @@ export function SignupForm({
                     type="password" 
                     required
                     onChange={(e) => setConfirmPassword(e.target.value)} 
+                    className={matchError ? "border-destructive" : ""}
                 />
-                <FieldDescription className={`${matchError ? "border-r-red-500" : ""}`}>`${matchError ? matchError : "Please confirm your password"}</FieldDescription>
+                <FieldDescription className={`${matchError ? "font-bold" : ""}`}>{matchError ? matchError : "Please confirm your password"}</FieldDescription>
             </Field>
             <Field>
                 <Button 
