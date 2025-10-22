@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { createUserWithEmailAndPassword, validatePassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, GithubAuthProvider, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import { auth } from "../../firebaseConfig";
+import { useRouter } from "next/navigation";
+
 
 export function SignupForm({
   className,
@@ -23,6 +25,9 @@ export function SignupForm({
     const [matchError, setMatchError] = useState("");
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const [githubError, setGithubError] = useState("");
+
+    const router = useRouter();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,6 +44,7 @@ export function SignupForm({
         .then((userCredential) => {
             // Signed up 
             const user = userCredential.user;
+            router.push("/dashboard");
         })
         .catch((error) => {
             console.log(error.code);
@@ -50,6 +56,26 @@ export function SignupForm({
             }
             else if (error.code === 'auth/password-does-not-meet-requirements') {
                 setPasswordError("Invalid password. ");
+            }
+        });
+    }
+
+    const gitHubProvider = new GithubAuthProvider();
+    const handleGitHubSignUp = () => {
+        setGithubError("");
+
+        signInWithPopup(auth, gitHubProvider)
+        .then((result) => {
+            const credential = GithubAuthProvider.credentialFromResult(result);
+            const token = credential?.accessToken;
+            const user = result.user;
+            router.push("/dashboard");
+        }).catch((error) => {
+            const errorCode = error.code;
+            console.log(errorCode);
+            if (errorCode === 'auth/account-exists-with-different-credential')
+            {
+                setGithubError("An account already exists with the same email address!.");
             }
         });
     }
@@ -104,18 +130,19 @@ export function SignupForm({
             </Field>
             <Field>
                 <Button 
-                type="submit">Create Account
+                type="submit" className="cursor-pointer">Create Account
                 </Button>
             </Field>
             <FieldSeparator>Or continue with</FieldSeparator>
             <Field>
-                <Button variant="outline" type="button">
+                <Button variant="outline" type="button" className="cursor-pointer">
                     <Image src="/Google.svg" alt="Google icon" width={20} height={20} />
                     Sign up with Google
                 </Button>
-                <Button variant="outline" type="button">
-                    <Image src="" alt="" width={20} height={20} />
-                    Sign up with --
+                <FieldDescription>{githubError ? "This email is already in use. Try again." : ""}</FieldDescription>
+                <Button variant="outline" type="button" onClick={handleGitHubSignUp} className={githubError ? "border-destructive cursor-pointer" : "cursor-pointer"}>
+                    <Image src="/github.svg" alt="Github Logo" width={20} height={20} />
+                    Sign up with GitHub
                 </Button>
                 <FieldDescription className="px-6 text-center">
                     Already have an account? <a href="#">Sign in</a>
