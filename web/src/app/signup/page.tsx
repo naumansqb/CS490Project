@@ -1,8 +1,8 @@
 'use client'
 
-import { SignupForm } from "@/components/signInPage"
+import { SignupForm } from "@/components/signUpPage"
 
-export default function LoginPage() {
+export default function signUpPage() {
 
     return (
         <div className="grid min-h-svh lg:grid-cols-2">
