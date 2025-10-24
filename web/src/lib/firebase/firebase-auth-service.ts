@@ -68,6 +68,14 @@ export class AuthenticationError extends Error {
 
     return errorMessages[code] || errorMessages["default"];
   }
+
+  static isCancelledPopup(error: AuthenticationError): boolean {
+    return (
+      error.message === "cancelled" ||
+      error.code === "auth/popup-closed-by-user" ||
+      error.code === "auth/cancelled-popup-request"
+    );
+  }
 }
 
 /**
