@@ -31,3 +31,6 @@ Thumbs.db
 
 # Customs
 *.ps1
+
+# Project requirements
+sprint1req.txt
