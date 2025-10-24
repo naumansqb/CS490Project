@@ -163,6 +163,15 @@ export function SignInForm({
       if (result.success && result.user) {
         router.push("/dashboard");
       } else if (result.error) {
+        // Check if popup was cancelled - don't show error
+        if (
+          result.error.code === "auth/popup-closed-by-user" ||
+          result.error.code === "auth/cancelled-popup-request"
+        ) {
+          // User cancelled - silently return without error
+          return;
+        }
+
         setErrors((prev) => ({
           ...prev,
           google: result.error!.message,
@@ -192,6 +201,15 @@ export function SignInForm({
       if (result.success && result.user) {
         router.push("/dashboard");
       } else if (result.error) {
+        // Check if popup was cancelled - don't show error
+        if (
+          result.error.code === "auth/popup-closed-by-user" ||
+          result.error.code === "auth/cancelled-popup-request"
+        ) {
+          // User cancelled - silently return without error
+          return;
+        }
+
         setErrors((prev) => ({
           ...prev,
           github: result.error!.message,
