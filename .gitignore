@@ -34,3 +34,5 @@ Thumbs.db
 
 # Project requirements
 sprint1req.txt
+coverage
+migrations
