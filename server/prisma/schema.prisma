@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  firstName             String?  @map("first_name") @db.VarChar(100)
+  lastName              String?  @map("last_name") @db.VarChar(100)
+  preferredName         String?  @map("preferred_name") @db.VarChar(100)
+  headline              String?  @db.VarChar(255)
+  bio                   String?
+  profilePhotoUrl       String?  @map("profile_photo_url") @db.VarChar(500)
+  locationCity          String?  @map("location_city") @db.VarChar(100)
+  locationState         String?  @map("location_state") @db.VarChar(100)
+  locationCountry       String?  @map("location_country") @db.VarChar(100)
+  willingToRelocate     Boolean  @default(false) @map("willing_to_relocate")
+  linkedinUrl           String?  @map("linkedin_url") @db.VarChar(255)
+  githubUrl             String?  @map("github_url") @db.VarChar(255)
+  portfolioUrl          String?  @map("portfolio_url") @db.VarChar(255)
+  websiteUrl            String?  @map("website_url") @db.VarChar(255)
+  yearsOfExperience     Decimal? @map("years_of_experience") @db.Decimal(4, 1)
+  careerLevel           String?  @map("career_level") @db.VarChar(50)
+  desiredSalaryMin      Decimal? @map("desired_salary_min") @db.Decimal(12, 2)
+  desiredSalaryMax      Decimal? @map("desired_salary_max") @db.Decimal(12, 2)
+  salaryCurrency        String   @default("USD") @map("salary_currency") @db.VarChar(10)
+  openToOpportunities   Boolean  @default(true) @map("open_to_opportunities")
+  jobSearchStatus       String?  @map("job_search_status") @db.VarChar(50)
+  preferredWorkType     String?  @map("preferred_work_type") @db.VarChar(50)
+  profileCompleteness   Int      @default(0) @map("profile_completeness")
+  profileVisibility     String   @default("private") @map("profile_visibility") @db.VarChar(50)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at")
+
+  workExperiences WorkExperience[]
+  education       Education[]
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
+model WorkExperience {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  companyName     String    @map("company_name") @db.VarChar(255)
+  positionTitle   String    @map("position_title") @db.VarChar(255)
+  employmentType  String?   @map("employment_type") @db.VarChar(50)
+  locationCity    String?   @map("location_city") @db.VarChar(100)
+  locationState   String?   @map("location_state") @db.VarChar(100)
+  locationCountry String?   @map("location_country") @db.VarChar(100)
+  isRemote        Boolean   @default(false) @map("is_remote")
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime? @map("end_date") @db.Date
+  isCurrent       Boolean   @default(false) @map("is_current")
+  description     String?
+  displayOrder    Int       @default(0) @map("display_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startDate, endDate])
+  @@index([userId, displayOrder])
+  @@map("work_experiences")
+}
+
+model Education {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  institutionName  String    @map("institution_name") @db.VarChar(255)
+  degreeType       String?   @map("degree_type") @db.VarChar(100)
+  major            String?   @db.VarChar(255)
+  minor            String?   @db.VarChar(255)
+  gpa              Decimal?  @db.Decimal(3, 2)
+  gpaScale         Decimal   @default(4.00) @map("gpa_scale") @db.Decimal(3, 2)
+  showGpa          Boolean   @default(false) @map("show_gpa")
+  startDate        DateTime? @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
+  isCurrent        Boolean   @default(false) @map("is_current")
+  graduationDate   DateTime? @map("graduation_date") @db.Date
+  locationCity     String?   @map("location_city") @db.VarChar(100)
+  locationState    String?   @map("location_state") @db.VarChar(100)
+  locationCountry  String?   @map("location_country") @db.VarChar(100)
+  honors           String[]
+  activities       String[]
+  description      String?
+  displayOrder     Int       @default(0) @map("display_order")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  userProfile UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([degreeType])
+  @@index([startDate, endDate])
+  @@map("education")
+}
