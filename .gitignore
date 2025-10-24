@@ -31,3 +31,6 @@ Thumbs.db
 
 # Customs
 *.ps1
+
+coverage
+migrations
