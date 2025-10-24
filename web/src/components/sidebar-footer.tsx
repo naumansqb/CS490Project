@@ -1,10 +1,10 @@
 'use client'
 
-import { auth } from "../../firebaseConfig";
+import { getCurrentUser, signOutUser } from "@/lib/firebase/firebase-auth-service";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
-import { onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,18 +13,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
+import { useRouter } from "next/navigation";
 
 
 export default function UserFooter() {
-    const [user, setUser] = useState<any>(null);
+    const user = getCurrentUser();
+    const router = useRouter();
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-        });
+    const handleSignOut = async () => {
+        try {
+            await signOutUser();
+            router.push('/signin');
+        } catch (error) {
+        console.error("Error signing out:", error);
+        }
 
-        return () => unsubscribe(); 
-    }, []);
+    }
+    
 
     console.log("UserFooter user:", user);
     return (
@@ -50,7 +55,7 @@ export default function UserFooter() {
                     <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log Out</span>
                 </DropdownMenuItem>
