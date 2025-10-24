@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -282,10 +283,10 @@ export function SignInForm({
             </FieldDescription>
           )}
           <FieldDescription className="text-right">
-            <a href="#" className="text-primary hover:underline text-sm">
-              Forgot password?
-            </a>
-          </FieldDescription>
+  	    <Link href="/forgot-password" className="text-primary hover:underline text-sm">
+    		Forgot password?
+ 	     </Link>
+	  </FieldDescription>
         </Field>
 
         <Field>
