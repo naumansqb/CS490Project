@@ -14,10 +14,9 @@ import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
-  signUpWithEmail,
+  signInWithEmail,
   signInWithGoogle,
   signInWithGithub,
-  validatePassword,
   validateEmail,
   AuthenticationError,
 } from "../lib/firebase/firebase-auth-service";
@@ -25,7 +24,6 @@ import {
 interface FormErrors {
   email: string;
   password: string;
-  confirmPassword: string;
   google: string;
   github: string;
 }
@@ -33,18 +31,16 @@ interface FormErrors {
 const initialErrors: FormErrors = {
   email: "",
   password: "",
-  confirmPassword: "",
   google: "",
   github: "",
 };
 
-export function SignupForm({
+export function SignInForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>(initialErrors);
   const [isLoading, setIsLoading] = useState(false);
   const [oAuthLoading, setOAuthLoading] = useState<{
@@ -85,21 +81,6 @@ export function SignupForm({
     if (!password) {
       newErrors.password = "Password is required";
       isValid = false;
-    } else {
-      const passwordValidation = validatePassword(password);
-      if (!passwordValidation.isValid) {
-        newErrors.password = passwordValidation.errors[0];
-        isValid = false;
-      }
-    }
-
-    // Validate confirm password
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-      isValid = false;
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-      isValid = false;
     }
 
     setErrors(newErrors);
@@ -107,7 +88,7 @@ export function SignupForm({
   };
 
   /**
-   * Handle email/password sign up
+   * Handle email/password sign in
    */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -120,17 +101,17 @@ export function SignupForm({
     setIsLoading(true);
 
     try {
-      const result = await signUpWithEmail(email, password);
+      const result = await signInWithEmail(email, password);
 
       if (result.success && result.user) {
-        // Successfully signed up - redirect to dashboard
+        // Successfully signed in - redirect to dashboard
         router.push("/dashboard");
       } else if (result.error) {
         // Handle specific error types
         handleAuthError(result.error);
       }
     } catch (error) {
-      console.error("Unexpected error during sign up:", error);
+      console.error("Unexpected error during sign in:", error);
       setErrors((prev) => ({
         ...prev,
         email: "An unexpected error occurred. Please try again.",
@@ -148,13 +129,19 @@ export function SignupForm({
 
     // Map error codes to specific form fields
     switch (error.code) {
-      case "auth/email-already-in-use":
+      case "auth/user-not-found":
       case "auth/invalid-email":
         newErrors.email = error.message;
         break;
-      case "auth/weak-password":
-      case "auth/password-does-not-meet-requirements":
+      case "auth/wrong-password":
+      case "auth/invalid-credential":
         newErrors.password = error.message;
+        break;
+      case "auth/too-many-requests":
+        newErrors.password = error.message;
+        break;
+      case "auth/user-disabled":
+        newErrors.email = error.message;
         break;
       default:
         newErrors.email = error.message;
@@ -247,16 +234,11 @@ export function SignupForm({
     >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Create your account</h1>
+          <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            Fill in the form below to create your account
+            Sign in to your account to continue
           </p>
         </div>
-
-        <Field>
-          <FieldLabel htmlFor="name">Full Name</FieldLabel>
-          <Input id="name" type="text" placeholder="John Doe" required />
-        </Field>
 
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -294,34 +276,15 @@ export function SignupForm({
             disabled={isLoading}
             required
           />
-          <FieldDescription
-            className={errors.password ? "text-destructive" : ""}
-          >
-            {errors.password ||
-              "At least 8 characters long, with at least 1 uppercase letter and 1 number."}
-          </FieldDescription>
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-          <Input
-            id="confirm-password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              if (errors.confirmPassword) clearErrors("confirmPassword");
-            }}
-            className={errors.confirmPassword ? "border-destructive" : ""}
-            disabled={isLoading}
-            required
-          />
-          <FieldDescription
-            className={
-              errors.confirmPassword ? "text-destructive font-bold" : ""
-            }
-          >
-            {errors.confirmPassword || "Please confirm your password"}
+          {errors.password && (
+            <FieldDescription className="text-destructive">
+              {errors.password}
+            </FieldDescription>
+          )}
+          <FieldDescription className="text-right">
+            <a href="#" className="text-primary hover:underline text-sm">
+              Forgot password?
+            </a>
           </FieldDescription>
         </Field>
 
@@ -331,7 +294,7 @@ export function SignupForm({
             className="cursor-pointer"
             disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
           >
-            {isLoading ? "Creating Account..." : "Create Account"}
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </Field>
 
@@ -350,7 +313,7 @@ export function SignupForm({
             disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
           >
             <Image src="/Google.svg" alt="Google icon" width={20} height={20} />
-            {oAuthLoading.google ? "Signing in..." : "Sign up with Google"}
+            {oAuthLoading.google ? "Signing in..." : "Sign in with Google"}
           </Button>
           {errors.google && (
             <FieldDescription className="text-destructive">
@@ -370,7 +333,7 @@ export function SignupForm({
             disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
           >
             <Image src="/github.svg" alt="Github Logo" width={20} height={20} />
-            {oAuthLoading.github ? "Signing in..." : "Sign up with GitHub"}
+            {oAuthLoading.github ? "Signing in..." : "Sign in with GitHub"}
           </Button>
           {errors.github && (
             <FieldDescription className="text-destructive">
@@ -379,7 +342,10 @@ export function SignupForm({
           )}
 
           <FieldDescription className="px-6 text-center">
-            Already have an account? <a href="/signin">Sign in</a>
+            Don't have an account?{" "}
+            <a href="/signup" className="text-primary hover:underline">
+              Sign up
+            </a>
           </FieldDescription>
         </Field>
       </FieldGroup>
