@@ -1,10 +1,10 @@
 'use client'
 
-import { auth } from "../../firebaseConfig";
+import { getCurrentUser } from "@/lib/firebase/firebase-auth-service";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
-import { onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,18 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
+import { get } from "http";
 
 
 export default function UserFooter() {
-    const [user, setUser] = useState<any>(null);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-        });
-
-        return () => unsubscribe(); 
-    }, []);
+    const user = getCurrentUser();
 
     console.log("UserFooter user:", user);
     return (
