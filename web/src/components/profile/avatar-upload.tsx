@@ -79,7 +79,7 @@ export function AvatarUpload({ onUpload, currentImage, className }: AvatarUpload
   };
 
   return (
-    <Card className={cn("w-full max-w-sm", className)}>
+    <Card className={cn("w-full", className)}>
       <CardContent className="p-6">
         <div className="space-y-4">
           {/* Avatar Display */}
