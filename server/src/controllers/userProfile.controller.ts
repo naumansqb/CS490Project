@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { prisma } from "../db";
 import { Prisma } from "@prisma/client";
 import {
@@ -6,13 +6,16 @@ import {
   validateUserProfileUpdate,
 } from "../validators/userProfile.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createUserProfile = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const validationErrors = validateUserProfile(req.body);
+    const userId = req.userId!;
+
+    const validationErrors = validateUserProfile({ ...req.body, userId });
     if (validationErrors.length > 0) {
       sendErrorResponse(
         res,
@@ -25,7 +28,7 @@ export const createUserProfile = async (
     }
 
     const userProfile = await prisma.userProfile.create({
-      data: req.body,
+      data: { ...req.body, userId },
     });
     res.status(201).json(userProfile);
   } catch (error) {
@@ -50,45 +53,23 @@ export const createUserProfile = async (
 };
 
 export const getUserProfile = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const userProfile = await prisma.userProfile.findUnique({
-      where: { id },
-      include: {
-        workExperiences: {
-          orderBy: { displayOrder: "asc" },
-        },
-        education: {
-          orderBy: { displayOrder: "asc" },
-        },
-      },
-    });
+    const authenticatedUserId = req.userId!;
+    const { userId } = req.params;
 
-    if (!userProfile) {
-      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this profile"
+      );
       return;
     }
 
-    res.json(userProfile);
-  } catch (error) {
-    sendErrorResponse(
-      res,
-      500,
-      "INTERNAL_ERROR",
-      "Failed to fetch user profile"
-    );
-  }
-};
-
-export const getUserProfileByUserId = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const { userId } = req.params;
     const userProfile = await prisma.userProfile.findUnique({
       where: { userId },
       include: {
@@ -96,6 +77,15 @@ export const getUserProfileByUserId = async (
           orderBy: { displayOrder: "asc" },
         },
         education: {
+          orderBy: { displayOrder: "asc" },
+        },
+        skills: {
+          orderBy: { displayOrder: "asc" },
+        },
+        certifications: {
+          orderBy: { issueDate: "desc" },
+        },
+        specialProjects: {
           orderBy: { displayOrder: "asc" },
         },
       },
@@ -118,10 +108,32 @@ export const getUserProfileByUserId = async (
 };
 
 export const updateUserProfile = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const authenticatedUserId = req.userId!;
+    const { userId } = req.params;
+
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to update this profile"
+      );
+      return;
+    }
+
+    const existingProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!existingProfile) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
+      return;
+    }
+
     const validationErrors = validateUserProfileUpdate(req.body);
     if (validationErrors.length > 0) {
       sendErrorResponse(
@@ -134,19 +146,12 @@ export const updateUserProfile = async (
       return;
     }
 
-    const { id } = req.params;
     const userProfile = await prisma.userProfile.update({
-      where: { id },
+      where: { userId },
       data: req.body,
     });
     res.json(userProfile);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
@@ -157,49 +162,42 @@ export const updateUserProfile = async (
 };
 
 export const deleteUserProfile = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const authenticatedUserId = req.userId!;
+    const { userId } = req.params;
+
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to delete this profile"
+      );
+      return;
+    }
+
+    const existingProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!existingProfile) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
+      return;
+    }
+
     await prisma.userProfile.delete({
-      where: { id },
+      where: { userId },
     });
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
       "INTERNAL_ERROR",
       "Failed to delete user profile"
-    );
-  }
-};
-
-export const listUserProfiles = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const { limit = "10", offset = "0" } = req.query;
-    const userProfiles = await prisma.userProfile.findMany({
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string),
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(userProfiles);
-  } catch (error) {
-    sendErrorResponse(
-      res,
-      500,
-      "INTERNAL_ERROR",
-      "Failed to fetch user profiles"
     );
   }
 };

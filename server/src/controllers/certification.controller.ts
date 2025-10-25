@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { prisma } from "../db";
 import { Prisma } from "@prisma/client";
 import {
@@ -6,13 +6,16 @@ import {
   validateCertificationUpdate,
 } from "../validators/certification.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createCertification = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const validationErrors = validateCertification(req.body);
+    const userId = req.userId!;
+
+    const validationErrors = validateCertification({ ...req.body, userId });
     if (validationErrors.length > 0) {
       sendErrorResponse(
         res,
@@ -25,7 +28,7 @@ export const createCertification = async (
     }
 
     const certification = await prisma.certification.create({
-      data: req.body,
+      data: { ...req.body, userId },
     });
     res.status(201).json(certification);
   } catch (error) {
@@ -45,17 +48,19 @@ export const createCertification = async (
 };
 
 export const getCertification = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
     const certification = await prisma.certification.findUnique({
       where: { id },
       include: {
         userProfile: {
           select: {
-            id: true,
+            userId: true,
             firstName: true,
             lastName: true,
           },
@@ -65,6 +70,16 @@ export const getCertification = async (
 
     if (!certification) {
       sendErrorResponse(res, 404, "NOT_FOUND", "Certification not found");
+      return;
+    }
+
+    if (certification.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this certification"
+      );
       return;
     }
 
@@ -80,11 +95,23 @@ export const getCertification = async (
 };
 
 export const getCertificationsByUserId = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const authenticatedUserId = req.userId!;
     const { userId } = req.params;
+
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access these certifications"
+      );
+      return;
+    }
+
     const certifications = await prisma.certification.findMany({
       where: { userId },
       orderBy: { issueDate: "desc" },
@@ -101,10 +128,32 @@ export const getCertificationsByUserId = async (
 };
 
 export const updateCertification = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
+    const { id } = req.params;
+
+    const existingCertification = await prisma.certification.findUnique({
+      where: { id },
+    });
+
+    if (!existingCertification) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Certification not found");
+      return;
+    }
+
+    if (existingCertification.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to update this certification"
+      );
+      return;
+    }
+
     const validationErrors = validateCertificationUpdate(req.body);
     if (validationErrors.length > 0) {
       sendErrorResponse(
@@ -117,19 +166,12 @@ export const updateCertification = async (
       return;
     }
 
-    const { id } = req.params;
     const certification = await prisma.certification.update({
       where: { id },
       data: req.body,
     });
     res.json(certification);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Certification not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
@@ -140,22 +182,37 @@ export const updateCertification = async (
 };
 
 export const deleteCertification = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
+    const existingCertification = await prisma.certification.findUnique({
+      where: { id },
+    });
+
+    if (!existingCertification) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Certification not found");
+      return;
+    }
+
+    if (existingCertification.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to delete this certification"
+      );
+      return;
+    }
+
     await prisma.certification.delete({
       where: { id },
     });
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Certification not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
