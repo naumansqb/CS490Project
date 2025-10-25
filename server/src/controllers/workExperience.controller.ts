@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { prisma } from "../db";
 import { Prisma } from "@prisma/client";
 import {
@@ -6,13 +6,16 @@ import {
   validateWorkExperienceUpdate,
 } from "../validators/workExperience.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createWorkExperience = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const validationErrors = validateWorkExperience(req.body);
+    const userId = req.userId!;
+
+    const validationErrors = validateWorkExperience({ ...req.body, userId });
     if (validationErrors.length > 0) {
       sendErrorResponse(
         res,
@@ -25,7 +28,7 @@ export const createWorkExperience = async (
     }
 
     const workExperience = await prisma.workExperience.create({
-      data: req.body,
+      data: { ...req.body, userId },
     });
     res.status(201).json(workExperience);
   } catch (error) {
@@ -45,17 +48,19 @@ export const createWorkExperience = async (
 };
 
 export const getWorkExperience = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
     const workExperience = await prisma.workExperience.findUnique({
       where: { id },
       include: {
         userProfile: {
           select: {
-            id: true,
+            userId: true,
             firstName: true,
             lastName: true,
           },
@@ -65,6 +70,16 @@ export const getWorkExperience = async (
 
     if (!workExperience) {
       sendErrorResponse(res, 404, "NOT_FOUND", "Work experience not found");
+      return;
+    }
+
+    if (workExperience.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this work experience"
+      );
       return;
     }
 
@@ -80,11 +95,23 @@ export const getWorkExperience = async (
 };
 
 export const getWorkExperiencesByUserId = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const authenticatedUserId = req.userId!;
     const { userId } = req.params;
+
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access these work experiences"
+      );
+      return;
+    }
+
     const workExperiences = await prisma.workExperience.findMany({
       where: { userId },
       orderBy: [{ isCurrent: "desc" }, { startDate: "desc" }],
@@ -101,10 +128,32 @@ export const getWorkExperiencesByUserId = async (
 };
 
 export const updateWorkExperience = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
+    const { id } = req.params;
+
+    const existingWorkExperience = await prisma.workExperience.findUnique({
+      where: { id },
+    });
+
+    if (!existingWorkExperience) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Work experience not found");
+      return;
+    }
+
+    if (existingWorkExperience.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to update this work experience"
+      );
+      return;
+    }
+
     const validationErrors = validateWorkExperienceUpdate(req.body);
     if (validationErrors.length > 0) {
       sendErrorResponse(
@@ -117,19 +166,12 @@ export const updateWorkExperience = async (
       return;
     }
 
-    const { id } = req.params;
     const workExperience = await prisma.workExperience.update({
       where: { id },
       data: req.body,
     });
     res.json(workExperience);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Work experience not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
@@ -140,22 +182,37 @@ export const updateWorkExperience = async (
 };
 
 export const deleteWorkExperience = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
+    const existingWorkExperience = await prisma.workExperience.findUnique({
+      where: { id },
+    });
+
+    if (!existingWorkExperience) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Work experience not found");
+      return;
+    }
+
+    if (existingWorkExperience.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to delete this work experience"
+      );
+      return;
+    }
+
     await prisma.workExperience.delete({
       where: { id },
     });
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Work experience not found");
-        return;
-      }
-    }
     sendErrorResponse(
       res,
       500,
