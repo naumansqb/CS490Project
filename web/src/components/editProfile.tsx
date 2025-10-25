@@ -22,6 +22,7 @@ import { CheckCircle2 } from "lucide-react"
 import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/lib/firebase/firebaseConfig"
+import { useRouter } from "next/navigation"
 
 const industries = [
   "Technology",
@@ -46,6 +47,7 @@ const experienceLevels = [
 ]
 
 export default function ProfileForm() {
+    const router = useRouter();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -146,11 +148,17 @@ export default function ProfileForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("Test")
     
     if (validateForm()) {
       console.log("Form submitted:", formData)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
+      router.push('/profile')
+    }
+    else {
+      setShowSuccess(false)
+        console.log("Form has errors:", errors)
     }
   }
 
@@ -169,6 +177,7 @@ export default function ProfileForm() {
     })
     setErrors({})
     setShowSuccess(false)
+    router.push('/profile')
   }
 
   return (
@@ -393,7 +402,7 @@ export default function ProfileForm() {
             </div>
 
             <div className="flex gap-3 pt-6 border-t">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" onClick={handleSubmit}>
                 Save Profile
               </Button>
               <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
