@@ -34,3 +34,4 @@ Thumbs.db
 
 coverage
 migrations
+*.old.prisma
