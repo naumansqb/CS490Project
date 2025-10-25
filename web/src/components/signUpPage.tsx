@@ -294,12 +294,27 @@ export function SignupForm({
             disabled={isLoading}
             required
           />
-          <FieldDescription
-            className={errors.password ? "text-destructive" : ""}
-          >
-            {errors.password ||
-              "At least 8 characters long, with at least 1 uppercase letter and 1 number."}
-          </FieldDescription>
+
+          <div className="mt-2 space-y-1 text-sm">
+            <div className={password.length >= 8 ? "text-green-600" : "text-gray-500"}>
+              {password.length >= 8 ? "✓" : "○"} At least 8 characters
+            </div>
+            <div className={/[A-Z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+              {/[A-Z]/.test(password) ? "✓" : "○"} At least 1 uppercase letter
+            </div>
+            <div className={/[a-z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+              {/[a-z]/.test(password) ? "✓" : "○"} At least 1 lowercase letter
+            </div>
+            <div className={/[0-9]/.test(password) ? "text-green-600" : "text-gray-500"}>
+              {/[0-9]/.test(password) ? "✓" : "○"} At least 1 number
+            </div>
+          </div>
+
+          {errors.password && (
+            <FieldDescription className="text-destructive">
+              {errors.password}
+            </FieldDescription>
+          )}
         </Field>
 
         <Field>

@@ -10,6 +10,8 @@ import {
   AuthError,
   AuthProvider,
   sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 
@@ -225,6 +227,10 @@ export function validatePassword(password: string): {
     errors.push("Password must contain at least one uppercase letter");
   }
 
+  if (!/[a-z]/.test(password)) {
+    errors.push("Password must contain at least one lowercase letter");
+  }
+
   if (!/[0-9]/.test(password)) {
     errors.push("Password must contain at least one number");
   }
@@ -253,6 +259,42 @@ export async function sendPasswordReset(
     return { success: true };
   } catch (error) {
     console.error("Password reset error:", error);
+    return {
+      success: false,
+      error: new AuthenticationError(error as AuthError),
+    };
+  }
+}
+/**
+ * Verify password reset code is valid
+ */
+export async function verifyPasswordResetToken(
+  code: string
+): Promise<{ success: boolean; email?: string; error?: AuthenticationError }> {
+  try {
+    const email = await verifyPasswordResetCode(auth, code);
+    return { success: true, email };
+  } catch (error) {
+    console.error("Verify reset code error:", error);
+    return {
+      success: false,
+      error: new AuthenticationError(error as AuthError),
+    };
+  }
+}
+
+/**
+ * Complete password reset with new password
+ */
+export async function completePasswordReset(
+  code: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: AuthenticationError }> {
+  try {
+    await confirmPasswordReset(auth, code, newPassword);
+    return { success: true };
+  } catch (error) {
+    console.error("Complete password reset error:", error);
     return {
       success: false,
       error: new AuthenticationError(error as AuthError),

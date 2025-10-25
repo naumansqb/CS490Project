@@ -41,7 +41,7 @@ export default function UserFooter() {
                 >
                     <Image
                         className="rounded-lg"
-                        src={user?.photoURL || "/default-profile.png"}
+                        src={user?.photoURL || "/default_profile.png"}
                         alt="User Profile"
                         width={40}
                         height={40}
