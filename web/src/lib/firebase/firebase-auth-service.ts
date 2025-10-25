@@ -12,6 +12,9 @@ import {
   sendPasswordResetEmail,
   confirmPasswordReset,
   verifyPasswordResetCode,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 
@@ -295,6 +298,38 @@ export async function completePasswordReset(
     return { success: true };
   } catch (error) {
     console.error("Complete password reset error:", error);
+    return {
+      success: false,
+      error: new AuthenticationError(error as AuthError),
+    };
+  }
+}
+/**
+ * Delete user account permanently
+ * Requires password re-authentication
+ */
+export async function deleteUserAccount(
+  password: string
+): Promise<{ success: boolean; error?: AuthenticationError }> {
+  try {
+    const user = auth.currentUser;
+
+    if (!user || !user.email) {
+      return {
+        success: false,
+        error: new AuthenticationError({
+          code: "auth/user-not-found",
+          message: "No user is currently signed in",
+        } as AuthError),
+      };
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+    await deleteUser(user);
+    return { success: true };
+  } catch (error) {
+    console.error("Delete account error:", error);
     return {
       success: false,
       error: new AuthenticationError(error as AuthError),
