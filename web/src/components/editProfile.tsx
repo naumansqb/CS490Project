@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react"
+import DeleteAccount from "./deleteAccount"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -23,6 +24,7 @@ import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/lib/firebase/firebaseConfig"
 import { useRouter } from "next/navigation"
+
 
 const industries = [
   "Technology",
@@ -47,7 +49,7 @@ const experienceLevels = [
 ]
 
 export default function ProfileForm() {
-    const router = useRouter();
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -61,6 +63,7 @@ export default function ProfileForm() {
     industry: "",
     experienceLevel: ""
   })
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
@@ -69,23 +72,23 @@ export default function ProfileForm() {
 
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    console.log("Auth state changed, user:", user)
-    
-    if (user) {
-      console.log("User displayName:", user.displayName)
-      console.log("User email:", user.email)
-      setFormData(prev => ({
-        ...prev,
-        firstName: user.displayName?.split(" ")[0] || "",
-        lastName: user.displayName?.split(" ")[1] || "",
-        email: user.email || "",
-      }))
-    }
-  })
-  
-  return () => unsubscribe() // Cleanup listener on unmount
-}, [])
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed, user:", user)
+
+      if (user) {
+        console.log("User displayName:", user.displayName)
+        console.log("User email:", user.email)
+        setFormData(prev => ({
+          ...prev,
+          firstName: user.displayName?.split(" ")[0] || "",
+          lastName: user.displayName?.split(" ")[1] || "",
+          email: user.email || "",
+        }))
+      }
+    })
+
+    return () => unsubscribe() // Cleanup listener on unmount
+  }, [])
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -149,7 +152,7 @@ export default function ProfileForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log("Test")
-    
+
     if (validateForm()) {
       console.log("Form submitted:", formData)
       setShowSuccess(true)
@@ -158,7 +161,7 @@ export default function ProfileForm() {
     }
     else {
       setShowSuccess(false)
-        console.log("Form has errors:", errors)
+      console.log("Form has errors:", errors)
     }
   }
 
@@ -201,7 +204,7 @@ export default function ProfileForm() {
           <FieldGroup onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
-              
+
               <Field>
                 <FieldLabel htmlFor="fullName">First Name *</FieldLabel>
                 <Input
@@ -220,19 +223,19 @@ export default function ProfileForm() {
               </Field>
               <Field>
                 <FieldLabel htmlFor="fullName">Last Name *</FieldLabel>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder={"John Doe"}
-                    value={formData.lastName}
-                    onChange={(e) => handleChange("lastName", e.target.value)}
-                    className={errors.fullName ? "border-red-500" : ""}
-                  />
-                  {errors.fullName && (
-                    <FieldDescription className="text-red-600">
-                      {errors.fullName}
-                    </FieldDescription>
-                  )}
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder={"John Doe"}
+                  value={formData.lastName}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
+                  className={errors.fullName ? "border-red-500" : ""}
+                />
+                {errors.fullName && (
+                  <FieldDescription className="text-red-600">
+                    {errors.fullName}
+                  </FieldDescription>
+                )}
               </Field>
 
               <Field>
@@ -411,6 +414,29 @@ export default function ProfileForm() {
             </div>
           </FieldGroup>
         </div>
+        {/* Danger Zone - Account Deletion */}
+        <div className="mt-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-red-900 mb-2">
+              Danger Zone
+            </h2>
+            <p className="text-sm text-red-700 mb-4">
+              Once you delete your account, there is no going back. Please be certain.
+            </p>
+            <Button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Account
+            </Button>
+          </div>
+        </div>
+
+        {/* Delete Account Modal */}
+        <DeleteAccount
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)} />
       </div>
     </div>
   )
