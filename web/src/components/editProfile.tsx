@@ -181,12 +181,12 @@ export default function ProfileForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900">Create Your Professional Profile</h1>
-            <p className="text-slate-600 mt-2">Tell us about yourself to get started</p>
+            <h1 className="text-3xl font-bold text-slate-900">Edit Your Professional Profile</h1>
+            <p className="text-slate-600 mt-2">Tell us about yourself</p>
           </div>
 
           {showSuccess && (
