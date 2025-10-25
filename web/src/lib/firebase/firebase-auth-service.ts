@@ -9,6 +9,7 @@ import {
   UserCredential,
   AuthError,
   AuthProvider,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 
@@ -240,4 +241,21 @@ export function validatePassword(password: string): {
 export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+}
+/**
+ * Send password reset email
+ */
+export async function sendPasswordReset(
+  email: string
+): Promise<{ success: boolean; error?: AuthenticationError }> {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return { success: true };
+  } catch (error) {
+    console.error("Password reset error:", error);
+    return {
+      success: false,
+      error: new AuthenticationError(error as AuthError),
+    };
+  }
 }
