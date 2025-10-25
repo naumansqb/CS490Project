@@ -1,8 +1,10 @@
-import { Response } from "express";
+import { Request, Response } from 'express';
 import { prisma } from "../db";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { validateUserProfileUpdate } from "../validators/userProfile.validator";
+import { sendAccountDeletionEmail } from '../services/email';
+
 
 export const getCurrentUser = async (
   req: AuthRequest,
@@ -103,3 +105,32 @@ export const updateCurrentUser = async (
     );
   }
 };
+
+/**
+ * Send account deletion confirmation email
+ */
+export async function sendDeletionEmail(req: Request, res: Response) {
+  try {
+    const { email, userName } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    await sendAccountDeletionEmail(email, userName || 'User');
+
+    res.status(200).json({
+      success: true,
+      message: 'Deletion confirmation email sent'
+    });
+  } catch (error) {
+    console.error('Send deletion email error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send email'
+    });
+  }
+}
