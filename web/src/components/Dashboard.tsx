@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { useState } from "react";
+import { Button } from "./ui/button";
 
 export default function Dashboard() {
   return (
@@ -99,5 +101,6 @@ export default function Dashboard() {
         </a>
       </footer>
     </div>
+
   );
 }
