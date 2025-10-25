@@ -1,13 +1,15 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import * as userProfileController from "../../controllers/userProfile.controller";
 import { prisma } from "../../db";
+import { AuthRequest } from "../../middleware/auth.middleware";
 
 describe("UserProfile Controller", () => {
-  let mockRequest: Partial<Request>;
+  let mockRequest: Partial<AuthRequest>;
   let mockResponse: Partial<Response>;
   let jsonMock: jest.Mock;
   let statusMock: jest.Mock;
   let sendMock: jest.Mock;
+  const mockFirebaseUID = "firebase-test-uid-456";
 
   beforeEach(() => {
     jsonMock = jest.fn();
@@ -25,23 +27,21 @@ describe("UserProfile Controller", () => {
   describe("createUserProfile", () => {
     it("should create a user profile successfully", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174000",
         firstName: "John",
         lastName: "Doe",
         headline: "Software Engineer",
       };
 
-      mockRequest = { body: userData };
+      mockRequest = { userId: mockFirebaseUID, body: userData };
 
       await userProfileController.createUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId: userData.userId,
           firstName: userData.firstName,
           lastName: userData.lastName,
         })
@@ -50,16 +50,17 @@ describe("UserProfile Controller", () => {
 
     it("should return 409 when user profile already exists", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174001",
         firstName: "Jane",
         lastName: "Smith",
       };
 
-      await prisma.userProfile.create({ data: userData });
-      mockRequest = { body: userData };
+      await prisma.userProfile.create({
+        data: { ...userData, userId: mockFirebaseUID },
+      });
+      mockRequest = { userId: mockFirebaseUID, body: userData };
 
       await userProfileController.createUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -80,7 +81,7 @@ describe("UserProfile Controller", () => {
       mockRequest = { body: userData };
 
       await userProfileController.createUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -100,67 +101,29 @@ describe("UserProfile Controller", () => {
     });
   });
 
-  describe("getUserProfile", () => {
-    it("should get a user profile by id", async () => {
-      const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174002",
-        firstName: "Alice",
-        lastName: "Johnson",
-      };
-
-      const created = await prisma.userProfile.create({ data: userData });
-      mockRequest = { params: { id: created.id } };
-
-      await userProfileController.getUserProfile(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(jsonMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: created.id,
-          firstName: userData.firstName,
-        })
-      );
-    });
-
-    it("should return 404 when user profile not found", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
-
-      await userProfileController.getUserProfile(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(statusMock).toHaveBeenCalledWith(404);
-      expect(jsonMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: "NOT_FOUND",
-          message: expect.any(String),
-        })
-      );
-    });
-  });
-
   describe("getUserProfileByUserId", () => {
     it("should get a user profile by userId", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174003",
         firstName: "Bob",
         lastName: "Wilson",
       };
 
-      await prisma.userProfile.create({ data: userData });
-      mockRequest = { params: { userId: userData.userId } };
+      await prisma.userProfile.create({
+        data: { ...userData, userId: mockFirebaseUID },
+      });
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: mockFirebaseUID },
+      };
 
-      await userProfileController.getUserProfileByUserId(
-        mockRequest as Request,
+      await userProfileController.getUserProfile(
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId: userData.userId,
+          userId: mockFirebaseUID,
           firstName: userData.firstName,
         })
       );
@@ -170,23 +133,29 @@ describe("UserProfile Controller", () => {
   describe("updateUserProfile", () => {
     it("should update a user profile", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174004",
         firstName: "Charlie",
         lastName: "Brown",
       };
 
-      const created = await prisma.userProfile.create({ data: userData });
+      const created = await prisma.userProfile.create({
+        data: { ...userData, userId: mockFirebaseUID },
+      });
+
       const updateData = { firstName: "Charles" };
-      mockRequest = { params: { id: created.id }, body: updateData };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: created.userId },
+        body: updateData,
+      };
 
       await userProfileController.updateUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: created.id,
+          userId: created.userId,
           firstName: "Charles",
         })
       );
@@ -194,12 +163,13 @@ describe("UserProfile Controller", () => {
 
     it("should return 404 when updating non-existent profile", async () => {
       mockRequest = {
-        params: { id: "123e4567-e89b-12d3-a456-426614174999" },
+        userId: mockFirebaseUID,
+        params: { userId: mockFirebaseUID },
         body: { firstName: "Test" },
       };
 
       await userProfileController.updateUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -214,18 +184,21 @@ describe("UserProfile Controller", () => {
 
     it("should return 400 for invalid update data", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174005",
         firstName: "Test",
       };
 
-      const created = await prisma.userProfile.create({ data: userData });
+      const created = await prisma.userProfile.create({
+        data: { ...userData, userId: mockFirebaseUID },
+      });
+
       mockRequest = {
-        params: { id: created.id },
+        userId: mockFirebaseUID,
+        params: { userId: created.userId },
         body: { yearsOfExperience: "invalid" },
       };
 
       await userProfileController.updateUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -242,16 +215,21 @@ describe("UserProfile Controller", () => {
   describe("deleteUserProfile", () => {
     it("should delete a user profile", async () => {
       const userData = {
-        userId: "123e4567-e89b-12d3-a456-426614174006",
         firstName: "David",
         lastName: "Miller",
       };
 
-      const created = await prisma.userProfile.create({ data: userData });
-      mockRequest = { params: { id: created.id } };
+      const created = await prisma.userProfile.create({
+        data: { ...userData, userId: mockFirebaseUID },
+      });
+
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: created.userId },
+      };
 
       await userProfileController.deleteUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -260,10 +238,13 @@ describe("UserProfile Controller", () => {
     });
 
     it("should return 404 when deleting non-existent profile", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: mockFirebaseUID },
+      };
 
       await userProfileController.deleteUserProfile(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -273,37 +254,6 @@ describe("UserProfile Controller", () => {
           code: "NOT_FOUND",
           message: expect.any(String),
         })
-      );
-    });
-  });
-
-  describe("listUserProfiles", () => {
-    it("should list user profiles with pagination", async () => {
-      await prisma.userProfile.createMany({
-        data: [
-          {
-            userId: "123e4567-e89b-12d3-a456-426614174010",
-            firstName: "User1",
-          },
-          {
-            userId: "123e4567-e89b-12d3-a456-426614174011",
-            firstName: "User2",
-          },
-        ],
-      });
-
-      mockRequest = { query: { limit: "10", offset: "0" } };
-
-      await userProfileController.listUserProfiles(
-        mockRequest as Request,
-        mockResponse as Response
-      );
-
-      expect(jsonMock).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ firstName: "User1" }),
-          expect.objectContaining({ firstName: "User2" }),
-        ])
       );
     });
   });

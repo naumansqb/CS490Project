@@ -6,13 +6,16 @@ import {
   validateEducationUpdate,
 } from "../validators/education.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createEducation = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const validationErrors = validateEducation(req.body);
+    const userId = req.userId!;
+
+    const validationErrors = validateEducation({ ...req.body, userId });
     if (validationErrors.length > 0) {
       sendErrorResponse(
         res,
@@ -25,7 +28,7 @@ export const createEducation = async (
     }
 
     const education = await prisma.education.create({
-      data: req.body,
+      data: { ...req.body, userId },
     });
     res.status(201).json(education);
   } catch (error) {
@@ -40,17 +43,19 @@ export const createEducation = async (
 };
 
 export const getEducation = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
     const education = await prisma.education.findUnique({
       where: { id },
       include: {
         userProfile: {
           select: {
-            id: true,
+            userId: true,
             firstName: true,
             lastName: true,
           },
@@ -63,6 +68,16 @@ export const getEducation = async (
       return;
     }
 
+    if (education.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this education"
+      );
+      return;
+    }
+
     res.json(education);
   } catch (error) {
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to fetch education");
@@ -70,11 +85,23 @@ export const getEducation = async (
 };
 
 export const getEducationsByUserId = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const authenticatedUserId = req.userId!;
     const { userId } = req.params;
+
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this profile"
+      );
+      return;
+    }
+
     const educations = await prisma.education.findMany({
       where: { userId },
       orderBy: [{ isCurrent: "desc" }, { startDate: "desc" }],
@@ -86,10 +113,32 @@ export const getEducationsByUserId = async (
 };
 
 export const updateEducation = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
+    const { id } = req.params;
+
+    const existingEducation = await prisma.education.findUnique({
+      where: { id },
+    });
+
+    if (!existingEducation) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Education not found");
+      return;
+    }
+
+    if (existingEducation.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to update this education"
+      );
+      return;
+    }
+
     const validationErrors = validateEducationUpdate(req.body);
     if (validationErrors.length > 0) {
       sendErrorResponse(
@@ -102,40 +151,48 @@ export const updateEducation = async (
       return;
     }
 
-    const { id } = req.params;
     const education = await prisma.education.update({
       where: { id },
       data: req.body,
     });
     res.json(education);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Education not found");
-        return;
-      }
-    }
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to update education");
   }
 };
 
 export const deleteEducation = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
+    const existingEducation = await prisma.education.findUnique({
+      where: { id },
+    });
+
+    if (!existingEducation) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Education not found");
+      return;
+    }
+
+    if (existingEducation.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to delete this education"
+      );
+      return;
+    }
+
     await prisma.education.delete({
       where: { id },
     });
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Education not found");
-        return;
-      }
-    }
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to delete education");
   }
 };
