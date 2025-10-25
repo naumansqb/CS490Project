@@ -1,12 +1,13 @@
 import { Router } from "express";
 import * as certificationController from "../controllers/certification.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/", certificationController.createCertification);
-router.get("/:id", certificationController.getCertification);
-router.get("/user/:userId", certificationController.getCertificationsByUserId);
-router.patch("/:id", certificationController.updateCertification);
-router.delete("/:id", certificationController.deleteCertification);
+router.post("/", authMiddleware, certificationController.createCertification);
+router.get("/:id", authMiddleware, certificationController.getCertification);
+router.get("/user/:userId", authMiddleware, certificationController.getCertificationsByUserId);
+router.patch("/:id", authMiddleware, certificationController.updateCertification);
+router.delete("/:id", authMiddleware, certificationController.deleteCertification);
 
 export default router;

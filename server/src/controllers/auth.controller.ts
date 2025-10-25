@@ -90,7 +90,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     res.status(201).json({
       message: "User registered successfully",
       user: {
-        id: userProfile.id,
         userId: userProfile.userId,
         firstName: userProfile.firstName,
         lastName: userProfile.lastName,
@@ -164,7 +163,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       message: "Login successful",
       user: {
-        id: userProfile.id,
         userId: userProfile.userId,
         firstName: userProfile.firstName,
         lastName: userProfile.lastName,

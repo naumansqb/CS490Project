@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { prisma } from "../db";
 import { Prisma } from "@prisma/client";
 import {
@@ -6,13 +6,16 @@ import {
   validateSkillUpdate,
 } from "../validators/skill.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createSkill = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const validationErrors = validateSkill(req.body);
+    const userId = req.userId!;
+
+    const validationErrors = validateSkill({ ...req.body, userId });
     if (validationErrors.length > 0) {
       sendErrorResponse(
         res,
@@ -25,7 +28,7 @@ export const createSkill = async (
     }
 
     const skill = await prisma.skill.create({
-      data: req.body,
+      data: { ...req.body, userId },
     });
     res.status(201).json(skill);
   } catch (error) {
@@ -48,15 +51,20 @@ export const createSkill = async (
   }
 };
 
-export const getSkill = async (req: Request, res: Response): Promise<void> => {
+export const getSkill = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
     const skill = await prisma.skill.findUnique({
       where: { id },
       include: {
         userProfile: {
           select: {
-            id: true,
+            userId: true,
             firstName: true,
             lastName: true,
           },
@@ -69,6 +77,16 @@ export const getSkill = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (skill.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this skill"
+      );
+      return;
+    }
+
     res.json(skill);
   } catch (error) {
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to fetch skill");
@@ -76,13 +94,24 @@ export const getSkill = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const getSkillsByUserId = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const authenticatedUserId = req.userId!;
     const { userId } = req.params;
-    const { category } = req.query;
 
+    if (authenticatedUserId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access these skills"
+      );
+      return;
+    }
+
+    const { category } = req.query;
     const where: any = { userId };
     if (category) {
       where.skillCategory = category;
@@ -99,10 +128,32 @@ export const getSkillsByUserId = async (
 };
 
 export const updateSkill = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
+    const { id } = req.params;
+
+    const existingSkill = await prisma.skill.findUnique({
+      where: { id },
+    });
+
+    if (!existingSkill) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Skill not found");
+      return;
+    }
+
+    if (existingSkill.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to update this skill"
+      );
+      return;
+    }
+
     const validationErrors = validateSkillUpdate(req.body);
     if (validationErrors.length > 0) {
       sendErrorResponse(
@@ -115,7 +166,6 @@ export const updateSkill = async (
       return;
     }
 
-    const { id } = req.params;
     const skill = await prisma.skill.update({
       where: { id },
       data: req.body,
@@ -123,10 +173,6 @@ export const updateSkill = async (
     res.json(skill);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Skill not found");
-        return;
-      }
       if (error.code === "P2002") {
         sendErrorResponse(
           res,
@@ -142,22 +188,37 @@ export const updateSkill = async (
 };
 
 export const deleteSkill = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = req.userId!;
     const { id } = req.params;
+
+    const existingSkill = await prisma.skill.findUnique({
+      where: { id },
+    });
+
+    if (!existingSkill) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Skill not found");
+      return;
+    }
+
+    if (existingSkill.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to delete this skill"
+      );
+      return;
+    }
+
     await prisma.skill.delete({
       where: { id },
     });
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2025") {
-        sendErrorResponse(res, 404, "NOT_FOUND", "Skill not found");
-        return;
-      }
-    }
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to delete skill");
   }
 };
