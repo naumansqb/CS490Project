@@ -81,6 +81,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         userId: uid,
         firstName: parsedFirstName || null,
         lastName: parsedLastName || null,
+        email: email || null,
       },
     });
 
