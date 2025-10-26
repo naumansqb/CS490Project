@@ -18,10 +18,18 @@ export default function DeleteAccountModal({
 }: DeleteAccountModalProps) {
     const router = useRouter();
     const [password, setPassword] = useState("");
+    const [confirmText, setConfirmText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState("");
 
     if (!isOpen) return null;
+
+    // Check if user is OAuth user
+    const user = auth.currentUser;
+    const isOAuthUser = user?.providerData.some(
+        provider => provider.providerId !== 'password'
+    );
+    const providerName = user?.providerData[0]?.providerId?.replace('.com', '') || 'provider';
 
     const handleDelete = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,7 +37,6 @@ export default function DeleteAccountModal({
         setIsDeleting(true);
 
         try {
-            // Get current user info
             const user = auth.currentUser;
 
             if (!user) {
@@ -38,35 +45,69 @@ export default function DeleteAccountModal({
                 return;
             }
 
-            // STEP 1: Send deletion confirmation email FIRST
-            const emailResponse = await fetch('http://localhost:5000/api/users/send-deletion-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: user.email,
-                    userName: user.displayName || 'User'
-                })
-            });
-
-            if (!emailResponse.ok) {
-                console.warn('Failed to send deletion email, but continuing with deletion');
+            if (confirmText !== 'DELETE') {
+                setError('Please type DELETE to confirm');
+                setIsDeleting(false);
+                return;
             }
 
-            // STEP 2: Delete the Firebase account
-            const result = await deleteUserAccount(password);
+            if (!isOAuthUser && !password) {
+                setError('Password is required');
+                setIsDeleting(false);
+                return;
+            }
 
-            if (result.success) {
-                // Account deleted successfully, redirect to sign in
-                router.push("/signin");
-            } else {
+            const result = await deleteUserAccount(isOAuthUser ? undefined : password);
+
+            if (!result.success) {
                 setError(result.error?.message || "Failed to delete account");
+                setIsDeleting(false);
+                return;
             }
+
+            try {
+                const emailResponse = await fetch('http://localhost:5000/api/users/send-deletion-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: user.email,
+                        userName: user.displayName || 'User'
+                    })
+                });
+
+                if (!emailResponse.ok) {
+                    console.warn('Failed to send deletion email, but account was deleted');
+                }
+            } catch (emailError) {
+                console.warn('Email send failed:', emailError);
+            }
+
+            try {
+                const dbResponse = await fetch('http://localhost:5000/api/users/delete-user-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: user.uid
+                    })
+                });
+
+                if (!dbResponse.ok) {
+                    console.warn('Failed to delete database data');
+                }
+            } catch (dbError) {
+                console.warn('Database deletion failed:', dbError);
+            }
+
+            await auth.signOut();
+            router.push("/signin");
+
         } catch (err: any) {
             setError("An unexpected error occurred");
             console.error("Delete account error:", err);
-        } finally {
             setIsDeleting(false);
         }
     };
@@ -97,16 +138,46 @@ export default function DeleteAccountModal({
                 </div>
 
                 <form onSubmit={handleDelete} className="space-y-4">
+                    {/* Password field - only for non-OAuth users */}
+                    {!isOAuthUser && (
+                        <div>
+                            <Label htmlFor="confirm-password">
+                                Enter your password to confirm
+                            </Label>
+                            <Input
+                                id="confirm-password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                                required
+                                disabled={isDeleting}
+                                className="mt-1"
+                            />
+                        </div>
+                    )}
+
+                    {/* OAuth users see different message */}
+                    {isOAuthUser && (
+                        <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
+                            <p className="text-sm text-blue-800">
+                                You signed in with <strong>{providerName}</strong>.
+                                You'll need to sign in again with {providerName} to confirm deletion.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Confirmation text for all users */}
                     <div>
-                        <Label htmlFor="confirm-password">
-                            Enter your password to confirm
+                        <Label htmlFor="confirm-delete">
+                            Type <span className="font-bold text-red-600">DELETE</span> to confirm
                         </Label>
                         <Input
-                            id="confirm-password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            id="confirm-delete"
+                            type="text"
+                            value={confirmText}
+                            onChange={(e) => setConfirmText(e.target.value)}
+                            placeholder="Type DELETE"
                             required
                             disabled={isDeleting}
                             className="mt-1"
@@ -131,7 +202,7 @@ export default function DeleteAccountModal({
                         </Button>
                         <Button
                             type="submit"
-                            disabled={isDeleting || !password}
+                            disabled={isDeleting || confirmText !== 'DELETE'}
                             className="flex-1 bg-red-600 hover:bg-red-700"
                         >
                             {isDeleting ? "Deleting..." : "Delete Account"}
