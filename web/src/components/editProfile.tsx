@@ -50,6 +50,7 @@ const experienceLevels = [
 
 export default function ProfileForm() {
   const router = useRouter();
+  const user = getCurrentUser();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -157,7 +158,7 @@ export default function ProfileForm() {
       console.log("Form submitted:", formData)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-      router.push('/profile')
+      router.push(`/profile/${user?.uid}`)
     }
     else {
       setShowSuccess(false)
@@ -180,7 +181,7 @@ export default function ProfileForm() {
     })
     setErrors({})
     setShowSuccess(false)
-    router.push('/profile')
+    router.push(`/profile/${user?.uid}`)
   }
 
   return (
@@ -234,23 +235,6 @@ export default function ProfileForm() {
                 {errors.fullName && (
                   <FieldDescription className="text-red-600">
                     {errors.fullName}
-                  </FieldDescription>
-                )}
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="email">Email *</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john.doe@example.com"
-                  value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  className={errors.email ? "border-red-500" : ""}
-                />
-                {errors.email && (
-                  <FieldDescription className="text-red-600">
-                    {errors.email}
                   </FieldDescription>
                 )}
               </Field>
