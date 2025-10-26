@@ -4,16 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Mail, MapPin, Phone, Briefcase, Flower2  } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/firebase/firebase-auth-service";
+import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
 
 export default function ProfileHeader() {
     const router = useRouter();
     const [user, setUser] = useState<Record<string, any> | null>(null);
-    const firebaseUser = getCurrentUser();
-    
-    
+    const { user: firebaseUser } = useAuth();
+
     useEffect(() => {
         const fetchProfile = async () => {
         try {
@@ -77,7 +76,7 @@ export default function ProfileHeader() {
             </div>
           </div>
           <div></div>
-          <Button variant="default" onClick={() => router.push(`/profile/${user?.uid}/edit`)}>Edit Profile</Button>
+          <Button variant="default" onClick={() => router.push(`/profile/${firebaseUser?.uid}/edit`)}>Edit Profile</Button>
         </div>
       </CardContent>
       <CardContent>
