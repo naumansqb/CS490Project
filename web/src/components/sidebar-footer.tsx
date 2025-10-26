@@ -1,6 +1,6 @@
 'use client'
 
-import { getCurrentUser, signOutUser } from "@/lib/firebase/firebase-auth-service";
+import { signOutUser } from "@/lib/firebase/firebase-auth-service";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
@@ -15,17 +15,17 @@ import {
 import { LogOut, User } from "lucide-react"
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserFooter() {
     const router = useRouter();
     const [user, setUser] = useState<Record<string, any> | null>(null);
-    const firebase = getCurrentUser();
+    const { user: firebase } = useAuth();
 
 
     useEffect(() => {
         const fetchProfile = async () => {
         try {
-            const userId = firebase?.uid; 
             const data = await apiClient.fetch(`/users/me`) as Record<string, any>;
             setUser(data);
             console.log('Fetched profile data:', data);

@@ -21,10 +21,9 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle2 } from "lucide-react"
 import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
-import { onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/lib/firebase/firebaseConfig"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
+import { useAuth } from '@/contexts/AuthContext';
 
 
 const industries = [
@@ -52,7 +51,7 @@ const experienceLevels = [
 export default function ProfileForm() {
   const router = useRouter();
   const [user, setUser] = useState<Record<string, any> | null>(null);
-  const firebaseUser = getCurrentUser();
+  const { user: firebaseUser } = useAuth();
 
   const updateUserProfile = async (userId: string, updateData: any) => {
     try {
@@ -188,7 +187,7 @@ export default function ProfileForm() {
           bio: formData.bio,
           careerLevel: formData.experienceLevel,
         }
-        const updatedData = await updateUserProfile(user?.uid!, updateForm);
+        const updatedData = await updateUserProfile(firebaseUser?.uid!, updateForm);
     
     console.log('Profile updated:', updatedData);
     // Update your state or show success message
@@ -197,7 +196,7 @@ export default function ProfileForm() {
   }
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-      router.push(`/profile/${user?.uid}`)
+      router.push(`/profile/${firebaseUser?.uid}`)
     }
     else {
       setShowSuccess(false)
@@ -220,7 +219,7 @@ export default function ProfileForm() {
     })
     setErrors({})
     setShowSuccess(false)
-    router.push(`/profile/${user?.uid}`)
+    router.push(`/profile/${firebaseUser?.uid}`)
   }
 
   return (
