@@ -12,9 +12,10 @@ import {
   sendPasswordResetEmail,
   confirmPasswordReset,
   verifyPasswordResetCode,
-  deleteUser,
   reauthenticateWithCredential,
   EmailAuthProvider,
+  reauthenticateWithPopup,
+  OAuthProvider,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 
@@ -98,7 +99,9 @@ export interface AuthResult {
  */
 export async function signUpWithEmail(
   email: string,
-  password: string
+  password: string,
+  firstName?: string,
+  lastName?: string
 ): Promise<AuthResult> {
   try {
     const userCredential: UserCredential = await createUserWithEmailAndPassword(
@@ -106,6 +109,32 @@ export async function signUpWithEmail(
       email,
       password
     );
+
+    // Step 2: Get Firebase ID token
+    const idToken = await userCredential.user.getIdToken();
+
+    // Step 3: Register with backend to create profile and set session cookie
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      }/auth/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ idToken, firstName, lastName }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Backend registration failed:", error);
+      // If backend registration fails, delete the Firebase user
+      await userCredential.user.delete();
+      throw new Error(error.message || "Backend registration failed");
+    }
+
     return {
       success: true,
       user: userCredential.user,
@@ -132,6 +161,32 @@ export async function signInWithEmail(
       email,
       password
     );
+
+    // Step 2: Get Firebase ID token
+    const idToken = await userCredential.user.getIdToken();
+
+    // Step 3: Sync with backend to set session cookie
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      }/auth/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ idToken }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Backend login failed:", error);
+      // If backend login fails, sign out from Firebase
+      await auth.signOut();
+      throw new Error(error.message || "Backend authentication failed");
+    }
+
     return {
       success: true,
       user: userCredential.user,
@@ -308,31 +363,75 @@ export async function completePasswordReset(
  * Delete user account permanently
  * Requires password re-authentication
  */
-export async function deleteUserAccount(
-  password: string
-): Promise<{ success: boolean; error?: AuthenticationError }> {
+export const deleteUserAccount = async (password?: string) => {
   try {
-    const user = auth.currentUser;
+    const user = auth.currentUser
 
-    if (!user || !user.email) {
+    if (!user) {
       return {
         success: false,
-        error: new AuthenticationError({
-          code: "auth/user-not-found",
-          message: "No user is currently signed in",
-        } as AuthError),
-      };
+        error: { message: "No user is currently logged in" }
+      }
     }
 
-    const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-    await deleteUser(user);
-    return { success: true };
-  } catch (error) {
-    console.error("Delete account error:", error);
+    const isOAuthUser = user.providerData.some(
+      provider => provider.providerId !== 'password'
+    )
+
+    if (isOAuthUser) {
+      const providerId = user.providerData[0].providerId
+
+      let provider
+      if (providerId === 'google.com') {
+        provider = new GoogleAuthProvider()
+      } else if (providerId === 'github.com') {
+        provider = new GithubAuthProvider()
+      } else {
+        provider = new OAuthProvider(providerId)
+      }
+
+      await reauthenticateWithPopup(user, provider)
+    } else {
+      if (!password) {
+        return {
+          success: false,
+          error: { message: "Password is required" }
+        }
+      }
+
+      const credential = EmailAuthProvider.credential(
+        user.email!,
+        password
+      )
+      await reauthenticateWithCredential(user, credential)
+    }
+
+    await user.delete()
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error deleting user account:", error)
+
+    if (error.code === 'auth/popup-closed-by-user') {
+      return {
+        success: false,
+        error: { message: "Re-authentication cancelled. Please try again." }
+      }
+    }
+
+    if (error.code === 'auth/wrong-password') {
+      return {
+        success: false,
+        error: { message: "Incorrect password. Please try again." }
+      }
+    }
+
     return {
       success: false,
-      error: new AuthenticationError(error as AuthError),
-    };
+      error: {
+        code: error.code,
+        message: error.message || "Failed to delete account"
+      }
+    }
   }
 }
