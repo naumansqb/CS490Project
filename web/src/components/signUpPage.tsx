@@ -47,6 +47,8 @@ export function SignupForm({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>(initialErrors);
   const [isLoading, setIsLoading] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [oAuthLoading, setOAuthLoading] = useState<{
     google: boolean;
     github: boolean;
@@ -120,7 +122,7 @@ export function SignupForm({
     setIsLoading(true);
 
     try {
-      const result = await signUpWithEmail(email, password);
+      const result = await signUpWithEmail(email, password, firstName, lastName);
 
       if (result.success && result.user) {
         // Successfully signed up - redirect to dashboard
@@ -254,8 +256,29 @@ export function SignupForm({
         </div>
 
         <Field>
-          <FieldLabel htmlFor="name">Full Name</FieldLabel>
-          <Input id="name" type="text" placeholder="John Doe" required />
+          <FieldLabel htmlFor="name">First Name</FieldLabel>
+          <Input 
+            id="name" 
+            type="text" 
+            placeholder="John" 
+            required 
+            onChange={(e) => {
+              setFirstName(e.target.value);
+            }}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="name">Last Name</FieldLabel>
+          <Input 
+            id="name" 
+            type="text" 
+            placeholder="Doe" 
+            required
+            onChange={(e) => {
+              setLastName(e.target.value);
+            }} 
+          />
         </Field>
 
         <Field>

@@ -100,8 +100,8 @@ export interface AuthResult {
 export async function signUpWithEmail(
   email: string,
   password: string,
-  firstName?: string,
-  lastName?: string
+  firstName: string,
+  lastName: string
 ): Promise<AuthResult> {
   try {
     const userCredential: UserCredential = await createUserWithEmailAndPassword(
