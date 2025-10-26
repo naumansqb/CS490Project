@@ -24,6 +24,7 @@ import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "@/lib/firebase/firebaseConfig"
 import { useRouter } from "next/navigation"
+import { apiClient } from "@/lib/api"
 
 
 const industries = [
@@ -50,7 +51,22 @@ const experienceLevels = [
 
 export default function ProfileForm() {
   const router = useRouter();
-  const user = getCurrentUser();
+  const [user, setUser] = useState<Record<string, any> | null>(null);
+  const firebaseUser = getCurrentUser();
+
+  const updateUserProfile = async (userId: string, updateData: any) => {
+    try {
+      console.log('User ID for update:', userId);
+      const data = await apiClient.fetch(`/user-profiles/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+      return data;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  };
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -64,32 +80,40 @@ export default function ProfileForm() {
     industry: "",
     experienceLevel: ""
   })
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+          const data = await apiClient.fetch(`/users/me`) as any;
+          setUser(data);
+          setFormData({
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
+            email: firebaseUser?.email || "",
+            phone: "",
+            city: data.locationCity || "",
+            state: data.locationState || "",
+            headline: data.headline || "",
+            bio: data.bio || "",
+            industry: "",
+            experienceLevel: data.experience_level || ""
+          });
+          console.log('Fetched profile data:', data);
+      } catch (error) {
+          console.error('Failed to load profile:', error);
+      } finally {
+      }
+    };
+    
+    fetchProfile();
+  }, []);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
   const bioLength = formData.bio.length
   const bioLimit = 500
-
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("Auth state changed, user:", user)
-
-      if (user) {
-        console.log("User displayName:", user.displayName)
-        console.log("User email:", user.email)
-        setFormData(prev => ({
-          ...prev,
-          firstName: user.displayName?.split(" ")[0] || "",
-          lastName: user.displayName?.split(" ")[1] || "",
-          email: user.email || "",
-        }))
-      }
-    })
-
-    return () => unsubscribe() // Cleanup listener on unmount
-  }, [])
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -150,12 +174,27 @@ export default function ProfileForm() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Test")
 
     if (validateForm()) {
-      console.log("Form submitted:", formData)
+      try {
+        const updateForm = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          locationCity: formData.city,
+          locationState: formData.state,
+          headline: formData.headline,
+          bio: formData.bio,
+          careerLevel: formData.experienceLevel,
+        }
+        const updatedData = await updateUserProfile(user?.uid!, updateForm);
+    
+    console.log('Profile updated:', updatedData);
+    // Update your state or show success message
+  } catch (error) {
+    console.error('Failed to update profile:', error);
+  }
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
       router.push(`/profile/${user?.uid}`)
@@ -252,6 +291,23 @@ export default function ProfileForm() {
                 {errors.phone && (
                   <FieldDescription className="text-red-600">
                     {errors.phone}
+                  </FieldDescription>
+                )}
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="phone">Email *</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="example@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  className={errors.phone ? "border-red-500" : ""}
+                />
+                {errors.email && (
+                  <FieldDescription className="text-red-600">
+                    {errors.email}
                   </FieldDescription>
                 )}
               </Field>
