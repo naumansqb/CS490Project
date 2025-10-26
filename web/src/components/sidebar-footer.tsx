@@ -1,6 +1,6 @@
 'use client'
 
-import { getCurrentUser, signOutUser } from "@/lib/firebase/firebase-auth-service";
+import { signOutUser } from "@/lib/firebase/firebase-auth-service";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
@@ -14,11 +14,30 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { LogOut, User } from "lucide-react"
 import { useRouter } from "next/navigation";
-
+import { apiClient } from "@/lib/api";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserFooter() {
-    const user = getCurrentUser();
     const router = useRouter();
+    const [user, setUser] = useState<Record<string, any> | null>(null);
+    const { user: firebase } = useAuth();
+
+    console.log('Auth user in UserFooter:', firebase);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+        try {
+            const data = await apiClient.fetch(`/user-profiles/${firebase?.uid}`) as Record<string, any>;
+            setUser(data);
+            console.log('Fetched profile data:', data);
+        } catch (error) {
+            console.error('Failed to load profile:', error);
+        } finally {
+        }
+        };
+        
+        fetchProfile();
+    }, []);
 
     const handleSignOut = async () => {
         try {
@@ -31,7 +50,6 @@ export default function UserFooter() {
     }
     
 
-    console.log("UserFooter user:", user);
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -41,16 +59,16 @@ export default function UserFooter() {
                 >
                     <Image
                         className="rounded-lg"
-                        src={user?.photoURL || "/default_profile.png"}
+                        src={firebase?.photoURL || "/default_profile.png"}
                         alt="User Profile"
                         width={40}
                         height={40}
                     />
-                    <span>{user?.displayName || user?.email || "Profile"}</span>
+                    <span>{user?.firstName} {user?.lastName}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <DropdownMenuItem onClick={() => router.push(`/profile/${user?.user_id}`)}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                 </DropdownMenuItem>
