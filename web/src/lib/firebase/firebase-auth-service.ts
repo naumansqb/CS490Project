@@ -226,9 +226,59 @@ export async function signInWithGithub(): Promise<AuthResult> {
 /**
  * Generic sign in with OAuth provider
  */
+/**
+ * Generic sign in with OAuth provider
+ */
 async function signInWithProvider(provider: AuthProvider): Promise<AuthResult> {
   try {
     const result: UserCredential = await signInWithPopup(auth, provider);
+
+    // Step 2: Get Firebase ID token
+    const idToken = await result.user.getIdToken();
+
+    // Step 3: Check if user exists in backend, if not register them
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ idToken }),
+      }
+    );
+
+    if (response.status === 404) {
+      const registerResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            idToken,
+            firstName: result.user.displayName?.split(' ')[0] || '',
+            lastName: result.user.displayName?.split(' ').slice(1).join(' ') || ''
+          }),
+        }
+      );
+
+      if (!registerResponse.ok) {
+        const error = await registerResponse.json();
+        console.error("Backend registration failed:", error);
+        await auth.signOut();
+        throw new Error(error.message || "Backend registration failed");
+      }
+    } else if (!response.ok) {
+      const error = await response.json();
+      console.error("Backend login failed:", error);
+      await auth.signOut();
+      throw new Error(error.message || "Backend authentication failed");
+    }
+
     return {
       success: true,
       user: result.user,
@@ -241,7 +291,6 @@ async function signInWithProvider(provider: AuthProvider): Promise<AuthResult> {
     };
   }
 }
-
 /**
  * Sign out the current user
  */
@@ -250,7 +299,16 @@ export async function signOutUser(): Promise<{
   error?: AuthenticationError;
 }> {
   try {
+    await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/logout`,
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    );
+
     await signOut(auth);
+
     return { success: true };
   } catch (error) {
     console.error("Sign out error:", error);
