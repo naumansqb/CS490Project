@@ -35,6 +35,9 @@ model UserProfile {
   profileVisibility   String?          @default("private") @map("profile_visibility") @db.VarChar(50)
   createdAt           DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt           DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  email               String?          @db.VarChar(255)
+  phone_number        String?          @db.VarChar(20)
+  industry            String?          @db.VarChar(100)
   certifications      Certification[]
   education           Education[]
   skills              Skill[]
