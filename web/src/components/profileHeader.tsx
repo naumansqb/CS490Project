@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, Mail, MapPin, Phone, Briefcase, Flower2  } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
@@ -12,11 +12,13 @@ export default function ProfileHeader() {
     const router = useRouter();
     const [user, setUser] = useState<Record<string, any> | null>(null);
     const { user: firebaseUser } = useAuth();
+    const params = useParams();
+     const urlUid = params.uid as string;
 
     useEffect(() => {
         const fetchProfile = async () => {
         try {
-            const data = await apiClient.fetch(`/users/me`) as Record<string, any>;
+            const data = await apiClient.fetch(`/user-profiles/${urlUid}`) as Record<string, any>;
             setUser(data);
             console.log('Fetched profile data:', data);
         } catch (error) {
