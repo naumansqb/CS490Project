@@ -22,11 +22,12 @@ export default function UserFooter() {
     const [user, setUser] = useState<Record<string, any> | null>(null);
     const { user: firebase } = useAuth();
 
+    console.log('Auth user in UserFooter:', firebase);
 
     useEffect(() => {
         const fetchProfile = async () => {
         try {
-            const data = await apiClient.fetch(`/users/me`) as Record<string, any>;
+            const data = await apiClient.fetch(`/user-profiles/${firebase?.uid}`) as Record<string, any>;
             setUser(data);
             console.log('Fetched profile data:', data);
         } catch (error) {
@@ -67,7 +68,7 @@ export default function UserFooter() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => router.push(`/profile/${firebase?.uid}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/profile/${user?.user_id}`)}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                 </DropdownMenuItem>
