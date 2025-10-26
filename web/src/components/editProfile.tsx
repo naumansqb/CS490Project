@@ -88,16 +88,17 @@ export default function ProfileForm() {
           setFormData({
             firstName: data.firstName || "",
             lastName: data.lastName || "",
-            email: firebaseUser?.email || "",
-            phone: "",
+            email: data?.email || "",
+            phone: data.phone_number || "",
             city: data.locationCity || "",
             state: data.locationState || "",
             headline: data.headline || "",
             bio: data.bio || "",
-            industry: "",
+            industry: data.industry || "",
             experienceLevel: data.careerLevel || ""
           });
           console.log('Fetched profile data:', data);
+          console.log('phone number', data.phone_number);
       } catch (error) {
           console.error('Failed to load profile:', error);
       } finally {
@@ -186,6 +187,9 @@ export default function ProfileForm() {
           headline: formData.headline,
           bio: formData.bio,
           careerLevel: formData.experienceLevel,
+          industry: formData.industry,
+          email: formData.email,
+          phone_number: formData.phone
         }
         const updatedData = await updateUserProfile(firebaseUser?.uid!, updateForm);
     

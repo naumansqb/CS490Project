@@ -54,7 +54,7 @@ export default function ProfileHeader() {
             <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1">
                 <Mail className="size-4" />
-                {firebaseUser?.email || "N/A"}
+                {user?.email || "N/A"}
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="size-4" />
@@ -62,7 +62,7 @@ export default function ProfileHeader() {
               </div>
               <div className="flex items-center gap-1">
                 <Phone className="size-4" />
-                123-456-7890
+                {user?.phone_number || '123-456-7890'}
               </div>
             </div>
 
