@@ -58,7 +58,7 @@ export default function ProfileHeader() {
             </div>
           </div>
           <div></div>
-          <Button variant="default" onClick={() => router.push('profile/edit')}>Edit Profile</Button>
+          <Button variant="default" onClick={() => router.push(`/profile/${user?.uid}/edit`)}>Edit Profile</Button>
         </div>
       </CardContent>
       <CardContent>

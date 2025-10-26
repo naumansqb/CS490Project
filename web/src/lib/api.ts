@@ -2,7 +2,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export const apiClient = {
-  async fetch(endpoint: string, options: RequestInit = {}) {
+  async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       credentials: "include", // CRITICAL: Sends HTTP-only cookies

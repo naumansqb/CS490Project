@@ -18,7 +18,7 @@ import UserFooter from "./sidebar-footer"
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "/dashboard",
     icon: Home,
   },
 ]
