@@ -95,7 +95,7 @@ export default function ProfileForm() {
             headline: data.headline || "",
             bio: data.bio || "",
             industry: "",
-            experienceLevel: data.experience_level || ""
+            experienceLevel: data.careerLevel || ""
           });
           console.log('Fetched profile data:', data);
       } catch (error) {
