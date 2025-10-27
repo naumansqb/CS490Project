@@ -1,97 +1,174 @@
-# CS490 API Documentation
+# Backend Server
 
-## Quick Start
+Node.js/Express server using Supabase (PostgreSQL), Prisma ORM, Firebase Auth, and SMTP for email notifications.
 
-```bash
-# Install dependencies
-npm install
+## Quick Setup
 
-# Setup environment
-cp .env.example .env
-# Add your DATABASE_URL to .env
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-# Generate Prisma client
-npm run prisma:generate
+2. **Configure environment variables**
+   
+   Copy `.env.example` to `.env` and fill in your credentials:
+   ```bash
+   cp .env.example .env
+   ```
 
-# Run database migrations
-npm run prisma:migrate
+   Required variables:
+   - `DATABASE_URL` - Supabase PostgreSQL connection string
+   - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` - Firebase Admin SDK
+   - `JWT_SECRET`, `JWT_EXPIRY` - JWT configuration
+   - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD`, `EMAIL_FROM` - SMTP settings
+   - `CLIENT_URL` - Frontend URL for CORS
+   - `PORT` - Server port (default: 5000)
 
-# Start development server
-npm run dev
+3. **Sync Prisma schema with database**
+   ```bash
+   npx prisma db pull
+   ```
 
-# Run tests
-npm test
+4. **Generate Prisma Client**
+   ```bash
+   npm run prisma:generate
+   ```
+
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+## API Routes
+
+All routes except `/users/send-deletion-email` require authentication via Firebase JWT token in the `Authorization` header as `Bearer <token>`.
+
+### Authentication Routes
+**Base:** `/api/auth`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/register` | No | Register new user with Firebase |
+| POST | `/login` | No | Login and get JWT token |
+
+### User Routes
+**Base:** `/api/users`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| GET | `/me` | Yes | Get current authenticated user |
+| PUT | `/me` | Yes | Update current user profile |
+| POST | `/send-deletion-email` | No | Send account deletion confirmation email |
+
+### User Profile Routes
+**Base:** `/api/userProfiles`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create user profile |
+| GET | `/:userId` | Yes | Get user profile by ID |
+| PATCH | `/:userId` | Yes | Update user profile |
+| DELETE | `/:userId` | Yes | Delete user profile |
+
+### Work Experience Routes
+**Base:** `/api/workExperiences`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create work experience entry |
+| GET | `/:id` | Yes | Get work experience by ID |
+| GET | `/user/:userId` | Yes | Get all work experiences for a user |
+| PATCH | `/:id` | Yes | Update work experience |
+| DELETE | `/:id` | Yes | Delete work experience |
+
+### Education Routes
+**Base:** `/api/education`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create education entry |
+| GET | `/:id` | Yes | Get education by ID |
+| GET | `/user/:userId` | Yes | Get all education entries for a user |
+| PATCH | `/:id` | Yes | Update education entry |
+| DELETE | `/:id` | Yes | Delete education entry |
+
+### Skills Routes
+**Base:** `/api/skills`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create skill entry |
+| GET | `/:id` | Yes | Get skill by ID |
+| GET | `/user/:userId` | Yes | Get all skills for a user |
+| PATCH | `/:id` | Yes | Update skill |
+| DELETE | `/:id` | Yes | Delete skill |
+
+### Certifications Routes
+**Base:** `/api/certifications`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create certification |
+| GET | `/:id` | Yes | Get certification by ID |
+| GET | `/user/:userId` | Yes | Get all certifications for a user |
+| PATCH | `/:id` | Yes | Update certification |
+| DELETE | `/:id` | Yes | Delete certification |
+
+### Special Projects Routes
+**Base:** `/api/specialProjects`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create special project |
+| GET | `/:id` | Yes | Get project by ID |
+| GET | `/user/:userId` | Yes | Get all projects for a user |
+| PATCH | `/:id` | Yes | Update project |
+| DELETE | `/:id` | Yes | Delete project |
+
+### Job Application Routes
+**Base:** `/api/jobApplications`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create job application |
+| GET | `/:id` | Yes | Get application by ID |
+| GET | `/user/:userId` | Yes | Get all applications for a user |
+| PATCH | `/:id` | Yes | Update application |
+| DELETE | `/:id` | Yes | Delete application |
+
+### Contact Routes
+**Base:** `/api/contacts`
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/` | Yes | Create contact |
+| GET | `/:id` | Yes | Get contact by ID |
+| GET | `/user/:userId` | Yes | Get all contacts for a user |
+| PATCH | `/:id` | Yes | Update contact |
+| DELETE | `/:id` | Yes | Delete contact |
+
+## Tech Stack
+
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Database:** PostgreSQL (Supabase)
+- **ORM:** Prisma
+- **Authentication:** Firebase Admin SDK + JWT
+- **Email:** Nodemailer (SMTP)
+
+## Project Structure
+
 ```
-
-## API Endpoints
-
-### User Profiles (`/api/user-profiles`)
-
-| Method | Endpoint        | Description                                               |
-| ------ | --------------- | --------------------------------------------------------- |
-| POST   | `/`             | Create a new user profile                                 |
-| GET    | `/`             | List all profiles (pagination: ?limit=10&offset=0)        |
-| GET    | `/:id`          | Get profile by profile ID                                 |
-| GET    | `/user/:userId` | Get profile by user ID                                    |
-| PATCH  | `/:id`          | Update profile                                            |
-| DELETE | `/:id`          | Delete profile (cascades to work experiences & education) |
-
-### Work Experiences (`/api/work-experiences`)
-
-| Method | Endpoint        | Description                         |
-| ------ | --------------- | ----------------------------------- |
-| POST   | `/`             | Create work experience              |
-| GET    | `/:id`          | Get work experience by ID           |
-| GET    | `/user/:userId` | Get all work experiences for a user |
-| PATCH  | `/:id`          | Update work experience              |
-| DELETE | `/:id`          | Delete work experience              |
-
-### Education (`/api/educations`)
-
-| Method | Endpoint        | Description                          |
-| ------ | --------------- | ------------------------------------ |
-| POST   | `/`             | Create education record              |
-| GET    | `/:id`          | Get education by ID                  |
-| GET    | `/user/:userId` | Get all education records for a user |
-| PATCH  | `/:id`          | Update education record              |
-| DELETE | `/:id`          | Delete education record              |
-
-## Error Handling
-
-All endpoints return appropriate HTTP status codes:
-
-| Code | Meaning                           |
-| ---- | --------------------------------- |
-| 200  | Success                           |
-| 201  | Created successfully              |
-| 204  | Deleted successfully (no content) |
-| 404  | Resource not found                |
-| 409  | Conflict (duplicate entry)        |
-| 500  | Internal server error             |
-
-Error responses follow this format:
-
-```json
-{
-  "error": "Description of the error"
-}
-```
-
-## Environment Variables
-
-```env
-PORT=5000
-NODE_ENV=development
-DATABASE_URL="postgresql://user:password@host:5432/database?schema=public"
-```
-
-## Available Scripts
-
-```bash
-npm run dev              # Start development server with hot reload
-npm run build            # Compile TypeScript to JavaScript
-npm start                # Start production server
-npm test                 # Run tests
-npm run test:coverage    # Run tests with coverage report
-npm run prisma:studio    # Open Prisma Studio (database GUI)
+server/
+├── prisma/
+│   └── schema.prisma
+├── src/
+│   ├── controllers/
+│   ├── routes/
+│   ├── middleware/
+│   │   └── auth.middleware.ts
+│   ├── services/
+│   │   └── email.ts
+│   └── server.ts
+└── .env
 ```
