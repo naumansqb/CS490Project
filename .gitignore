@@ -35,3 +35,6 @@ Thumbs.db
 coverage
 migrations
 *.old.prisma
+
+# Project requirements
+sprint1req.txt
