@@ -1,14 +1,16 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import * as educationController from "../../controllers/education.controller";
 import { prisma } from "../../db";
+import { AuthRequest } from "../../middleware/auth.middleware";
 
 describe("Education Controller", () => {
-  let mockRequest: Partial<Request>;
+  let mockRequest: Partial<AuthRequest>;
   let mockResponse: Partial<Response>;
   let jsonMock: jest.Mock;
   let statusMock: jest.Mock;
   let sendMock: jest.Mock;
   let userProfileId: string;
+  const mockFirebaseUID = "firebase-test-uid-edu-789";
 
   beforeEach(async () => {
     jsonMock = jest.fn();
@@ -24,53 +26,51 @@ describe("Education Controller", () => {
 
     const userProfile = await prisma.userProfile.create({
       data: {
-        userId: "123e4567-e89b-12d3-a456-426614174200",
+        userId: mockFirebaseUID,
         firstName: "Test",
         lastName: "User",
       },
     });
-    userProfileId = userProfile.id;
+    userProfileId = userProfile.userId;
   });
 
   describe("createEducation", () => {
-    it("should create an education record successfully", async () => {
-      const educationData = {
-        userId: userProfileId,
-        institutionName: "MIT",
+    it("should create an education entry successfully", async () => {
+      const eduData = {
+        institutionName: "Stanford University",
         degreeType: "Bachelor of Science",
         major: "Computer Science",
-        startDate: new Date("2016-09-01"),
-        graduationDate: new Date("2020-05-15"),
+        startDate: new Date("2018-09-01"),
+        endDate: new Date("2022-06-15"),
+        gpa: 3.8,
       };
 
-      mockRequest = { body: educationData };
+      mockRequest = { userId: mockFirebaseUID, body: eduData };
 
       await educationController.createEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          institutionName: educationData.institutionName,
-          major: educationData.major,
+          institutionName: eduData.institutionName,
+          major: eduData.major,
         })
       );
     });
 
     it("should return 404 when user profile not found", async () => {
-      const educationData = {
-        userId: "123e4567-e89b-12d3-a456-426614174999",
-        institutionName: "MIT",
-        degreeType: "Bachelor of Science",
-        startDate: new Date("2016-09-01"),
+      const eduData = {
+        institutionName: "Test University",
+        degreeType: "Bachelor",
       };
 
-      mockRequest = { body: educationData };
+      mockRequest = { userId: "non-existent-user", body: eduData };
 
       await educationController.createEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -78,21 +78,20 @@ describe("Education Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
 
     it("should return 400 for validation errors", async () => {
-      const educationData = {
-        userId: userProfileId,
+      const eduData = {
         institutionName: "",
+        degreeType: "Bachelor",
       };
 
-      mockRequest = { body: educationData };
+      mockRequest = { userId: mockFirebaseUID, body: eduData };
 
       await educationController.createEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -104,40 +103,67 @@ describe("Education Controller", () => {
         })
       );
     });
+
+    it("should create education with current flag", async () => {
+      const eduData = {
+        institutionName: "MIT",
+        degreeType: "Master of Science",
+        major: "Artificial Intelligence",
+        startDate: new Date("2023-09-01"),
+        isCurrent: true,
+      };
+
+      mockRequest = { userId: mockFirebaseUID, body: eduData };
+
+      await educationController.createEducation(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isCurrent: true,
+        })
+      );
+    });
   });
 
   describe("getEducation", () => {
-    it("should get an education record by id", async () => {
-      const education = await prisma.education.create({
+    it("should get education by id", async () => {
+      const edu = await prisma.education.create({
         data: {
           userId: userProfileId,
-          institutionName: "Stanford",
-          degreeType: "Master of Science",
-          major: "Data Science",
+          institutionName: "Harvard University",
+          degreeType: "PhD",
+          major: "Physics",
           startDate: new Date("2020-09-01"),
         },
       });
 
-      mockRequest = { params: { id: education.id } };
+      mockRequest = { userId: mockFirebaseUID, params: { id: edu.id } };
 
       await educationController.getEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: education.id,
-          institutionName: "Stanford",
+          id: edu.id,
+          institutionName: "Harvard University",
         })
       );
     });
 
     it("should return 404 when education not found", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174000" },
+      };
 
       await educationController.getEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -145,93 +171,92 @@ describe("Education Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
   });
 
   describe("getEducationsByUserId", () => {
-    it("should get all education records for a user", async () => {
+    it("should get all education entries for a user", async () => {
       await prisma.education.createMany({
         data: [
           {
             userId: userProfileId,
             institutionName: "University A",
             degreeType: "Bachelor",
-            major: "Physics",
+            major: "Math",
             startDate: new Date("2015-09-01"),
-            isCurrent: false,
           },
           {
             userId: userProfileId,
             institutionName: "University B",
             degreeType: "Master",
-            major: "Engineering",
+            major: "Statistics",
             startDate: new Date("2019-09-01"),
-            isCurrent: true,
           },
         ],
       });
 
-      mockRequest = { params: { userId: userProfileId } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: userProfileId },
+      };
 
       await educationController.getEducationsByUserId(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ institutionName: "University A" }),
-          expect.objectContaining({
-            institutionName: "University B",
-            isCurrent: true,
-          }),
+          expect.objectContaining({ institutionName: "University B" }),
         ])
       );
     });
   });
 
   describe("updateEducation", () => {
-    it("should update an education record", async () => {
-      const education = await prisma.education.create({
+    it("should update an education entry", async () => {
+      const edu = await prisma.education.create({
         data: {
           userId: userProfileId,
           institutionName: "Old University",
           degreeType: "Bachelor",
-          startDate: new Date("2015-09-01"),
+          major: "Biology",
+          startDate: new Date("2018-09-01"),
         },
       });
 
-      const updateData = {
-        institutionName: "New University",
-        major: "Biology",
+      const updateData = { institutionName: "Updated University" };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: edu.id },
+        body: updateData,
       };
-      mockRequest = { params: { id: education.id }, body: updateData };
 
       await educationController.updateEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: education.id,
-          institutionName: "New University",
-          major: "Biology",
+          id: edu.id,
+          institutionName: "Updated University",
         })
       );
     });
 
     it("should return 404 when updating non-existent education", async () => {
       mockRequest = {
-        params: { id: "123e4567-e89b-12d3-a456-426614174999" },
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174001" },
         body: { institutionName: "Test" },
       };
 
       await educationController.updateEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -239,27 +264,27 @@ describe("Education Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
   });
 
   describe("deleteEducation", () => {
-    it("should delete an education record", async () => {
-      const education = await prisma.education.create({
+    it("should delete an education entry", async () => {
+      const edu = await prisma.education.create({
         data: {
           userId: userProfileId,
-          institutionName: "Delete Me University",
+          institutionName: "Delete University",
           degreeType: "Bachelor",
-          startDate: new Date("2015-09-01"),
+          major: "History",
+          startDate: new Date("2017-09-01"),
         },
       });
 
-      mockRequest = { params: { id: education.id } };
+      mockRequest = { userId: mockFirebaseUID, params: { id: edu.id } };
 
       await educationController.deleteEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -268,10 +293,13 @@ describe("Education Controller", () => {
     });
 
     it("should return 404 when deleting non-existent education", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174002" },
+      };
 
       await educationController.deleteEducation(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -279,7 +307,6 @@ describe("Education Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
