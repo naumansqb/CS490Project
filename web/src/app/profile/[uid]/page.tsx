@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import WorkHistory from "@/components/workHistory"
 
 export default function profile({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -58,8 +59,9 @@ export default function profile({ children }: { children: React.ReactNode }) {
       <SideBar />
       <main className="w-full">
         <SidebarTrigger />
-        <div className="container mx-auto max-w-4xl px-4">
+        <div className="container mx-auto max-w-4xl px-4 space-y-6">
           <ProfileHeader />
+          <WorkHistory userId={urlUid} />
           {children}
         </div>
       </main>
