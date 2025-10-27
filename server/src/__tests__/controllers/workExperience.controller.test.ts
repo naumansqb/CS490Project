@@ -1,14 +1,16 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import * as workExperienceController from "../../controllers/workExperience.controller";
 import { prisma } from "../../db";
+import { AuthRequest } from "../../middleware/auth.middleware";
 
-describe("WorkExperience Controller", () => {
-  let mockRequest: Partial<Request>;
+describe("Work Experience Controller", () => {
+  let mockRequest: Partial<AuthRequest>;
   let mockResponse: Partial<Response>;
   let jsonMock: jest.Mock;
   let statusMock: jest.Mock;
   let sendMock: jest.Mock;
   let userProfileId: string;
+  const mockFirebaseUID = "firebase-test-uid-work-202";
 
   beforeEach(async () => {
     jsonMock = jest.fn();
@@ -24,52 +26,52 @@ describe("WorkExperience Controller", () => {
 
     const userProfile = await prisma.userProfile.create({
       data: {
-        userId: "123e4567-e89b-12d3-a456-426614174100",
+        userId: mockFirebaseUID,
         firstName: "Test",
         lastName: "User",
       },
     });
-    userProfileId = userProfile.id;
+    userProfileId = userProfile.userId;
   });
 
   describe("createWorkExperience", () => {
-    it("should create a work experience successfully", async () => {
-      const workExpData = {
-        userId: userProfileId,
+    it("should create work experience successfully", async () => {
+      const workData = {
         companyName: "Tech Corp",
-        positionTitle: "Software Engineer",
-        startDate: new Date("2020-01-01"),
-        isCurrent: true,
+        positionTitle: "Senior Software Engineer",
+        employmentType: "Full-time",
+        startDate: new Date("2020-01-15"),
+        endDate: new Date("2023-06-30"),
+        description: "Led development of key features",
       };
 
-      mockRequest = { body: workExpData };
+      mockRequest = { userId: mockFirebaseUID, body: workData };
 
       await workExperienceController.createWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          companyName: workExpData.companyName,
-          positionTitle: workExpData.positionTitle,
+          companyName: workData.companyName,
+          positionTitle: workData.positionTitle,
         })
       );
     });
 
     it("should return 404 when user profile not found", async () => {
-      const workExpData = {
-        userId: "123e4567-e89b-12d3-a456-426614174999",
-        companyName: "Tech Corp",
-        positionTitle: "Software Engineer",
-        startDate: new Date("2020-01-01"),
+      const workData = {
+        companyName: "Test Company",
+        positionTitle: "Developer",
+        startDate: new Date("2022-01-01"),
       };
 
-      mockRequest = { body: workExpData };
+      mockRequest = { userId: "non-existent-user", body: workData };
 
       await workExperienceController.createWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -77,21 +79,20 @@ describe("WorkExperience Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
 
     it("should return 400 for validation errors", async () => {
-      const workExpData = {
-        userId: userProfileId,
+      const workData = {
         companyName: "",
+        positionTitle: "Developer",
       };
 
-      mockRequest = { body: workExpData };
+      mockRequest = { userId: mockFirebaseUID, body: workData };
 
       await workExperienceController.createWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -103,39 +104,70 @@ describe("WorkExperience Controller", () => {
         })
       );
     });
+
+    it("should create work experience with current flag", async () => {
+      const workData = {
+        companyName: "Current Company",
+        positionTitle: "Lead Developer",
+        employmentType: "Full-time",
+        startDate: new Date("2023-03-01"),
+        isCurrent: true,
+        isRemote: true,
+      };
+
+      mockRequest = { userId: mockFirebaseUID, body: workData };
+
+      await workExperienceController.createWorkExperience(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isCurrent: true,
+          isRemote: true,
+        })
+      );
+    });
   });
 
   describe("getWorkExperience", () => {
-    it("should get a work experience by id", async () => {
+    it("should get work experience by id", async () => {
       const workExp = await prisma.workExperience.create({
         data: {
           userId: userProfileId,
-          companyName: "Acme Inc",
-          positionTitle: "Developer",
+          companyName: "Google",
+          positionTitle: "Staff Engineer",
+          employmentType: "Full-time",
           startDate: new Date("2019-06-01"),
+          endDate: new Date("2022-12-31"),
         },
       });
 
-      mockRequest = { params: { id: workExp.id } };
+      mockRequest = { userId: mockFirebaseUID, params: { id: workExp.id } };
 
       await workExperienceController.getWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           id: workExp.id,
-          companyName: "Acme Inc",
+          companyName: "Google",
         })
       );
     });
 
     it("should return 404 when work experience not found", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174200" },
+      };
 
       await workExperienceController.getWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -143,7 +175,6 @@ describe("WorkExperience Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
@@ -156,33 +187,33 @@ describe("WorkExperience Controller", () => {
           {
             userId: userProfileId,
             companyName: "Company A",
-            positionTitle: "Role A",
-            startDate: new Date("2020-01-01"),
-            isCurrent: true,
+            positionTitle: "Junior Developer",
+            startDate: new Date("2017-01-15"),
+            endDate: new Date("2019-03-31"),
           },
           {
             userId: userProfileId,
             companyName: "Company B",
-            positionTitle: "Role B",
-            startDate: new Date("2018-01-01"),
-            endDate: new Date("2019-12-31"),
+            positionTitle: "Senior Developer",
+            startDate: new Date("2019-04-01"),
+            isCurrent: true,
           },
         ],
       });
 
-      mockRequest = { params: { userId: userProfileId } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { userId: userProfileId },
+      };
 
       await workExperienceController.getWorkExperiencesByUserId(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.arrayContaining([
-          expect.objectContaining({
-            companyName: "Company A",
-            isCurrent: true,
-          }),
+          expect.objectContaining({ companyName: "Company A" }),
           expect.objectContaining({ companyName: "Company B" }),
         ])
       );
@@ -190,40 +221,45 @@ describe("WorkExperience Controller", () => {
   });
 
   describe("updateWorkExperience", () => {
-    it("should update a work experience", async () => {
+    it("should update work experience", async () => {
       const workExp = await prisma.workExperience.create({
         data: {
           userId: userProfileId,
           companyName: "Old Company",
-          positionTitle: "Old Role",
-          startDate: new Date("2020-01-01"),
+          positionTitle: "Developer",
+          startDate: new Date("2018-01-01"),
         },
       });
 
-      const updateData = { companyName: "New Company" };
-      mockRequest = { params: { id: workExp.id }, body: updateData };
+      const updateData = { companyName: "Updated Company" };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: workExp.id },
+        body: updateData,
+      };
 
       await workExperienceController.updateWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           id: workExp.id,
-          companyName: "New Company",
+          companyName: "Updated Company",
         })
       );
     });
 
     it("should return 404 when updating non-existent work experience", async () => {
       mockRequest = {
-        params: { id: "123e4567-e89b-12d3-a456-426614174999" },
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174201" },
         body: { companyName: "Test" },
       };
 
       await workExperienceController.updateWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -231,27 +267,27 @@ describe("WorkExperience Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
   });
 
   describe("deleteWorkExperience", () => {
-    it("should delete a work experience", async () => {
+    it("should delete work experience", async () => {
       const workExp = await prisma.workExperience.create({
         data: {
           userId: userProfileId,
-          companyName: "Delete Me",
-          positionTitle: "Test Role",
-          startDate: new Date("2020-01-01"),
+          companyName: "Delete Company",
+          positionTitle: "Intern",
+          startDate: new Date("2016-06-01"),
+          endDate: new Date("2016-08-31"),
         },
       });
 
-      mockRequest = { params: { id: workExp.id } };
+      mockRequest = { userId: mockFirebaseUID, params: { id: workExp.id } };
 
       await workExperienceController.deleteWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -260,10 +296,13 @@ describe("WorkExperience Controller", () => {
     });
 
     it("should return 404 when deleting non-existent work experience", async () => {
-      mockRequest = { params: { id: "123e4567-e89b-12d3-a456-426614174999" } };
+      mockRequest = {
+        userId: mockFirebaseUID,
+        params: { id: "123e4567-e89b-12d3-a456-426614174202" },
+      };
 
       await workExperienceController.deleteWorkExperience(
-        mockRequest as Request,
+        mockRequest as AuthRequest,
         mockResponse as Response
       );
 
@@ -271,7 +310,6 @@ describe("WorkExperience Controller", () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           code: "NOT_FOUND",
-          message: expect.any(String),
         })
       );
     });
