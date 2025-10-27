@@ -8,9 +8,6 @@ import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import WorkHistory from "@/components/workHistory"
-import CertificationList from "@/components/CertificationList";
-import EducationHistory from "@/components/educationHistory";
-import ProjectList from "@/components/ProjectsList";
 import ProfileContent from "@/components/ProfileContent"
 
 export default function profile({ children }: { children: React.ReactNode }) {
@@ -67,9 +64,6 @@ export default function profile({ children }: { children: React.ReactNode }) {
           <ProfileHeader />
           <ProfileContent />
           <WorkHistory userId={urlUid} />
-          <EducationHistory />
-          <CertificationList />
-          <ProjectList />
           {children}
         </div>
       </main>
