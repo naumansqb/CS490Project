@@ -292,7 +292,7 @@ export function SignInForm({
         <Field>
           <Button
             type="submit"
-            className="cursor-pointer"
+            className="w-full text-white cursor-pointer bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
           >
             {isLoading ? "Signing in..." : "Sign In"}
