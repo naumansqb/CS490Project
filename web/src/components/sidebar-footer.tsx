@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, User } from "lucide-react"
+import { LogOut, User, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,7 +55,7 @@ export default function UserFooter() {
             <DropdownMenuTrigger asChild>
                 <Button 
                     variant="ghost"
-                    className="w-full h-auto flex items-center gap-2 justify-start p-2"
+                    className="w-full h-auto flex items-center gap-2 justify-start p-2 hover:bg-accent"
                 >
                     <Image
                         className="rounded-lg"
@@ -64,11 +64,14 @@ export default function UserFooter() {
                         width={40}
                         height={40}
                     />
-                    <span>{user?.firstName} {user?.lastName}</span>
+                    <div className="flex-1 flex flex-col items-start min-w-0">
+                        <span className="font-medium truncate w-full">{user?.firstName} {user?.lastName}</span>
+                    </div>
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => router.push(`/profile/${user?.user_id}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/profile/${firebase?.uid}`)}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                 </DropdownMenuItem>
