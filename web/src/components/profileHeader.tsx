@@ -50,26 +50,28 @@ export default function ProfileHeader() {
             <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1">
                 <Mail className="size-4" />
-                {user?.email || "N/A"}
+                {user?.email || <span className="text-gray-500 italic">N/A</span>}
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="size-4" />
-                {user?.locationCity}, {user?.locationState}
+                {user?.locationCity || user?.locationState
+                  ? [user?.locationCity, user?.locationState].filter(Boolean).join(', ')
+                  : <span className="text-gray-500 italic">No location</span>}
               </div>
               <div className="flex items-center gap-1">
                 <Phone className="size-4" />
-                {user?.phone_number || '123-456-7890'}
+                {user?.phone_number || <span className="text-gray-500 italic">No number</span>}
               </div>
             </div>
 
             <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1">
                 <Briefcase className="size-4" />
-                {user?.industry || 'Not specified'}
+                {user?.industry || <span className="text-gray-500 italic">Not specified</span>}
               </div>
               <div className="flex items-center gap-1">
                 <Flower2 className="size-4" />
-                {user?.careerLevel || 'Not specified'}
+                {user?.careerLevel || <span className="text-gray-500 italic">Not specified</span>}
               </div>
             </div>
           </div>

@@ -26,11 +26,6 @@ export function SideBar() {
       url: "/dashboard",
       icon: Home,
     },
-    {
-      title: "Profile",
-      url: user ? `/profile/${user.uid}` : "#",
-      icon: User,
-    },
   ]
 
   return (
