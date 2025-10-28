@@ -283,16 +283,16 @@ export function SignInForm({
             </FieldDescription>
           )}
           <FieldDescription className="text-right">
-  	    <Link href="/forgot-password" className="text-primary hover:underline text-sm">
-    		Forgot password?
- 	     </Link>
-	  </FieldDescription>
+            <Link href="/forgot-password" className="text-primary hover:underline text-sm">
+              Forgot password?
+            </Link>
+          </FieldDescription>
         </Field>
 
         <Field>
           <Button
             type="submit"
-            className="cursor-pointer"
+            className="w-full text-white cursor-pointer bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
           >
             {isLoading ? "Signing in..." : "Sign In"}
