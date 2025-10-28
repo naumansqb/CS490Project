@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createCertification, updateCertification, Certification } from "@/lib/certification.api";
+import {
+  createCertification,
+  updateCertification,
+  Certification,
+} from "@/lib/certification.api";
 
 type Props = {
   onSuccess?: () => void;
@@ -22,9 +26,6 @@ export default function AddCertificationForm({
     issueDate: defaultValues?.issueDate || "",
     expirationDate: defaultValues?.expirationDate || "",
     doesNotExpire: defaultValues?.doesNotExpire || false,
-    certificationNumber: defaultValues?.certificationNumber || "",
-    category: defaultValues?.category || "",
-    file: null as File | null,
   });
 
   const handleChange = (
@@ -38,26 +39,23 @@ export default function AddCertificationForm({
     setFormData((prev) => ({ ...prev, [target.name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, file: e.target.files![0] }));
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload = new FormData();
-    payload.append("name", formData.name);
-    payload.append("issuingOrganization", formData.issuingOrganization);
-    payload.append("issueDate", formData.issueDate);
+    const payload: Partial<Certification> = {
+      name: formData.name,
+      issuingOrganization: formData.issuingOrganization,
+      issueDate: new Date(formData.issueDate).toISOString(), // ✅ convert to ISO
+      doesNotExpire: formData.doesNotExpire,
+    };
+
     if (!formData.doesNotExpire && formData.expirationDate) {
-      payload.append("expirationDate", formData.expirationDate);
+      payload.expirationDate = new Date(
+        formData.expirationDate
+      ).toISOString(); // ✅ convert to ISO
+    } else {
+      payload.expirationDate = undefined;
     }
-    payload.append("doesNotExpire", String(formData.doesNotExpire));
-    payload.append("certificationNumber", formData.certificationNumber);
-    payload.append("category", formData.category);
-    if (formData.file) payload.append("file", formData.file);
 
     if (editingId) {
       await updateCertification(editingId, payload);
@@ -77,9 +75,6 @@ export default function AddCertificationForm({
       issueDate: "",
       expirationDate: "",
       doesNotExpire: false,
-      certificationNumber: "",
-      category: "",
-      file: null,
     });
   };
 
@@ -130,26 +125,6 @@ export default function AddCertificationForm({
           />
           Does not expire
         </label>
-        <input
-          name="certificationNumber"
-          placeholder="Certification Number/ID"
-          value={formData.certificationNumber}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-        <input
-          name="category"
-          placeholder="Category (e.g. Cybersecurity, Project Management)"
-          value={formData.category}
-          onChange={handleChange}
-          className="border p-2 rounded col-span-2"
-        />
-        <input
-          type="file"
-          onChange={handleFileChange}
-          accept=".pdf,.png,.jpg,.jpeg"
-          className="col-span-2"
-        />
       </div>
 
       <div className="flex gap-3">
@@ -159,13 +134,15 @@ export default function AddCertificationForm({
         >
           {editingId ? "Update Certification" : "Save Certification"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
-        >
-          Cancel
-        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   );
