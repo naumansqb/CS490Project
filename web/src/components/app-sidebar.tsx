@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import UserFooter from "./sidebar-footer"
+import Link from "next/link";
 
 export function SideBar() {
   const { user } = useAuth();
@@ -31,7 +32,10 @@ export function SideBar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="text-lg font-semibold">Title</div>
+        <Link href="/" className="flex items-center gap-2 font-semibold text-slate-800 hover:opacity-80 transition-opacity">
+            <img src="/Logo/favicon-32x32.png" alt="JobBuddy" className="h-7 w-auto" />
+            JobBuddy
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

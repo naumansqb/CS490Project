@@ -470,7 +470,7 @@ export default function ProfileForm() {
             </div>
 
             <div className="flex gap-3 pt-6 border-t">
-              <Button type="submit" className="flex-1" onClick={handleSubmit}>
+              <Button type="submit" className="flex-1 bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed" onClick={handleSubmit}>
                 Save Profile
               </Button>
               <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
