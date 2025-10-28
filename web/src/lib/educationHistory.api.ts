@@ -5,7 +5,7 @@ import { apiClient } from "./api";
  * GET /education/user/:userId
  */
 export const getEducationsByUserId = async (userId: string) => {
-  return apiClient.fetch(`/education/user/${userId}`, {
+  return apiClient.fetch(`/educations/user/${userId}`, {
     method: "GET",
   });
 };
@@ -15,7 +15,7 @@ export const getEducationsByUserId = async (userId: string) => {
  * GET /education/:id
  */
 export const getEducation = async (id: string) => {
-  return apiClient.fetch(`/education/${id}`, {
+  return apiClient.fetch(`/educations/${id}`, {
     method: "GET",
   });
 };
@@ -25,7 +25,8 @@ export const getEducation = async (id: string) => {
  * POST /education
  */
 export const createEducation = async (payload: any) => {
-  return apiClient.fetch(`/education`, {
+  console.log("Creating education with payload:", payload);
+  return apiClient.fetch(`/educations`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -36,8 +37,9 @@ export const createEducation = async (payload: any) => {
  * PUT /education/:id
  */
 export const updateEducation = async (id: string, payload: any) => {
-  return apiClient.fetch(`/education/${id}`, {
-    method: "PUT",
+  console.log("Updating education with payload:", payload);
+  return apiClient.fetch(`/educations/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 };
@@ -47,7 +49,7 @@ export const updateEducation = async (id: string, payload: any) => {
  * DELETE /education/:id
  */
 export const deleteEducation = async (id: string) => {
-  return apiClient.fetch(`/education/${id}`, {
+  return apiClient.fetch(`/educations/${id}`, {
     method: "DELETE",
   });
 };

@@ -19,27 +19,27 @@ export type SpecialProject = {
 };
 
 export const getProjectsByUserId = (userId: string) => {
-  return apiClient.fetch<SpecialProject[]>(`/projects/user/${userId}`, {
+  return apiClient.fetch<SpecialProject[]>(`/special-projects/user/${userId}`, {
     method: "GET",
   });
 };
 
 export const createProject = (payload: FormData) => {
-  return apiClient.fetch<SpecialProject>(`/projects`, {
+  return apiClient.fetch<SpecialProject>(`/special-projects`, {
     method: "POST",
     body: payload,
   });
 };
 
 export const updateProject = (id: string, payload: FormData) => {
-  return apiClient.fetch<SpecialProject>(`/projects/${id}`, {
+  return apiClient.fetch<SpecialProject>(`/special-projects/${id}`, {
     method: "PUT",
     body: payload,
   });
 };
 
 export const deleteProject = (id: string) => {
-  return apiClient.fetch(`/projects/${id}`, {
+  return apiClient.fetch(`/special-projects/${id}`, {
     method: "DELETE",
   });
 };
