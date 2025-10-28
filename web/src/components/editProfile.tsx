@@ -23,8 +23,8 @@ import { CheckCircle2 } from "lucide-react"
 import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
-import { useAuth } from '@/contexts/AuthContext';
-
+import { useAuth } from '@/contexts/AuthContext'
+import { AvatarUpload } from "@/components/profile/avatar-upload"
 
 const industries = [
   "Technology",
@@ -112,6 +112,7 @@ export default function ProfileForm() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
   const bioLength = formData.bio.length
   const bioLimit = 500
 
@@ -226,6 +227,17 @@ export default function ProfileForm() {
     router.push(`/profile/${firebaseUser?.uid}`)
   }
 
+  const handleAvatarUpload = async (file: File) => {
+    // Simulate upload and create a preview URL
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Create a preview URL for the uploaded file
+    const imageUrl = URL.createObjectURL(file);
+    setProfileImage(imageUrl);
+    
+    console.log("Avatar uploaded:", file.name);
+  }
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
@@ -243,6 +255,16 @@ export default function ProfileForm() {
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Profile Picture Upload */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Profile Picture</h2>
+            <AvatarUpload 
+              onUpload={handleAvatarUpload}
+              currentImage={profileImage || undefined}
+              className="w-full"
+            />
+          </div>
 
           <FieldGroup onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">

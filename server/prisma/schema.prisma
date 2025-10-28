@@ -12,9 +12,12 @@ model UserProfile {
   firstName           String?          @map("first_name") @db.VarChar(100)
   lastName            String?          @map("last_name") @db.VarChar(100)
   preferredName       String?          @map("preferred_name") @db.VarChar(100)
+  email               String?          @db.VarChar(255)
+  phone_number        String?          @db.VarChar(20)
   headline            String?          @db.VarChar(255)
   bio                 String?
   profilePhotoUrl     String?          @map("profile_photo_url") @db.VarChar(500)
+  industry            String?          @db.VarChar(100)
   locationCity        String?          @map("location_city") @db.VarChar(100)
   locationState       String?          @map("location_state") @db.VarChar(100)
   locationCountry     String?          @map("location_country") @db.VarChar(100)
@@ -35,9 +38,6 @@ model UserProfile {
   profileVisibility   String?          @default("private") @map("profile_visibility") @db.VarChar(50)
   createdAt           DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt           DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  email               String?          @db.VarChar(255)
-  phone_number        String?          @db.VarChar(20)
-  industry            String?          @db.VarChar(100)
   certifications      Certification[]
   education           Education[]
   skills              Skill[]

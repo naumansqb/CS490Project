@@ -1,4 +1,7 @@
+"use client";
+
 import { Home, User } from "lucide-react"
+import { useAuth } from '@/contexts/AuthContext';
 
 import {
   Sidebar,
@@ -6,7 +9,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -14,16 +16,18 @@ import {
 } from "@/components/ui/sidebar"
 import UserFooter from "./sidebar-footer"
 
-// Menu items.
-const items = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
-  },
-]
-
 export function SideBar() {
+  const { user } = useAuth();
+  
+  // Menu items.
+  const items = [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
+    },
+  ]
+
   return (
     <Sidebar>
       <SidebarHeader>
