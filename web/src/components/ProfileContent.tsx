@@ -6,12 +6,16 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import your components for each section
+import WorkHistory from "@/components/workHistory";
 import CertificationList from "@/components/CertificationList";
 import EducationList from "@/components/educationHistory";
 import ProjectPortfolio from "@/components/ProjectsList";
 
+interface ProfileContentProps {
+  userId: string;
+}
 
-export default function ProfileContent() {
+export default function ProfileContent({ userId }: ProfileContentProps) {
   const [skills, setSkills] = useState([
     { id: "1", name: "JavaScript", proficiency: "advanced", category: "technical" },
     { id: "2", name: "React", proficiency: "intermediate", category: "technical" },
@@ -24,7 +28,7 @@ export default function ProfileContent() {
   };
 
   const handleUpdateSkill = (id: string, updates: any) => {
-    setSkills(skills.map(skill => 
+    setSkills(skills.map(skill =>
       skill.id === id ? { ...skill, ...updates } : skill
     ));
   };
@@ -38,12 +42,13 @@ export default function ProfileContent() {
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap gap-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="experience">Experience</TabsTrigger>
           <TabsTrigger value="skills">Skills</TabsTrigger>
           <TabsTrigger value="education">Education</TabsTrigger>
           <TabsTrigger value="certifications">Certifications</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
         </TabsList>
-        
+
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4 mt-6">
           <Card>
@@ -54,7 +59,12 @@ export default function ProfileContent() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
+        {/* WORK EXPERIENCE */}
+        <TabsContent value="experience" className="space-y-4 mt-6">
+          <WorkHistory userId={userId} />
+        </TabsContent>
+
         {/* SKILLS */}
         <TabsContent value="skills" className="space-y-4 mt-6">
           <Card>
