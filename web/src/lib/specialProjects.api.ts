@@ -1,43 +1,46 @@
+// src/lib/specialProject.api.ts
 import { apiClient } from "./api";
 
 export type SpecialProject = {
   id?: string;
   projectName: string;
   description: string;
-  role: string;
   startDate?: string;
   endDate?: string;
-  technologies?: string[];
+  status?: string;
   projectUrl?: string;
   repositoryUrl?: string;
-  teamSize?: number;
-  collaborationDetails?: string;
-  outcomes?: string;
-  industry?: string;
-  status?: "Completed" | "Ongoing" | "Planned";
-  mediaUrl?: string;
+  skillsDemonstrated?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
+// ✅ Get all projects for a user
 export const getProjectsByUserId = (userId: string) => {
   return apiClient.fetch<SpecialProject[]>(`/special-projects/user/${userId}`, {
     method: "GET",
   });
 };
 
-export const createProject = (payload: FormData) => {
+// ✅ Create new project
+export const createProject = (payload: Partial<SpecialProject>) => {
   return apiClient.fetch<SpecialProject>(`/special-projects`, {
     method: "POST",
-    body: payload,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 };
 
-export const updateProject = (id: string, payload: FormData) => {
+// ✅ Update existing project
+export const updateProject = (id: string, payload: Partial<SpecialProject>) => {
   return apiClient.fetch<SpecialProject>(`/special-projects/${id}`, {
     method: "PUT",
-    body: payload,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 };
 
+// ✅ Delete a project
 export const deleteProject = (id: string) => {
   return apiClient.fetch(`/special-projects/${id}`, {
     method: "DELETE",
