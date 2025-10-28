@@ -71,9 +71,9 @@ export default function ProfileContent({ userId }: ProfileContentProps) {
 
   return (
     <div className="space-y-6 mt-6">
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue="experience" className="w-full">
         <TabsList className="flex flex-wrap gap-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          {/*<TabsTrigger value="overview">Overview</TabsTrigger>*/}
           <TabsTrigger value="experience">Experience</TabsTrigger>
           <TabsTrigger value="skills">Skills</TabsTrigger>
           <TabsTrigger value="education">Education</TabsTrigger>

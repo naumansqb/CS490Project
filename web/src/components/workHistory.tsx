@@ -158,7 +158,7 @@ export default function EmploymentHistory({ userId }: EmploymentHistoryProps) {
                     <Briefcase className="h-8 w-8 text-slate-700" />
                     Work Experience
                 </h2>
-                <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="shadow-sm">
+                <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="shadow-sm bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed">
                     + Add Experience
                 </Button>
             </div>
@@ -182,7 +182,7 @@ export default function EmploymentHistory({ userId }: EmploymentHistoryProps) {
                     <CardContent className="p-6 text-center">
                         <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                         <p className="text-muted-foreground mb-4">No work experience added yet</p>
-                        <Button onClick={() => setIsAddModalOpen(true)}>Add Your First Experience</Button>
+                        <Button className="bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => setIsAddModalOpen(true)}>Add Your First Experience</Button>
                     </CardContent>
                 </Card>
             )}

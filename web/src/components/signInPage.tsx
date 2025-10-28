@@ -132,11 +132,11 @@ export function SignInForm({
     switch (error.code) {
       case "auth/user-not-found":
       case "auth/invalid-email":
-        newErrors.email = error.message;
-        break;
+      case undefined:
       case "auth/wrong-password":
       case "auth/invalid-credential":
-        newErrors.password = error.message;
+        newErrors.email = "Invalid email or password"
+        newErrors.password = "Invalid email or password";
         break;
       case "auth/too-many-requests":
         newErrors.password = error.message;

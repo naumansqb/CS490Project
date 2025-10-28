@@ -14,8 +14,8 @@ export const apiClient = {
 
     // Handle 401 - Redirect to login
     if (response.status === 401) {
-      window.location.href = "/login";
-      throw new Error("Unauthorized");
+      window.location.href = "/";
+      //throw new Error("Unauthorized");
     }
 
     if (!response.ok) {

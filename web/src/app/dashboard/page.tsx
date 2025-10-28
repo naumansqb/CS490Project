@@ -17,7 +17,7 @@ export default function dashboard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    window.location.href = '/signin';
+    window.location.href = '/';
   }
 
   return (
@@ -25,7 +25,7 @@ export default function dashboard({ children }: { children: React.ReactNode }) {
       <SideBar />
       <main className="flex-1 flex flex-col min-h-screen">
         <div className="flex items-center justify-between p-4 border-b">
-          <div className="hidden lg:block">
+          <div className="">
             <SidebarTrigger />
           </div>
         </div>

@@ -431,7 +431,7 @@ export default function AddEmploymentForm({
                         <Button type="button" variant="outline" onClick={handleCancel}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
+                        <Button type="submit" disabled={isSubmitting} className='bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed'>
                             {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Experience'}
                         </Button>
                     </DialogFooter>

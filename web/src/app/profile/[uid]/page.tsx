@@ -18,7 +18,7 @@ export default function profile({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     if (!user) {
-      setShouldRedirect('/signin');
+      setShouldRedirect('/');
       return;
     }
 

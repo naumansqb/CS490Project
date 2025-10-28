@@ -36,10 +36,7 @@ export default function ProfileHeader() {
         <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
           <div className="relative">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={firebaseUser?.photoURL || "default_profile.png"} alt="Profile" />
-              <AvatarFallback className="text-2xl">
-                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-              </AvatarFallback>
+              <AvatarImage src={firebaseUser?.photoURL || "/default_profile.png"} alt="Profile" />
             </Avatar>
           </div>
           <div className="flex-1 space-y-2">
@@ -76,12 +73,12 @@ export default function ProfileHeader() {
             </div>
           </div>
           <div></div>
-          <Button variant="default" onClick={() => router.push(`/profile/${firebaseUser?.uid}/edit`)}>Edit Profile</Button>
+          <Button variant="default" className="bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed"onClick={() => router.push(`/profile/${firebaseUser?.uid}/edit`)}>Edit Profile</Button>
         </div>
       </CardContent>
       <CardContent>
         <div className="border-full border-t pt-4">
-          <p>{user?.bio || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'}</p>
+          <p>{user?.bio || ''}</p>
         </div>
       </CardContent>
     </Card>

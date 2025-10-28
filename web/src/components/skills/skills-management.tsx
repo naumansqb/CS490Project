@@ -309,7 +309,7 @@ export function SkillsManagement({
             </div>
           </div>
 
-          <Button onClick={handleAddSkill} className="w-full md:w-auto">
+          <Button onClick={handleAddSkill} className="w-full md:w-auto bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed">
             Add Skill
           </Button>
         </CardContent>
