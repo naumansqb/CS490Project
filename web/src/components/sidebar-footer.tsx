@@ -66,10 +66,6 @@ export default function UserFooter() {
                     />
                     <div className="flex-1 flex flex-col items-start min-w-0">
                         <span className="font-medium truncate w-full">{user?.firstName} {user?.lastName}</span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            View Profile
-                        </span>
                     </div>
                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
                 </Button>

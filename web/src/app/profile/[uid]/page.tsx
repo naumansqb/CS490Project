@@ -66,10 +66,6 @@ export default function profile({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto max-w-4xl px-4 space-y-6">
           <ProfileHeader />
           <ProfileContent />
-          <WorkHistory userId={urlUid} />
-          <EducationHistory />
-          <CertificationList />
-          <ProjectList />
           {children}
         </div>
       </main>
