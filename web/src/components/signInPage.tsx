@@ -283,10 +283,10 @@ export function SignInForm({
             </FieldDescription>
           )}
           <FieldDescription className="text-right">
-  	    <Link href="/forgot-password" className="text-primary hover:underline text-sm">
-    		Forgot password?
- 	     </Link>
-	  </FieldDescription>
+            <Link href="/forgot-password" className="text-primary hover:underline text-sm">
+              Forgot password?
+            </Link>
+          </FieldDescription>
         </Field>
 
         <Field>
