@@ -5,12 +5,7 @@ import ProfileHeader from "@/components/profileHeader"
 import { Sidebar, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from "next/navigation";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import WorkHistory from "@/components/workHistory"
-import CertificationList from "@/components/CertificationList";
-import EducationHistory from "@/components/educationHistory";
-import ProjectList from "@/components/ProjectsList";
 import ProfileContent from "@/components/ProfileContent"
 
 export default function profile({ children }: { children: React.ReactNode }) {
@@ -65,7 +60,7 @@ export default function profile({ children }: { children: React.ReactNode }) {
         <SidebarTrigger />
         <div className="container mx-auto max-w-4xl px-4 space-y-6">
           <ProfileHeader />
-          <ProfileContent />
+          <ProfileContent userId={urlUid} />
           {children}
         </div>
       </main>
