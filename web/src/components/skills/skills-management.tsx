@@ -309,7 +309,7 @@ export function SkillsManagement({
             </div>
           </div>
 
-          <Button onClick={handleAddSkill} className="w-full md:w-auto">
+          <Button onClick={handleAddSkill} className="bg-[#24747C] text-white px-4 py-2 rounded hover:bg-[#1E636A] transition">
             Add Skill
           </Button>
         </CardContent>

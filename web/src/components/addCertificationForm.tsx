@@ -130,7 +130,7 @@ export default function AddCertificationForm({
       <div className="flex gap-3">
         <button
           type="submit"
-          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+          className="bg-[#24747C] text-white px-4 py-2 rounded hover:bg-[#1E636A] transition"
         >
           {editingId ? "Update Certification" : "Save Certification"}
         </button>

@@ -158,7 +158,7 @@ export default function EmploymentHistory({ userId }: EmploymentHistoryProps) {
                     <Briefcase className="h-8 w-8 text-slate-700" />
                     Work Experience
                 </h2>
-                <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="shadow-sm">
+                <Button onClick={() => setIsAddModalOpen(true)} size="lg" className="!bg-[#24747C] !text-white hover:!bg-[#1E636A] shadow-sm">
                     + Add Experience
                 </Button>
             </div>
