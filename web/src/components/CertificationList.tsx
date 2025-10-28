@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Certification, getCertificationsByUserId, deleteCertification } from "@/lib/certification.api";
+import {
+  Certification,
+  getCertificationsByUserId,
+  deleteCertification,
+} from "@/lib/certification.api";
 import { useAuth } from "@/contexts/AuthContext";
 import AddCertificationForm from "@/components/addCertificationForm";
 
@@ -61,7 +65,10 @@ export default function CertificationList() {
           >
             <div>
               <h3 className="font-semibold text-lg">
-                {cert.name} — <span className="text-sm text-gray-600">{cert.issuingOrganization}</span>
+                {cert.name} —{" "}
+                <span className="text-sm text-gray-600">
+                  {cert.issuingOrganization}
+                </span>
               </h3>
               <p className="text-sm text-gray-600">
                 Issued {new Date(cert.issueDate).toLocaleDateString()}
@@ -73,23 +80,7 @@ export default function CertificationList() {
                   </>
                 ) : null}
               </p>
-              {cert.certificationNumber && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Certification ID: {cert.certificationNumber}
-                </p>
-              )}
-              {cert.category && (
-                <p className="text-xs text-gray-500">Category: {cert.category}</p>
-              )}
-              {cert.fileUrl && (
-                <a
-                  href={cert.fileUrl}
-                  target="_blank"
-                  className="text-blue-600 text-xs underline mt-1 block"
-                >
-                  View Document
-                </a>
-              )}
+
               <div className="mt-2">
                 {isExpired(cert) ? (
                   <span className="text-xs text-red-600 font-semibold">Expired</span>
@@ -138,3 +129,4 @@ export default function CertificationList() {
     </div>
   );
 }
+

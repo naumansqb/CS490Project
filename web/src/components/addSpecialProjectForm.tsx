@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createProject, updateProject, SpecialProject } from "@/lib/specialProjects.api";
+import {
+  createProject,
+  updateProject,
+  SpecialProject,
+} from "@/lib/specialProjects.api";
 
 type Props = {
   onSuccess?: () => void;
@@ -9,8 +13,6 @@ type Props = {
   defaultValues?: Partial<SpecialProject>;
   onCancel?: () => void;
 };
-
-const STATUS_OPTIONS = ["Completed", "Ongoing", "Planned"];
 
 export default function AddProjectForm({
   onSuccess,
@@ -21,57 +23,41 @@ export default function AddProjectForm({
   const [formData, setFormData] = useState({
     projectName: defaultValues?.projectName || "",
     description: defaultValues?.description || "",
-    role: defaultValues?.role || "",
     startDate: defaultValues?.startDate || "",
     endDate: defaultValues?.endDate || "",
-    technologies: defaultValues?.technologies?.join(", ") || "",
+    status: defaultValues?.status || "Completed",
     projectUrl: defaultValues?.projectUrl || "",
     repositoryUrl: defaultValues?.repositoryUrl || "",
-    teamSize: defaultValues?.teamSize?.toString() || "",
-    collaborationDetails: defaultValues?.collaborationDetails || "",
-    outcomes: defaultValues?.outcomes || "",
-    industry: defaultValues?.industry || "",
-    status: defaultValues?.status || "Completed",
-    media: null as File | null,
+    skillsDemonstrated: defaultValues?.skillsDemonstrated?.join(", ") || "",
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const target = e.currentTarget;
-    setFormData((prev) => ({ ...prev, [target.name]: target.value }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, media: e.target.files![0] }));
-    }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload = new FormData();
-    payload.append("projectName", formData.projectName);
-    payload.append("description", formData.description);
-    payload.append("role", formData.role);
-    if (formData.startDate) payload.append("startDate", formData.startDate);
-    if (formData.endDate) payload.append("endDate", formData.endDate);
-    if (formData.technologies)
-      payload.append(
-        "technologies",
-        JSON.stringify(
-          formData.technologies.split(",").map((t) => t.trim()).filter(Boolean)
-        )
-      );
-    if (formData.projectUrl) payload.append("projectUrl", formData.projectUrl);
-    if (formData.repositoryUrl) payload.append("repositoryUrl", formData.repositoryUrl);
-    if (formData.teamSize) payload.append("teamSize", formData.teamSize);
-    if (formData.collaborationDetails) payload.append("collaborationDetails", formData.collaborationDetails);
-    if (formData.outcomes) payload.append("outcomes", formData.outcomes);
-    if (formData.industry) payload.append("industry", formData.industry);
-    payload.append("status", formData.status);
-    if (formData.media) payload.append("media", formData.media);
+    // Build the payload expected by the backend
+    const payload: Partial<SpecialProject> = {
+      projectName: formData.projectName,
+      description: formData.description,
+      startDate: formData.startDate
+        ? new Date(formData.startDate).toISOString()
+        : undefined,
+      endDate: formData.endDate
+        ? new Date(formData.endDate).toISOString()
+        : undefined,
+      status: formData.status,
+      projectUrl: formData.projectUrl || undefined,
+      repositoryUrl: formData.repositoryUrl || undefined,
+      skillsDemonstrated: formData.skillsDemonstrated
+        ? formData.skillsDemonstrated.split(",").map((s) => s.trim())
+        : [],
+    };
 
     if (editingId) {
       await updateProject(editingId, payload);
@@ -88,18 +74,12 @@ export default function AddProjectForm({
     setFormData({
       projectName: "",
       description: "",
-      role: "",
       startDate: "",
       endDate: "",
-      technologies: "",
+      status: "Completed",
       projectUrl: "",
       repositoryUrl: "",
-      teamSize: "",
-      collaborationDetails: "",
-      outcomes: "",
-      industry: "",
-      status: "Completed",
-      media: null,
+      skillsDemonstrated: "",
     });
   };
 
@@ -118,11 +98,10 @@ export default function AddProjectForm({
           className="border p-2 rounded"
         />
         <input
-          name="role"
-          placeholder="Your Role *"
-          value={formData.role}
+          name="status"
+          placeholder="Status (e.g. Completed)"
+          value={formData.status}
           onChange={handleChange}
-          required
           className="border p-2 rounded"
         />
         <input
@@ -139,111 +118,56 @@ export default function AddProjectForm({
           onChange={handleChange}
           className="border p-2 rounded"
         />
+        <input
+          name="projectUrl"
+          placeholder="Project URL"
+          value={formData.projectUrl}
+          onChange={handleChange}
+          className="border p-2 rounded col-span-2"
+        />
+        <input
+          name="repositoryUrl"
+          placeholder="Repository URL"
+          value={formData.repositoryUrl}
+          onChange={handleChange}
+          className="border p-2 rounded col-span-2"
+        />
       </div>
 
       <textarea
         name="description"
-        placeholder="Project Description"
+        placeholder="Project Description *"
         value={formData.description}
         onChange={handleChange}
+        required
         className="border p-2 rounded w-full"
-        rows={3}
+        rows={4}
       />
 
       <input
-        name="technologies"
-        placeholder="Technologies/Skills (comma separated)"
-        value={formData.technologies}
+        name="skillsDemonstrated"
+        placeholder="Skills (comma separated)"
+        value={formData.skillsDemonstrated}
         onChange={handleChange}
         className="border p-2 rounded w-full"
       />
 
-      <input
-        name="projectUrl"
-        placeholder="Project URL (optional)"
-        value={formData.projectUrl}
-        onChange={handleChange}
-        className="border p-2 rounded w-full"
-      />
-
-      <input
-        name="repositoryUrl"
-        placeholder="Repository URL (optional)"
-        value={formData.repositoryUrl}
-        onChange={handleChange}
-        className="border p-2 rounded w-full"
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="number"
-          name="teamSize"
-          placeholder="Team Size"
-          value={formData.teamSize}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-        <input
-          name="industry"
-          placeholder="Industry / Project Type"
-          value={formData.industry}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-      </div>
-
-      <textarea
-        name="collaborationDetails"
-        placeholder="Collaboration Details"
-        value={formData.collaborationDetails}
-        onChange={handleChange}
-        className="border p-2 rounded w-full"
-        rows={2}
-      />
-
-      <textarea
-        name="outcomes"
-        placeholder="Outcomes / Achievements"
-        value={formData.outcomes}
-        onChange={handleChange}
-        className="border p-2 rounded w-full"
-        rows={2}
-      />
-
-      <select
-        name="status"
-        value={formData.status}
-        onChange={handleChange}
-        className="border p-2 rounded"
-      >
-        {STATUS_OPTIONS.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="w-full"
-      />
-
-      <div className="flex gap-3">
+      <div className="flex gap-3 mt-3">
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           {editingId ? "Update Project" : "Save Project"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
-        >
-          Cancel
-        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   );
