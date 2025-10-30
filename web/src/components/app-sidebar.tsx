@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, User } from "lucide-react"
+import { Home, Briefcase } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext';
 
 import {
@@ -26,6 +26,11 @@ export function SideBar() {
       title: "Dashboard",
       url: "/dashboard",
       icon: Home,
+    },
+    {
+      title: "Jobs",
+      url: `/jobs/${user?.uid}`,
+      icon: Briefcase,
     },
   ]
 
