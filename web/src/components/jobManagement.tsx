@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Eye, Save, ArrowLeft, User, Phone, Mail, Clock, FileText, DollarSign as NegotiationIcon } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
+import JobNotesCard from './jobNotesCard';
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
@@ -299,6 +301,8 @@ export default function JobOpportunitiesManager() {
           </CardContent>
         </Card>
 
+        <JobNotesCard />
+
         {/* Contacts */}
         <Card>
           <CardHeader>
@@ -362,7 +366,7 @@ export default function JobOpportunitiesManager() {
                 onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, status: e.target.value }))} />
               <textarea placeholder="Notes about this stage..." value={newHistoryEntry.notes}
                 onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, notes: e.target.value }))} rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3bafba] resize-none placeholder:text-gray-500" />
               <Button onClick={addHistoryEntry} className="bg-[#3bafba] hover:bg-[#34a0ab]">
                 <Plus size={18} className="mr-2" /> Add Entry
               </Button>
@@ -452,28 +456,6 @@ export default function JobOpportunitiesManager() {
                   placeholder="Enter job description..." rows={6} maxLength={2000}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Personal Notes</label>
-                <textarea name="personalNotes" value={formData.personalNotes} onChange={handleChange}
-                  placeholder="Your personal observations..." rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Salary Negotiation Notes</label>
-                <textarea name="salaryNegotiationNotes" value={formData.salaryNegotiationNotes} onChange={handleChange}
-                  placeholder="Research, negotiation strategy..." rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Interview Notes & Feedback</label>
-                <textarea name="interviewNotes" value={formData.interviewNotes} onChange={handleChange}
-                  placeholder="Interview questions, impressions..." rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-              </div>
-
               <div className="flex gap-3 pt-4">
                 <Button onClick={saveJobEdit} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
                   <Save size={18} /> Save Changes
