@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Eye, Save, ArrowLeft, User, Phone, Mail, Clock, FileText, DollarSign as NegotiationIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import JobNotesCard from './jobNotesCard';
+import SearchBox, {JobFilters} from './SearchBox';
+import JobCard from './jobCard';
+import { Job, ContactInfo, ApplicationHistoryEntry } from '@/types/jobs.types';
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
@@ -14,40 +17,6 @@ const INDUSTRIES = [
 const JOB_TYPES = [
   "Full-time", "Part-time", "Contract", "Temporary", "Internship", "Remote", "Hybrid"
 ];
-
-interface ApplicationHistoryEntry {
-  id: string;
-  timestamp: string;
-  status: string;
-  notes: string;
-}
-
-interface ContactInfo {
-  name: string;
-  role: string;
-  email: string;
-  phone: string;
-}
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  salaryMin: string;
-  salaryMax: string;
-  postingUrl: string;
-  deadline: string;
-  description: string;
-  industry: string;
-  jobType: string;
-  createdAt: string;
-  personalNotes: string;
-  contacts: ContactInfo[];
-  applicationHistory: ApplicationHistoryEntry[];
-  salaryNegotiationNotes: string;
-  interviewNotes: string;
-}
 
 export default function JobOpportunitiesManager() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -61,6 +30,112 @@ export default function JobOpportunitiesManager() {
     postingUrl: '', deadline: '', description: '', industry: 'Technology',
     jobType: 'Full-time', personalNotes: '', salaryNegotiationNotes: '', interviewNotes: ''
   });
+  const [filters, setFilters] = useState<JobFilters>({
+    searchTerm: '',
+    industry: 'all',
+    jobType: 'all',
+    location: '',
+    salaryMin: '',
+    salaryMax: '',
+    deadlineFrom: '',
+    deadlineTo: '',
+    sortBy: 'dateAdded'
+  });
+
+  const filteredJobs = useMemo(() => {
+    let result = [...jobs];
+    
+    // Search
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      result = result.filter(job => 
+        job.title.toLowerCase().includes(term) ||
+        job.company.toLowerCase().includes(term) ||
+        job.description.toLowerCase().includes(term)
+      );
+    }
+    
+    // Industry
+    if (filters.industry !== 'all') {
+      result = result.filter(job => job.industry === filters.industry);
+    }
+    
+    // Job Type
+    if (filters.jobType !== 'all') {
+      result = result.filter(job => job.jobType === filters.jobType);
+    }
+    
+    // Location
+    if (filters.location) {
+      result = result.filter(job => 
+        job.location.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
+    
+    // Salary Min
+    if (filters.salaryMin) {
+      result = result.filter(job => {
+        const jobSalary = parseInt(job.salaryMax || job.salaryMin || '0');
+        return jobSalary >= parseInt(filters.salaryMin);
+      });
+    }
+    
+    // Salary Max
+    if (filters.salaryMax) {
+      result = result.filter(job => {
+        const jobSalary = parseInt(job.salaryMin || job.salaryMax || '999999999');
+        return jobSalary <= parseInt(filters.salaryMax);
+      });
+    }
+    
+    // Deadline From
+    if (filters.deadlineFrom && result.length > 0) {
+      result = result.filter(job => 
+        job.deadline && new Date(job.deadline) >= new Date(filters.deadlineFrom)
+      );
+    }
+    
+    // Deadline To
+    if (filters.deadlineTo && result.length > 0) {
+      result = result.filter(job => 
+        job.deadline && new Date(job.deadline) <= new Date(filters.deadlineTo)
+      );
+    }
+    
+    // Sorting
+    result.sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'deadline':
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        case 'salary':
+          const aSalary = parseInt(a.salaryMax || a.salaryMin || '0');
+          const bSalary = parseInt(b.salaryMax || b.salaryMin || '0');
+          return bSalary - aSalary;
+        case 'company':
+          return a.company.localeCompare(b.company);
+        default: // dateAdded
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+    
+    return result;
+  }, [jobs, filters]);
+
+  const handleClearFilters = () => {
+    setFilters({
+      searchTerm: '',
+      industry: 'all',
+      jobType: 'all',
+      location: '',
+      salaryMin: '',
+      salaryMax: '',
+      deadlineFrom: '',
+      deadlineTo: '',
+      sortBy: 'dateAdded'
+    });
+  };
 
   const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
   const [newHistoryEntry, setNewHistoryEntry] = useState({ status: '', notes: '' });
@@ -494,7 +569,7 @@ export default function JobOpportunitiesManager() {
           <Card className="max-w-md w-full shadow-2xl">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                   <AlertTriangle className="text-red-600" size={24} />
                 </div>
                 <div className="flex-1">
@@ -510,6 +585,15 @@ export default function JobOpportunitiesManager() {
           </Card>
         </div>
       )}
+
+      <SearchBox 
+          filters={filters}
+          onFilterChange={setFilters}
+          onClearFilters={handleClearFilters}
+          industries={INDUSTRIES}
+          jobTypes={JOB_TYPES}
+          resultCount={filteredJobs.length}
+        />
 
       {showForm && (
         <Card className="border-2 border-[#3bafba] shadow-lg">
@@ -596,73 +680,14 @@ export default function JobOpportunitiesManager() {
             </CardContent>
           </Card>
         ) : (
-          jobs.map(job => (
-            <Card key={job.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => viewJobDetails(job.id)}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{job.title}</h3>
-                    <div className="flex items-center gap-2 text-gray-600 mb-2">
-                      <Building2 size={16} />
-                      <span className="font-medium">{job.company}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm"
-                      onClick={(e) => { e.stopPropagation(); viewJobDetails(job.id); }}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                      <Eye size={18} />
-                    </Button>
-                    <Button variant="ghost" size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(job.id); }}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                      <X size={20} />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                  {job.location && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin size={16} className="text-gray-400" />
-                      <span>{job.location}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <DollarSign size={16} className="text-gray-400" />
-                    <span>{formatSalary(job.salaryMin, job.salaryMax)}</span>
-                  </div>
-                  {job.deadline && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar size={16} className="text-gray-400" />
-                      <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  {job.applicationHistory.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock size={16} className="text-gray-400" />
-                      <span>{job.applicationHistory.length} update(s)</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 mb-4">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">{job.industry}</span>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">{job.jobType}</span>
-                  {job.contacts.length > 0 && (
-                    <span className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
-                      {job.contacts.length} contact{job.contacts.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-
-                {job.description && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-sm text-gray-700 line-clamp-2">{job.description}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          filteredJobs.map(job => (
+            <JobCard 
+            key={job.id} 
+            job={job} 
+            onDelete={handleDelete}
+            onViewDetails={viewJobDetails}
+            searchTerm={filters.searchTerm}
+            />
           ))
         )}
       </div>
