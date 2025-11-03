@@ -121,8 +121,8 @@ export default function JobCard({ job, onDelete, onViewDetails, searchTerm = '' 
               isDeadlinePassed() 
                 ? 'text-red-600' 
                 : isDeadlineApproaching() 
-                ? 'text-orange-600 font-medium' 
-                : 'text-gray-600'
+                ? 'text-yellow-600 font-medium' 
+                : 'text-green-600'
             }`}>
               {isDeadlinePassed() ? (
                 <AlertCircle size={16} className="shrink-0" />
