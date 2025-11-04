@@ -162,3 +162,38 @@ model SpecialProject {
   @@index([userId], map: "idx_projects_user_id")
   @@map("special_projects")
 }
+
+model ResumeTemplate {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()"))
+  name        String    @unique @db.VarChar(255)
+  description String?   @db.VarChar(1000)
+  type        String    @db.VarChar(50)
+  preview     String?   @map("preview_url") @db.VarChar(500)
+  structure   Json
+  isDefault   Boolean   @default(false) @map("is_default")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  resumes     Resume[]
+
+  @@index([isActive], map: "idx_resume_templates_is_active")
+  @@index([isDefault], map: "idx_resume_templates_is_default")
+  @@map("resume_templates")
+}
+
+model Resume {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()"))
+  userId       String         @map("user_id")
+  name         String         @db.VarChar(255)
+  templateId   String         @map("template_id")
+  isDefault    Boolean        @default(false) @map("is_default")
+  content      Json
+  lastModified DateTime?      @default(now()) @map("last_modified") @db.Timestamp(6)
+  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  template     ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+
+  @@index([userId], map: "idx_resumes_user_id")
+  @@index([userId, isDefault], map: "idx_resumes_user_default")
+  @@index([templateId], map: "idx_resumes_template_id")
+  @@map("resumes")
+}
