@@ -636,7 +636,7 @@ export default function ViewResumePage() {
 
     if (error || !resume) {
         return (
-            <div className="min-h-screen bg-white p-8">
+            <div className="bg-white p-8">
                 <div className="max-w-4xl mx-auto">
                     <button
                         onClick={() => router.push('/dashboard/resumes')}
@@ -659,7 +659,7 @@ export default function ViewResumePage() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-black p-8">
+        <div className="bg-white text-black p-8">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

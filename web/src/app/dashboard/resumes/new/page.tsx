@@ -106,7 +106,7 @@ export default function NewResumePage() {
 
     return (
         <>
-            <div className="min-h-screen bg-white text-black p-8">
+            <div className="bg-white text-black p-8">
                 <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="mb-8">

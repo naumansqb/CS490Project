@@ -8,7 +8,6 @@ const router = Router();
 router.get('/', authMiddleware, resumeController.getResumesByAuthUser);
 router.post('/', authMiddleware, resumeController.createResume);
 router.get('/:id', authMiddleware, resumeController.getResumeById);
-router.get('/user/:userId', authMiddleware, resumeController.getResumesByUserId);
 router.patch('/:id', authMiddleware, resumeController.updateResume);
 router.delete('/:id', authMiddleware, resumeController.deleteResume);
 router.patch('/:id/set-default', authMiddleware, resumeController.setDefaultResume);
