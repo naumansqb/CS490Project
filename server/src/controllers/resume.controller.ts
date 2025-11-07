@@ -14,23 +14,17 @@ async function getUserProfileData(userId: string) {
             where: { userId },
         });
 
-        console.log('📋 PROFILE DATA FETCHED:', JSON.stringify(profile, null, 2));
-
         // Fetch work experience
         const workExperience = await prisma.workExperience.findMany({
             where: { userId },
             orderBy: { startDate: 'desc' },
         });
 
-        console.log('💼 WORK EXPERIENCE FETCHED:', JSON.stringify(workExperience, null, 2));
-
         // Fetch education
         const education = await prisma.education.findMany({
             where: { userId },
             orderBy: { graduationDate: 'desc' },
         });
-
-        console.log('🎓 EDUCATION FETCHED:', JSON.stringify(education, null, 2));
 
         // Fetch skills
         const skills = await prisma.skill.findMany({
@@ -44,7 +38,6 @@ async function getUserProfileData(userId: string) {
             skills,
         };
     } catch (error) {
-        console.error('❌ ERROR fetching user profile data:', error);
         return {
             profile: null,
             workExperience: [],
@@ -62,10 +55,6 @@ function getTemplateContent(templateType: string, userData: any) {
     const workExperience = userData.workExperience || [];
     const education = userData.education || [];
     const skills = userData.skills || [];
-
-    console.log('🎨 Template Type:', lower);
-    console.log('📊 Skills Data:', JSON.stringify(skills, null, 2));
-    console.log('👤 Profile Data:', JSON.stringify(profile, null, 2));
 
     // Build personal info
     const personalInfo = {
@@ -193,8 +182,6 @@ You can use 4-8 statements.`;
             }
         });
 
-        console.log('📦 Grouped Skills:', JSON.stringify(groupedSkills, null, 2));
-
         // Convert to array format
         const skillCategories = Object.keys(groupedSkills).length > 0
             ? Object.keys(groupedSkills).slice(0, 3).map(category => ({
@@ -215,8 +202,6 @@ You can use 4-8 statements.`;
                     items: ['Add accomplishment statements, starting with an action verb'],
                 },
             ];
-
-        console.log('✅ Skill Categories for Functional:', JSON.stringify(skillCategories, null, 2));
 
         return {
             personalInfo,
@@ -276,8 +261,6 @@ You can use 4-8 statements.`;
                     ],
                 },
             ];
-
-        console.log('✅ Skill Categories for Hybrid:', JSON.stringify(skillCategories, null, 2));
 
         return {
             personalInfo,
@@ -346,7 +329,6 @@ export async function getResumesByAuthUser(req: Request, res: Response) {
 
         return res.status(200).json(payload);
     } catch (err: any) {
-        console.error('Error fetching resumes by auth user:', err);
         return res.status(500).json({
             error: 'Failed to fetch resumes',
             details: err?.message,
@@ -360,8 +342,6 @@ export async function createResume(req: Request, res: Response) {
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized: no user id found on request' });
         }
-
-        console.log('🆕 CREATING RESUME FOR USER:', userId);
 
         const { templateId, name } = req.body;
         if (!templateId) {
@@ -386,8 +366,6 @@ export async function createResume(req: Request, res: Response) {
 
         // Get template-specific content with user data
         const baseContent = getTemplateContent(template.type || '', userData);
-
-        console.log('📄 FINAL CONTENT:', JSON.stringify(baseContent, null, 2));
 
         const newResume = await prisma.resume.create({
             data: {
@@ -416,7 +394,6 @@ export async function createResume(req: Request, res: Response) {
             content: newResume.content,
         });
     } catch (err: any) {
-        console.error('Error creating resume:', err);
         return res.status(500).json({
             error: 'Failed to create resume',
             details: err?.message,
@@ -453,45 +430,8 @@ export async function getResumeById(req: Request, res: Response) {
             content: resume.content,
         });
     } catch (err: any) {
-        console.error('Error fetching resume:', err);
         return res.status(500).json({
             error: 'Failed to fetch resume',
-            details: err?.message,
-        });
-    }
-}
-
-export async function getResumesByUserId(req: Request, res: Response) {
-    try {
-        const { userId } = req.params;
-
-        const resumes = await prisma.resume.findMany({
-            where: { userId },
-            orderBy: { isDefault: 'desc' },
-            include: { template: true },
-        });
-
-        const payload = resumes.map((r) => ({
-            id: r.id,
-            name: r.name,
-            userId: r.userId,
-            isDefault: r.isDefault,
-            createdAt: r.createdAt,
-            lastModified: r.lastModified,
-            template: {
-                id: r.template.id,
-                name: r.template.name,
-                type: r.template.type,
-                preview: r.template.preview,
-            },
-            content: r.content,
-        }));
-
-        return res.status(200).json(payload);
-    } catch (err: any) {
-        console.error('Error fetching resumes by user:', err);
-        return res.status(500).json({
-            error: 'Failed to fetch resumes',
             details: err?.message,
         });
     }
@@ -500,31 +440,11 @@ export async function getResumesByUserId(req: Request, res: Response) {
 export async function updateResume(req: Request, res: Response) {
     try {
         const { id } = req.params;
-        const { name, content, isDefault } = req.body;
+        const { name, content } = req.body;
 
         let updateData: any = {};
         if (name !== undefined) updateData.name = name;
         if (content !== undefined) updateData.content = content;
-        if (isDefault !== undefined) updateData.isDefault = isDefault;
-
-        if (isDefault === true) {
-            const targetResume = await prisma.resume.findUnique({
-                where: { id },
-            });
-
-            if (!targetResume) {
-                return res.status(404).json({ error: 'Resume not found' });
-            }
-
-            const userId = targetResume.userId;
-
-            await prisma.resume.updateMany({
-                where: { userId, NOT: { id } },
-                data: { isDefault: false },
-            });
-
-            updateData.isDefault = true;
-        }
 
         const updated = await prisma.resume.update({
             where: { id },
@@ -548,7 +468,6 @@ export async function updateResume(req: Request, res: Response) {
             content: updated.content,
         });
     } catch (err: any) {
-        console.error('Error updating resume:', err);
         return res.status(500).json({
             error: 'Failed to update resume',
             details: err?.message,
@@ -562,7 +481,6 @@ export async function deleteResume(req: Request, res: Response) {
         await prisma.resume.delete({ where: { id } });
         return res.status(204).send();
     } catch (err: any) {
-        console.error('Error deleting resume:', err);
         return res.status(500).json({
             error: 'Failed to delete resume',
             details: err?.message,
@@ -611,7 +529,6 @@ export async function setDefaultResume(req: Request, res: Response) {
             content: updated.content,
         });
     } catch (err: any) {
-        console.error('Error setting default resume:', err);
         return res.status(500).json({
             error: 'Failed to set default resume',
             details: err?.message,

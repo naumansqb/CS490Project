@@ -299,7 +299,7 @@ export default function EditResumePage() {
 
     if (error || !resume) {
         return (
-            <div className="min-h-screen bg-white p-8">
+            <div className="bg-white p-8">
                 <div className="max-w-4xl mx-auto">
                     <button onClick={() => router.push('/dashboard/resumes')} className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-6">
                         <ArrowLeft className="w-4 h-4" />
@@ -318,7 +318,7 @@ export default function EditResumePage() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-black p-8">
+        <div className="bg-white text-black p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <button onClick={() => router.push('/dashboard/resumes')} className="flex items-center gap-2 text-sm font-medium text-gray-700">
