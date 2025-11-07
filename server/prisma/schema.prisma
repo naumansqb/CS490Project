@@ -190,7 +190,7 @@ model JobContact {
 
 model JobOpportunity {
   id                       String                @id @default(dbgenerated("uuid_generate_v4()"))
-  userId                  String
+  userId                  String`                @map("user_id")
   title                    String                @db.VarChar(255)
   company                  String                @db.VarChar(255)
   location                 String?               @db.VarChar(255)
@@ -213,6 +213,7 @@ model JobOpportunity {
   @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
   @@index([userId], map: "idx_job_opportunity_user_id")
+  @@map("job_opportunity")
 }
 
 model resume_templates {
