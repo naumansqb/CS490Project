@@ -7,6 +7,9 @@ import educationRoutes from './education.routes';
 import skillRoutes from './skill.routes';
 import certificationRoutes from './certification.routes';
 import specialProjectRoutes from './specialProject.routes';
+import jobOpportunityRoutes from "./jobOpportunity.routes";
+import jobContactRoutes from "./jobContact.routes";
+import applicationHistoryRoutes from "./applicationHistory.routes";
 
 const router = Router();
 
@@ -18,5 +21,9 @@ router.use('/educations', educationRoutes);
 router.use('/skills', skillRoutes);
 router.use('/certifications', certificationRoutes);
 router.use('/special-projects', specialProjectRoutes);
+router.use("/job-opportunities", jobOpportunityRoutes);
+router.use("/job-contacts", jobContactRoutes);
+router.use("/application-history", applicationHistoryRoutes);
 
 export default router;
+
