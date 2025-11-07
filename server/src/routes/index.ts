@@ -10,6 +10,7 @@ import specialProjectRoutes from './specialProject.routes';
 import jobOpportunityRoutes from "./jobOpportunity.routes";
 import jobContactRoutes from "./jobContact.routes";
 import applicationHistoryRoutes from "./applicationHistory.routes";
+import aiRoutes from "./ai.routes";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/special-projects', specialProjectRoutes);
 router.use("/job-opportunities", jobOpportunityRoutes);
 router.use("/job-contacts", jobContactRoutes);
 router.use("/application-history", applicationHistoryRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;
 
