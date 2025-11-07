@@ -8,38 +8,39 @@ datasource db {
 }
 
 model UserProfile {
-  userId              String           @id @map("user_id")
-  firstName           String?          @map("first_name") @db.VarChar(100)
-  lastName            String?          @map("last_name") @db.VarChar(100)
-  preferredName       String?          @map("preferred_name") @db.VarChar(100)
-  email               String?          @db.VarChar(255)
-  phone_number        String?          @db.VarChar(20)
-  headline            String?          @db.VarChar(255)
+  userId              String            @id @map("user_id")
+  firstName           String?           @map("first_name") @db.VarChar(100)
+  lastName            String?           @map("last_name") @db.VarChar(100)
+  preferredName       String?           @map("preferred_name") @db.VarChar(100)
+  email               String?           @db.VarChar(255)
+  phone_number        String?           @db.VarChar(20)
+  headline            String?           @db.VarChar(255)
   bio                 String?
-  profilePhotoUrl     String?          @map("profile_photo_url") @db.VarChar(500)
-  industry            String?          @db.VarChar(100)
-  locationCity        String?          @map("location_city") @db.VarChar(100)
-  locationState       String?          @map("location_state") @db.VarChar(100)
-  locationCountry     String?          @map("location_country") @db.VarChar(100)
-  willingToRelocate   Boolean?         @default(false) @map("willing_to_relocate")
-  linkedinUrl         String?          @map("linkedin_url") @db.VarChar(255)
-  githubUrl           String?          @map("github_url") @db.VarChar(255)
-  portfolioUrl        String?          @map("portfolio_url") @db.VarChar(255)
-  websiteUrl          String?          @map("website_url") @db.VarChar(255)
-  yearsOfExperience   Decimal?         @map("years_of_experience") @db.Decimal(4, 1)
-  careerLevel         String?          @map("career_level") @db.VarChar(50)
-  desiredSalaryMin    Decimal?         @map("desired_salary_min") @db.Decimal(12, 2)
-  desiredSalaryMax    Decimal?         @map("desired_salary_max") @db.Decimal(12, 2)
-  salaryCurrency      String?          @default("USD") @map("salary_currency") @db.VarChar(10)
-  openToOpportunities Boolean?         @default(true) @map("open_to_opportunities")
-  jobSearchStatus     String?          @map("job_search_status") @db.VarChar(50)
-  preferredWorkType   String?          @map("preferred_work_type") @db.VarChar(50)
-  profileCompleteness Int?             @default(0) @map("profile_completeness")
-  profileVisibility   String?          @default("private") @map("profile_visibility") @db.VarChar(50)
-  createdAt           DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt           DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  profilePhotoUrl     String?           @map("profile_photo_url") @db.VarChar(500)
+  industry            String?           @db.VarChar(100)
+  locationCity        String?           @map("location_city") @db.VarChar(100)
+  locationState       String?           @map("location_state") @db.VarChar(100)
+  locationCountry     String?           @map("location_country") @db.VarChar(100)
+  willingToRelocate   Boolean?          @default(false) @map("willing_to_relocate")
+  linkedinUrl         String?           @map("linkedin_url") @db.VarChar(255)
+  githubUrl           String?           @map("github_url") @db.VarChar(255)
+  portfolioUrl        String?           @map("portfolio_url") @db.VarChar(255)
+  websiteUrl          String?           @map("website_url") @db.VarChar(255)
+  yearsOfExperience   Decimal?          @map("years_of_experience") @db.Decimal(4, 1)
+  careerLevel         String?           @map("career_level") @db.VarChar(50)
+  desiredSalaryMin    Decimal?          @map("desired_salary_min") @db.Decimal(12, 2)
+  desiredSalaryMax    Decimal?          @map("desired_salary_max") @db.Decimal(12, 2)
+  salaryCurrency      String?           @default("USD") @map("salary_currency") @db.VarChar(10)
+  openToOpportunities Boolean?          @default(true) @map("open_to_opportunities")
+  jobSearchStatus     String?           @map("job_search_status") @db.VarChar(50)
+  preferredWorkType   String?           @map("preferred_work_type") @db.VarChar(50)
+  profileCompleteness Int?              @default(0) @map("profile_completeness")
+  profileVisibility   String?           @default("private") @map("profile_visibility") @db.VarChar(50)
+  createdAt           DateTime?         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime?         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   certifications      Certification[]
   education           Education[]
+  JobOpportunity      JobOpportunity[]
   skills              Skill[]
   specialProjects     SpecialProject[]
   workExperiences     WorkExperience[]
@@ -162,93 +163,99 @@ model SpecialProject {
   @@index([userId], map: "idx_projects_user_id")
   @@map("special_projects")
 }
-CREATE TABLE job_opportunities (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    company VARCHAR(255) NOT NULL,
-    location VARCHAR(255),
-    salary_min VARCHAR(50),
-    salary_max VARCHAR(50),
-    posting_url TEXT,
-    deadline DATE,
-    description TEXT,
-    industry VARCHAR(100) NOT NULL,
-    job_type VARCHAR(50) NOT NULL,
-    personal_notes TEXT,
-    salary_negotiation_notes TEXT,
-    interview_notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_user_id (user_id),
-    INDEX idx_created_at (created_at),
-    INDEX idx_deadline (deadline),
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 
--- Job Contacts Table
-CREATE TABLE job_contacts (
-    id VARCHAR(255) PRIMARY KEY,
-    job_id VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    role VARCHAR(255),
-    email VARCHAR(255),
-    phone VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_job_id (job_id),
-    
-    FOREIGN KEY (job_id) REFERENCES job_opportunities(id) ON DELETE CASCADE
-);
+model ApplicationHistory {
+  id              String             @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId          String
+  status          application_status
+  timestamp       DateTime?          @default(now()) @db.Timestamp(6)
+  jobOpportunity JobOpportunity    @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
--- Application History Table
-CREATE TABLE application_history (
-    id VARCHAR(255) PRIMARY KEY,
-    job_id VARCHAR(255) NOT NULL,
-    status VARCHAR(255) NOT NULL,
-    notes TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_job_id (job_id),
-    INDEX idx_timestamp (timestamp),
-    
-    FOREIGN KEY (job_id) REFERENCES job_opportunities(id) ON DELETE CASCADE
-);
+  @@index([jobId], map: "idx_application_history_job_id")
+  @@index([timestamp], map: "idx_application_history_timestamp")
+}
 
+model JobContact {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId          String
+  name            String          @db.VarChar(255)
+  role            String?         @db.VarChar(255)
+  email           String?         @db.VarChar(255)
+  phone           String?         @db.VarChar(50)
+  createdAt      DateTime?       @default(now()) @db.Timestamp(6)
+  jobOpportunity JobOpportunity @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-model ResumeTemplate {
+  @@index([jobId], map: "idx_job_contacts_job_id")
+}
+
+model JobOpportunity {
+  id                       String                @id @default(dbgenerated("uuid_generate_v4()"))
+  userId                  String
+  title                    String                @db.VarChar(255)
+  company                  String                @db.VarChar(255)
+  location                 String?               @db.VarChar(255)
+  salaryMin               String?               @db.VarChar(50)
+  salaryMax               String?               @db.VarChar(50)
+  postingUrl              String?
+  deadline                 DateTime?             @db.Date
+  description              String?
+  industry                 String                @db.VarChar(100)
+  jobType                 String                @db.VarChar(50)
+  personalNotes           String?
+  salaryNegotiationNotes String?
+  interviewNotes          String?
+  createdAt               DateTime?             @default(now()) @db.Timestamp(6)
+  updatedAt               DateTime?             @default(now()) @db.Timestamp(6)
+  applicationHistory       ApplicationHistory[]
+  jobContacts               JobContact[]
+  user_profiles            UserProfile           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_job_opportunity_created_at")
+  @@index([deadline], map: "idx_job_opportunity_deadline")
+  @@index([userId], map: "idx_job_opportunity_user_id")
+}
+
+model resume_templates {
   id          String    @id @default(dbgenerated("uuid_generate_v4()"))
   name        String    @unique @db.VarChar(255)
   description String?   @db.VarChar(1000)
   type        String    @db.VarChar(50)
-  preview     String?   @map("preview_url") @db.VarChar(500)
+  preview_url String?   @db.VarChar(500)
   structure   Json
-  isDefault   Boolean   @default(false) @map("is_default")
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  resumes     Resume[]
+  is_default  Boolean   @default(false)
+  is_active   Boolean   @default(true)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  resumes     resumes[]
 
-  @@index([isActive], map: "idx_resume_templates_is_active")
-  @@index([isDefault], map: "idx_resume_templates_is_default")
-  @@map("resume_templates")
+  @@index([is_active], map: "idx_resume_templates_is_active")
+  @@index([is_default], map: "idx_resume_templates_is_default")
 }
 
-model Resume {
-  id           String         @id @default(dbgenerated("uuid_generate_v4()"))
-  userId       String         @map("user_id")
-  name         String         @db.VarChar(255)
-  templateId   String         @map("template_id")
-  isDefault    Boolean        @default(false) @map("is_default")
-  content      Json
-  lastModified DateTime?      @default(now()) @map("last_modified") @db.Timestamp(6)
-  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
-  template     ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+model resumes {
+  id               String           @id @default(dbgenerated("uuid_generate_v4()"))
+  user_id          String
+  name             String           @db.VarChar(255)
+  template_id      String
+  is_default       Boolean          @default(false)
+  content          Json
+  last_modified    DateTime?        @default(now()) @db.Timestamp(6)
+  created_at       DateTime?        @default(now()) @db.Timestamp(6)
+  resume_templates resume_templates @relation(fields: [template_id], references: [id], onUpdate: NoAction)
 
-  @@index([userId], map: "idx_resumes_user_id")
-  @@index([userId, isDefault], map: "idx_resumes_user_default")
-  @@index([templateId], map: "idx_resumes_template_id")
-  @@map("resumes")
+  @@index([template_id], map: "idx_resumes_template_id")
+  @@index([user_id, is_default], map: "idx_resumes_user_default")
+  @@index([user_id], map: "idx_resumes_user_id")
+}
+
+enum application_status {
+  saved
+  applied
+  phone_screen
+  interview_scheduled
+  interviewed
+  offer_received
+  accepted
+  rejected
+  withdrawn
 }

@@ -10,6 +10,10 @@ import specialProjectRoutes from './specialProject.routes';
 import resumeRoutes from './resume.routes';
 import resumeTemplateRoutes from './resumeTemplate.route';
 
+import jobOpportunityRoutes from "./jobOpportunity.routes";
+import jobContactRoutes from "./jobContact.routes";
+import applicationHistoryRoutes from "./applicationHistory.routes";
+import aiRoutes from "./ai.routes";
 
 const router = Router();
 
@@ -25,5 +29,10 @@ router.use('/resumes', resumeRoutes);
 router.use('/resume-templates', resumeTemplateRoutes);
 
 
+router.use("/job-opportunities", jobOpportunityRoutes);
+router.use("/job-contacts", jobContactRoutes);
+router.use("/application-history", applicationHistoryRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;
+
