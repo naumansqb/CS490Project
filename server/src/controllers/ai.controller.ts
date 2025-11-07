@@ -1,14 +1,21 @@
 import { Request, Response } from "express";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { aiService } from "../services/aiService";
+import { prisma } from "../db";
 
 export const generateTailoredResume = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { userProfile, workExperiences, education, skills, jobDescription } =
-      req.body;
+    const { userId, jobDescription } = req.body;
+
+    if (!userId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
+        { field: "userId", message: "User ID is required" },
+      ]);
+      return;
+    }
 
     if (!jobDescription) {
       sendErrorResponse(
@@ -21,52 +28,57 @@ export const generateTailoredResume = async (
       return;
     }
 
+    // Fetch user's profile data
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: {
+          orderBy: { displayOrder: "asc" },
+        },
+        education: {
+          orderBy: { displayOrder: "asc" },
+        },
+        skills: {
+          orderBy: { displayOrder: "asc" },
+        },
+      },
+    });
+
     if (!userProfile) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "User profile is required",
-        [{ field: "userProfile", message: "User profile is required" }]
-      );
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
       return;
     }
 
-    if (!workExperiences || !Array.isArray(workExperiences)) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "Work experiences are required",
-        [
-          {
-            field: "workExperiences",
-            message: "Work experiences must be an array",
-          },
-        ]
-      );
-      return;
-    }
-
-    if (!education || !Array.isArray(education)) {
-      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Education is required", [
-        { field: "education", message: "Education must be an array" },
-      ]);
-      return;
-    }
-
-    if (!skills || !Array.isArray(skills)) {
-      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Skills are required", [
-        { field: "skills", message: "Skills must be an array" },
-      ]);
-      return;
-    }
-
+    // Build input for AI service
     const resumeInput = {
-      userProfile,
-      workExperiences,
-      education,
-      skills,
+      userProfile: {
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        email: userProfile.email || "",
+        phone: userProfile.phone_number || "",
+        location: `${userProfile.locationCity || ""}, ${
+          userProfile.locationState || ""
+        }`.trim(),
+        headline: userProfile.headline || undefined,
+        bio: userProfile.bio || undefined,
+      },
+      workExperiences: userProfile.workExperiences.map((exp) => ({
+        companyName: exp.companyName,
+        positionTitle: exp.positionTitle,
+        startDate: exp.startDate.toISOString(),
+        endDate: exp.endDate?.toISOString(),
+        description: exp.description || "",
+      })),
+      education: userProfile.education.map((edu) => ({
+        institutionName: edu.institutionName,
+        degreeType: edu.degreeType || "",
+        major: edu.major || "",
+        graduationDate: edu.graduationDate?.toISOString(),
+      })),
+      skills: userProfile.skills.map((skill) => ({
+        skillName: skill.skillName,
+        proficiencyLevel: skill.proficiencyLevel || undefined,
+      })),
       jobDescription,
     };
 
@@ -92,68 +104,66 @@ export const generateCoverLetter = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { userProfile, targetJob, relevantExperience, relevantSkills } =
-      req.body;
+    const { userId, jobId } = req.body;
+
+    if (!userId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
+        { field: "userId", message: "User ID is required" },
+      ]);
+      return;
+    }
+
+    if (!jobId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Job ID is required", [
+        { field: "jobId", message: "Job ID is required" },
+      ]);
+      return;
+    }
+
+    // Fetch user profile
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: true,
+        skills: true,
+      },
+    });
 
     if (!userProfile) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "User profile is required",
-        [{ field: "userProfile", message: "User profile is required" }]
-      );
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
       return;
     }
 
-    if (!targetJob) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "Target job is required",
-        [{ field: "targetJob", message: "Target job is required" }]
-      );
+    // Fetch job opportunity
+    const job = await prisma.jobOpportunity.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Job not found");
       return;
     }
 
-    if (!relevantExperience || !Array.isArray(relevantExperience)) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "Relevant experience is required",
-        [
-          {
-            field: "relevantExperience",
-            message: "Relevant experience must be an array",
-          },
-        ]
-      );
-      return;
-    }
-
-    if (!relevantSkills || !Array.isArray(relevantSkills)) {
-      sendErrorResponse(
-        res,
-        400,
-        "VALIDATION_ERROR",
-        "Relevant skills are required",
-        [
-          {
-            field: "relevantSkills",
-            message: "Relevant skills must be an array",
-          },
-        ]
-      );
-      return;
-    }
-
+    // Build input for AI service
     const coverLetterInput = {
-      userProfile,
-      targetJob,
-      relevantExperience,
-      relevantSkills,
+      userProfile: {
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        email: userProfile.email || "",
+        phone: userProfile.phone_number || "",
+      },
+      targetJob: {
+        title: job.title,
+        company: job.company,
+        description: job.description || "",
+      },
+      relevantExperience: userProfile.workExperiences
+        .slice(0, 3)
+        .map(
+          (exp) =>
+            `${exp.positionTitle} at ${exp.companyName}: ${exp.description}`
+        ),
+      relevantSkills: userProfile.skills.slice(0, 10).map((s) => s.skillName),
     };
 
     const coverLetter = await aiService.generateCoverLetter(coverLetterInput);
