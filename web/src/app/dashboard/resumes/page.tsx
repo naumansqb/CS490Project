@@ -12,13 +12,23 @@ import {
     Loader2,
     ArrowLeft,
     Eye,
+    Upload,
+    Edit2,
+    Check,
+    X as XIcon,
 } from 'lucide-react';
 import { resumeApi } from '@/lib/resume.api';
+import { useAuth } from '@/contexts/AuthContext';
+import ImportResumeModal from '@/components/ImportResumeModal';
 
 export default function ResumesPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [resumes, setResumes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingName, setEditingName] = useState('');
 
     useEffect(() => {
         loadResumes();
@@ -62,6 +72,41 @@ export default function ResumesPage() {
         }
     };
 
+    const startEditing = (resume: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(resume.id);
+        setEditingName(resume.name);
+    };
+
+    const cancelEditing = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(null);
+        setEditingName('');
+    };
+
+    const saveRename = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!editingName.trim()) {
+            alert('Resume name cannot be empty');
+            return;
+        }
+        try {
+            await resumeApi.updateResume(id, { name: editingName.trim() });
+            setEditingId(null);
+            setEditingName('');
+            loadResumes();
+            // Show success message
+            const successMsg = document.createElement('div');
+            successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            successMsg.textContent = '✓ Resume renamed successfully';
+            document.body.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 3000);
+        } catch (error) {
+            console.error('Failed to rename resume:', error);
+            alert('Failed to rename resume');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-white">
@@ -92,6 +137,14 @@ export default function ResumesPage() {
                             <ArrowLeft className="w-4 h-4" />
                             Back to Dashboard
                         </Link>
+
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg font-semibold flex items-center gap-2 transition-all shadow-md"
+                        >
+                            <Upload className="w-5 h-5" />
+                            Import Resume
+                        </button>
 
                         <Link
                             href="/dashboard/resumes/new"
@@ -162,14 +215,56 @@ export default function ResumesPage() {
                                     </button>
                                 </div>
 
-                                <h3 className="text-lg font-semibold text-black mb-2">
-                                    {resume.name}
-                                </h3>
+                                {/* Resume Name - Editable */}
+                                {editingId === resume.id ? (
+                                    <div className="mb-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="text"
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            className="flex-1 px-2 py-1 border border-cyan-500 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm font-semibold"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') saveRename(resume.id, e as any);
+                                                if (e.key === 'Escape') cancelEditing(e as any);
+                                            }}
+                                        />
+                                        <button
+                                            onClick={(e) => saveRename(resume.id, e)}
+                                            className="p-1 text-green-600 hover:text-green-700 transition-colors"
+                                            title="Save"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => cancelEditing(e)}
+                                            className="p-1 text-gray-600 hover:text-gray-700 transition-colors"
+                                            title="Cancel"
+                                        >
+                                            <XIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <h3 className="text-lg font-semibold text-black flex-1">
+                                            {resume.name}
+                                        </h3>
+                                        <button
+                                            onClick={(e) => startEditing(resume, e)}
+                                            className="p-1 text-gray-400 hover:text-cyan-600 transition-colors"
+                                            title="Rename"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
 
                                 <p className="text-sm text-gray-600 mb-4">
-                                    {resume.template.name} •{' '}
                                     <span className="capitalize">
-                                        {resume.template.type}
+                                        {resume.template.type.toLowerCase().includes('chrono') ? 'Chronological' :
+                                         resume.template.type.toLowerCase().includes('function') ? 'Functional' :
+                                         resume.template.type.toLowerCase().includes('hybrid') ? 'Hybrid' :
+                                         resume.template.type}
                                     </span>
                                 </p>
 
@@ -228,6 +323,15 @@ export default function ResumesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Import Resume Modal */}
+            {user && (
+                <ImportResumeModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    userId={user.uid}
+                />
+            )}
         </div>
     );
 }

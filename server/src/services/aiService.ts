@@ -14,8 +14,13 @@ import {
   buildCoverLetterPrompt,
   coverLetterSystemPrompt,
 } from "./llm/prompts/coverLetter.prompts";
+import {
+  buildResumeParsingPrompt,
+  resumeParserSystemPrompt,
+} from "./llm/prompts/resumeParser.prompts";
 import { resumeSchema } from "./llm/schemas/resume.schema";
 import { coverLetterSchema } from "./llm/schemas/coverLetter.schema";
+import { resumeParserSchema } from "./llm/schemas/resumeParser.schema";
 
 export class AIService {
   private llmProvider: GeminiProvider;
@@ -61,6 +66,25 @@ export class AIService {
     } catch (error) {
       console.error("[AI Service - Cover Letter Generation Error]", error);
       throw new Error("Failed to generate cover letter");
+    }
+  }
+
+  async parseResume(resumeText: string): Promise<any> {
+    try {
+      const prompt = buildResumeParsingPrompt(resumeText);
+
+      const response = await this.llmProvider.generate<any>({
+        prompt,
+        systemPrompt: resumeParserSystemPrompt,
+        jsonSchema: resumeParserSchema,
+        temperature: 0.3,
+        maxTokens: 2500,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Resume Parsing Error]", error);
+      throw new Error("Failed to parse resume");
     }
   }
 }
