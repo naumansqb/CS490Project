@@ -40,7 +40,8 @@ model UserProfile {
   updatedAt           DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   certifications      Certification[]
   education           Education[]
-  JobOpportunity      JobOpportunity[]
+  jobOpportunities    JobOpportunity[]
+  resumes             Resume[]
   skills              Skill[]
   specialProjects     SpecialProject[]
   workExperiences     WorkExperience[]
@@ -164,46 +165,75 @@ model SpecialProject {
   @@map("special_projects")
 }
 
-model JobOpportunity {
-  id                       String                @id @default(dbgenerated("uuid_generate_v4()"))
-  userId                   String                @map("user_id")
-  title                    String                @db.VarChar(255)
-  company                  String                @db.VarChar(255)
-  location                 String?               @db.VarChar(255)
-  salary_min               String?               @db.VarChar(50)
-  salary_max               String?               @db.VarChar(50)
-  posting_url              String?
-  deadline                 DateTime?             @db.Date
-  description              String?
-  industry                 String                @db.VarChar(100)
-  job_type                 String                @db.VarChar(50)
-  personal_notes           String?
-  salary_negotiation_notes String?
-  interview_notes          String?
-  created_at               DateTime?             @default(now()) @db.Timestamp(6)
-  updated_at               DateTime?             @default(now()) @db.Timestamp(6)
-  application_history      application_history[]
-  job_contacts             job_contacts[]
-  user_profiles            UserProfile           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+model ApplicationHistory {
+  id        String             @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId     String             @map("job_id")
+  status    application_status
+  timestamp DateTime?          @default(now()) @map("timestamp") @db.Timestamp(6)
 
-  @@index([created_at], map: "idx_job_opportunity_created_at")
+  jobOpportunity JobOpportunity @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([jobId], map: "idx_application_history_job_id")
+  @@index([timestamp], map: "idx_application_history_timestamp")
+  @@map("application_history")
+}
+
+model JobContact {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId     String    @map("job_id")
+  name      String    @db.VarChar(255)
+  role      String?   @db.VarChar(255)
+  email     String?   @db.VarChar(255)
+  phone     String?   @db.VarChar(50)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  jobOpportunity JobOpportunity @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([jobId], map: "idx_job_contacts_job_id")
+  @@map("job_contacts")
+}
+
+model JobOpportunity {
+  id                     String    @id @default(dbgenerated("uuid_generate_v4()"))
+  userId                 String    @map("user_id")
+  title                  String    @db.VarChar(255)
+  company                String    @db.VarChar(255)
+  location               String?   @db.VarChar(255)
+  salaryMin              String?   @map("salary_min") @db.VarChar(50)
+  salaryMax              String?   @map("salary_max") @db.VarChar(50)
+  postingUrl             String?   @map("posting_url")
+  deadline               DateTime? @db.Date
+  description            String?   @db.Text
+  industry               String    @db.VarChar(100)
+  jobType                String    @map("job_type") @db.VarChar(50)
+  personalNotes          String?   @map("personal_notes") @db.Text
+  salaryNegotiationNotes String?   @map("salary_negotiation_notes") @db.Text
+  interviewNotes         String?   @map("interview_notes") @db.Text
+  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt              DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  userProfile        UserProfile          @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  applicationHistory ApplicationHistory[]
+  jobContacts        JobContact[]
+
+  @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
   @@index([userId], map: "idx_job_opportunity_user_id")
   @@map("job_opportunity")
 }
 
 model ResumeTemplate {
-  id         String    @id @default(dbgenerated("uuid_generate_v4()"))
-  name       String    @unique @db.VarChar(255)
-  description String?  @db.VarChar(1000)
-  type       String    @db.VarChar(50)
-  previewUrl String?   @map("preview_url") @db.VarChar(500)
-  structure  Json
-  isDefault  Boolean   @default(false) @map("is_default")
-  isActive   Boolean   @default(true) @map("is_active")
-  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-  resumes    Resume[]
+  id          String    @id @default(dbgenerated("uuid_generate_v4()"))
+  name        String    @unique @db.VarChar(255)
+  description String?   @db.VarChar(1000)
+  type        String    @db.VarChar(50)
+  previewUrl  String?   @map("preview_url") @db.VarChar(500)
+  structure   Json
+  isDefault   Boolean   @default(false) @map("is_default")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  resumes     Resume[]
 
   @@index([isActive], map: "idx_resume_templates_is_active")
   @@index([isDefault], map: "idx_resume_templates_is_default")
@@ -211,44 +241,22 @@ model ResumeTemplate {
 }
 
 model Resume {
-  id           String         @id @default(dbgenerated("uuid_generate_v4()"))
-  userId       String         @map("user_id")
-  name         String         @db.VarChar(255)
-  templateId   String         @map("template_id")
-  isDefault    Boolean        @default(false) @map("is_default")
+  id           String    @id @default(dbgenerated("uuid_generate_v4()"))
+  userId       String    @map("user_id")
+  name         String    @db.VarChar(255)
+  templateId   String    @map("template_id")
+  isDefault    Boolean   @default(false) @map("is_default")
   content      Json
-  lastModified DateTime?      @default(now()) @map("last_modified") @db.Timestamp(6)
-  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
-  template     ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+  lastModified DateTime? @default(now()) @map("last_modified") @db.Timestamp(6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  userProfile UserProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  template    ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
 
   @@index([templateId], map: "idx_resumes_template_id")
   @@index([userId, isDefault], map: "idx_resumes_user_default")
   @@index([userId], map: "idx_resumes_user_id")
   @@map("resumes")
-}
-
-model application_history {
-  id              String             @id @default(dbgenerated("uuid_generate_v4()"))
-  job_id          String
-  status          application_status
-  timestamp       DateTime?          @default(now()) @db.Timestamp(6)
-  job_opportunity JobOpportunity     @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([job_id], map: "idx_application_history_job_id")
-  @@index([timestamp], map: "idx_application_history_timestamp")
-}
-
-model job_contacts {
-  id              String         @id @default(dbgenerated("uuid_generate_v4()"))
-  job_id          String
-  name            String         @db.VarChar(255)
-  role            String?        @db.VarChar(255)
-  email           String?        @db.VarChar(255)
-  phone           String?        @db.VarChar(50)
-  created_at      DateTime?      @default(now()) @db.Timestamp(6)
-  job_opportunity JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([job_id], map: "idx_job_contacts_job_id")
 }
 
 enum application_status {
