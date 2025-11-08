@@ -98,9 +98,9 @@ export default function JobOpportunitiesManager() {
     if (filters.searchTerm) {
       const term = filters.searchTerm.toLowerCase();
       result = result.filter(job => 
-        job.title.toLowerCase().includes(term) ||
-        job.company.toLowerCase().includes(term) ||
-        job.description.toLowerCase().includes(term)
+        job.title?.toLowerCase().includes(term) ||
+        job.company?.toLowerCase().includes(term) ||
+        job.description?.toLowerCase().includes(term)
       );
     }
     
