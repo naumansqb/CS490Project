@@ -70,6 +70,9 @@ export default function JobOpportunitiesManager() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [jobTitleError, setJobTtitleError] = useState<string>("")
+  const [companyNameError, setCompanyNameError] = useState<string>("")
+  const [rangeError, setRangeError] = useState<string>("")
   const [formData, setFormData] = useState({
     title: '', company: '', location: '', salaryMin: '', salaryMax: '',
     postingUrl: '', deadline: '', description: '', industry: 'Technology',
@@ -200,9 +203,28 @@ export default function JobOpportunitiesManager() {
       return;
     }
 
-    if (!formData.title.trim() || !formData.company.trim()) {
-      alert('Please fill in all required fields (Job Title and Company Name)');
-      return;
+    setCompanyNameError("")
+    setJobTtitleError("")
+    setRangeError("")
+    var errorFound = false
+
+    if (!formData.title.trim()) {
+      setJobTtitleError("Enter a job title")
+      errorFound = true
+    }
+
+    if (!formData.company.trim()){
+      setCompanyNameError("Enter a company name")
+      errorFound = true
+    }
+
+    if(formData.salaryMax < formData.salaryMin){
+      setRangeError("Min range can't be greater than max range")
+      errorFound = true
+    }
+
+    if (errorFound){
+      return
     }
 
     try {
@@ -214,7 +236,7 @@ export default function JobOpportunitiesManager() {
         salaryMin: formData.salaryMin || undefined,
         salaryMax: formData.salaryMax || undefined,
         postingUrl: formData.postingUrl || undefined,
-        deadline: formData.deadline || undefined,
+        deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
         description: formData.description || undefined,
         industry: formData.industry,
         jobType: formData.jobType,
@@ -261,7 +283,7 @@ export default function JobOpportunitiesManager() {
     setFormData({
       title: job.title, company: job.company, location: job.location,
       salaryMin: job.salaryMin, salaryMax: job.salaryMax, postingUrl: job.postingUrl,
-      deadline: job.deadline, description: job.description, industry: job.industry,
+      deadline: job.deadline ? job.deadline.split('T')[0] : '', description: job.description, industry: job.industry,
       jobType: job.jobType, personalNotes: job.personalNotes || '',
       salaryNegotiationNotes: job.salaryNegotiationNotes || '',
       interviewNotes: job.interviewNotes || ''
@@ -272,6 +294,30 @@ export default function JobOpportunitiesManager() {
   const saveJobEdit = async () => {
     if (!selectedJobId) return;
 
+    setCompanyNameError("")
+    setJobTtitleError("")
+    setRangeError("")
+    var errorFound = false
+
+    if (!formData.title.trim()) {
+      setJobTtitleError("Enter a job title")
+      errorFound = true
+    }
+
+    if (!formData.company.trim()){
+      setCompanyNameError("Enter a company name")
+      errorFound = true
+    }
+
+    if(formData.salaryMax < formData.salaryMin){
+      setRangeError("Min range can't be greater than max range")
+      errorFound = true
+    }
+
+    if (errorFound){
+      return
+    }
+
     try {
       const updateData = {
         title: formData.title,
@@ -280,7 +326,7 @@ export default function JobOpportunitiesManager() {
         salaryMin: formData.salaryMin,
         salaryMax: formData.salaryMax,
         postingUrl: formData.postingUrl,
-        deadline: formData.deadline,
+        deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
         description: formData.description,
         industry: formData.industry,
         jobType: formData.jobType,
@@ -492,42 +538,21 @@ export default function JobOpportunitiesManager() {
               </div>
             )}
 
-            {selectedJob.personalNotes && (
-              <div>
-                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                  <FileText size={20} /> Personal Notes
-                </h3>
-                <p className="text-gray-700 whitespace-pre-wrap bg-blue-100 p-4 rounded-lg border border-blue-200">
-                  {selectedJob.personalNotes}
-                </p>
-              </div>
-            )}
-
-            {selectedJob.interviewNotes && (
-              <div>
-                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                  <FileText size={20} /> Interview Notes & Feedback
-                </h3>
-                <p className="text-gray-700 whitespace-pre-wrap bg-blue-100 p-4 rounded-lg border border-blue-200">
-                  {selectedJob.interviewNotes}
-                </p>
-              </div>
-            )}
-
-            {selectedJob.salaryNegotiationNotes && (
-              <div>
-                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                  <FileText size={20} /> Salary Negotiation Notes
-                </h3>
-                <p className="text-gray-700 whitespace-pre-wrap bg-blue-100 p-4 rounded-lg border border-blue-200">
-                  {selectedJob.salaryNegotiationNotes}
-                </p>
-              </div>
-            )}
+            
           </CardContent>
         </Card>
 
-        <JobNotesCard />
+        <JobNotesCard 
+          job={selectedJob}
+          onNotesUpdate={(jobId, field, value) => {
+            // Update local state immediately for optimistic UI
+            setJobs(prev => prev.map(job => 
+              job.id === jobId 
+                ? { ...job, [field]: value }
+                : job
+            ));
+          }}
+        />
 
         {/* Contacts */}
         <Card>
@@ -652,11 +677,21 @@ export default function JobOpportunitiesManager() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Job Title <span className="text-red-500">*</span></label>
-                  <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g., Senior Software Engineer" />
+                  <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g., Senior Software Engineer" className={jobTitleError ? "border-destructive" : ""}/>
+                  {jobTitleError && (
+                    <FieldDescription className="text-destructive">
+                      {jobTitleError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Company Name <span className="text-red-500">*</span></label>
-                  <Input name="company" value={formData.company} onChange={handleChange} placeholder="e.g., Tech Corp Inc." />
+                  <Input name="company" value={formData.company} onChange={handleChange} placeholder="e.g., Tech Corp Inc." className={companyNameError ? "border-destructive" : ""} />
+                  {companyNameError && (
+                    <FieldDescription className="text-destructive">
+                      {companyNameError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
@@ -664,15 +699,20 @@ export default function JobOpportunitiesManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Job Posting URL</label>
-                  <Input name="postingUrl" type="url" value={formData.postingUrl} onChange={handleChange} placeholder="https://..." />
+                  <Input name="postingUrl" type="url" value={formData.postingUrl} onChange={handleChange} placeholder="https://..."/>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Salary Range (Min)</label>
-                  <Input name="salaryMin" type="number" value={formData.salaryMin} onChange={handleChange} placeholder="80000" />
+                  <Input name="salaryMin" type="number" value={formData.salaryMin} onChange={handleChange} placeholder="80000" className={rangeError ? "border-destructive" : ""} />
+                  {rangeError && (
+                    <FieldDescription className="text-destructive">
+                      {rangeError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Salary Range (Max)</label>
-                  <Input name="salaryMax" type="number" value={formData.salaryMax} onChange={handleChange} placeholder="120000" />
+                  <Input name="salaryMax" type="number" value={formData.salaryMax} onChange={handleChange} placeholder="120000" className={rangeError ? "border-destructive" : ""} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Application Deadline</label>
@@ -780,11 +820,21 @@ export default function JobOpportunitiesManager() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Job Title <span className="text-red-500">*</span></label>
-                  <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g., Senior Software Engineer" />
+                  <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g., Senior Software Engineer" className={jobTitleError ? "border-destructive" : ""}/>
+                  {jobTitleError && (
+                    <FieldDescription className="text-destructive">
+                      {jobTitleError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Company Name <span className="text-red-500">*</span></label>
-                  <Input name="company" value={formData.company} onChange={handleChange} placeholder="e.g., Tech Corp Inc." />
+                  <Input name="company" value={formData.company} onChange={handleChange} placeholder="e.g., Tech Corp Inc." className={companyNameError ? "border-destructive" : ""}/>
+                  {companyNameError && (
+                    <FieldDescription className="text-destructive">
+                      {companyNameError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
@@ -796,11 +846,16 @@ export default function JobOpportunitiesManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Salary Range (Min)</label>
-                  <Input name="salaryMin" type="number" value={formData.salaryMin} onChange={handleChange} placeholder="80000" />
+                  <Input name="salaryMin" type="number" value={formData.salaryMin} onChange={handleChange} placeholder="80000" className={rangeError ? "border-destructive" : ""}/>
+                  {rangeError && (
+                    <FieldDescription className="text-destructive">
+                      {rangeError}
+                    </FieldDescription>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Salary Range (Max)</label>
-                  <Input name="salaryMax" type="number" value={formData.salaryMax} onChange={handleChange} placeholder="120000" />
+                  <Input name="salaryMax" type="number" value={formData.salaryMax} onChange={handleChange} placeholder="120000" className={rangeError ? "border-destructive" : ""}/>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Application Deadline</label>

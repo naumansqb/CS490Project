@@ -41,7 +41,6 @@ model UserProfile {
   certifications      Certification[]
   education           Education[]
   JobOpportunity      JobOpportunity[]
-  JobOpportunity      JobOpportunity[]
   skills              Skill[]
   specialProjects     SpecialProject[]
   workExperiences     WorkExperience[]
@@ -166,7 +165,6 @@ model SpecialProject {
 }
 
 model ApplicationHistory {
-model ApplicationHistory {
   id              String             @id @default(dbgenerated("uuid_generate_v4()"))
   jobId           String             @map("job_id")
   status          application_status
@@ -174,7 +172,6 @@ model ApplicationHistory {
 
   jobOpportunity  JobOpportunity     @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([jobId], map: "idx_application_history_job_id")
   @@index([jobId], map: "idx_application_history_job_id")
   @@index([timestamp], map: "idx_application_history_timestamp")
   @@map("application_history")
@@ -221,8 +218,6 @@ model JobOpportunity {
   jobContacts              JobContact[]
   @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
-  @@index([userId], map: "idx_job_opportunity_user_id")
-  @@map("job_opportunity")
   @@index([userId], map: "idx_job_opportunity_user_id")
   @@map("job_opportunity")
 }
