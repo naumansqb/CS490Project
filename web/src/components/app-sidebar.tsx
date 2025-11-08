@@ -1,6 +1,8 @@
 'use client';
 
-import { Home, FileText } from 'lucide-react';
+import { Home, FileText, Briefcase } from "lucide-react"
+import { useAuth } from '@/contexts/AuthContext';
+
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +18,7 @@ import UserFooter from './sidebar-footer';
 import Link from 'next/link';
 
 export function SideBar() {
+  const { user } = useAuth();
   // Standardize menu items so keys are consistent
   const items = [
     {
@@ -28,7 +31,12 @@ export function SideBar() {
       url: '/dashboard/resumes',
       icon: FileText,
     },
-  ];
+    {
+      title: "Jobs",
+      url: `/jobs/${user?.uid}`,
+      icon: Briefcase,
+    },
+  ]
 
   return (
     <Sidebar>
