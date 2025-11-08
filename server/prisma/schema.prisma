@@ -46,6 +46,7 @@ model UserProfile {
   workExperiences     WorkExperience[]
 
   @@index([userId], map: "idx_user_profiles_user_id")
+  resumes             Resume[]
   @@map("user_profiles")
 }
 
@@ -223,37 +224,41 @@ model JobOpportunity {
 }
 
 
-model resume_templates {
+model ResumeTemplate {
   id          String    @id @default(dbgenerated("uuid_generate_v4()"))
   name        String    @unique @db.VarChar(255)
   description String?   @db.VarChar(1000)
   type        String    @db.VarChar(50)
-  preview_url String?   @db.VarChar(500)
+  previewUrl  String?   @map("preview_url") @db.VarChar(500)
   structure   Json
-  is_default  Boolean   @default(false)
-  is_active   Boolean   @default(true)
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
-  updated_at  DateTime? @default(now()) @db.Timestamp(6)
-  resumes     resumes[]
+  isDefault   Boolean   @default(false) @map("is_default")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  resumes     Resume[]
 
-  @@index([is_active], map: "idx_resume_templates_is_active")
-  @@index([is_default], map: "idx_resume_templates_is_default")
+  @@index([isActive], map: "idx_resume_templates_is_active")
+  @@index([isDefault], map: "idx_resume_templates_is_default")
+  @@map("resume_templates")
 }
 
-model resumes {
-  id               String           @id @default(dbgenerated("uuid_generate_v4()"))
-  user_id          String
-  name             String           @db.VarChar(255)
-  template_id      String
-  is_default       Boolean          @default(false)
-  content          Json
-  last_modified    DateTime?        @default(now()) @db.Timestamp(6)
-  created_at       DateTime?        @default(now()) @db.Timestamp(6)
-  resume_templates resume_templates @relation(fields: [template_id], references: [id], onUpdate: NoAction)
+model Resume {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()"))
+  userId       String    @map("user_id")
+  name         String    @db.VarChar(255)
+  templateId   String    @map("template_id")
+  isDefault    Boolean   @default(false) @map("is_default")
+  content      Json
+  lastModified DateTime? @default(now()) @map("last_modified") @db.Timestamp(6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@index([template_id], map: "idx_resumes_template_id")
-  @@index([user_id, is_default], map: "idx_resumes_user_default")
-  @@index([user_id], map: "idx_resumes_user_id")
+  userProfile UserProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  template    ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+
+  @@index([templateId], map: "idx_resumes_template_id")
+  @@index([userId, isDefault], map: "idx_resumes_user_default")
+  @@index([userId], map: "idx_resumes_user_id")
+  @@map("resumes")
 }
 
 enum application_status {
