@@ -1,5 +1,6 @@
 
 export interface ContactInfo {
+  id: string;
   name: string;
   role: string;
   email: string;
@@ -10,7 +11,6 @@ export interface ApplicationHistoryEntry {
   id: string;
   timestamp: string;
   status: string;
-  notes: string;
 }
 
 export interface Job {
