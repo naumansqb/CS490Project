@@ -1,13 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Eye, Save, ArrowLeft, User, Phone, Mail, Clock, FileText, DollarSign as NegotiationIcon } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
+import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Save, ArrowLeft, User, Phone, Mail, Clock, FileText } from 'lucide-react';
 import JobNotesCard from './jobNotesCard';
 import SearchBox, {JobFilters} from './SearchBox';
 import JobCard from './jobCard';
-import { Job, ContactInfo, ApplicationHistoryEntry } from '@/types/jobs.types';
+import { Job, ApplicationHistoryEntry } from '@/types/jobs.types';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  createJobOpportunity,
+  getJobOpportunitiesByUserId,
+  updateJobOpportunity,
+  deleteJobOpportunity,
+  createJobContact,
+  getJobContactsByJobId,
+  deleteJobContact,
+  createApplicationHistory,
+  getApplicationHistoryByJobId,
+  ApplicationStatus,
+} from '@/lib/jobs.api';
+import { FieldDescription } from './ui/field';
+
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
@@ -19,7 +33,38 @@ const JOB_TYPES = [
 ];
 
 export default function JobOpportunitiesManager() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
+
+    useEffect(() => {
+    if (user?.uid) {
+      loadJobs();
+    }
+  }, [user]);
+
+  const loadJobs = async () => {
+    if (!user?.uid) return;
+    setLoading(true);
+    try {
+      const jobsData = await getJobOpportunitiesByUserId(user.uid) as Job[];
+      const jobsWithExtras = await Promise.all(
+        jobsData.map(async (job: Job) => {
+          const contacts = await getJobContactsByJobId(job.id);
+          const history = await getApplicationHistoryByJobId(job.id);
+          return { ...job, contacts, applicationHistory: history };
+        })
+      );
+      setJobs(jobsWithExtras as Job[]);
+    } catch (error) {
+      console.error("Failed to load jobs:", error);
+      setErrorMessage("Failed to load job opportunities. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'edit'>('list');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -41,6 +86,7 @@ export default function JobOpportunitiesManager() {
     deadlineTo: '',
     sortBy: 'dateAdded'
   });
+  
 
   const filteredJobs = useMemo(() => {
     let result = [...jobs];
@@ -148,24 +194,45 @@ export default function JobOpportunitiesManager() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user?.uid) {
+      alert("You must be logged in to save jobs.");
+      return;
+    }
+
     if (!formData.title.trim() || !formData.company.trim()) {
       alert('Please fill in all required fields (Job Title and Company Name)');
       return;
     }
 
-    const newJob: Job = {
-      id: Date.now().toString(),
-      ...formData,
-      createdAt: new Date().toISOString(),
-      contacts: [],
-      applicationHistory: []
-    };
+    try {
+      const jobData = {
+        userId: user.uid,
+        title: formData.title,
+        company: formData.company,
+        location: formData.location || undefined,
+        salaryMin: formData.salaryMin || undefined,
+        salaryMax: formData.salaryMax || undefined,
+        postingUrl: formData.postingUrl || undefined,
+        deadline: formData.deadline || undefined,
+        description: formData.description || undefined,
+        industry: formData.industry,
+        jobType: formData.jobType,
+        personalNotes: formData.personalNotes || undefined,
+        salaryNegotiationNotes: formData.salaryNegotiationNotes || undefined,
+        interviewNotes: formData.interviewNotes || undefined,
+      };
 
-    setJobs(prev => [newJob, ...prev]);
-    setSuccessMessage('Job opportunity saved successfully!');
-    setTimeout(() => setSuccessMessage(''), 3000);
-    handleCancel();
+      await createJobOpportunity(jobData);
+      setSuccessMessage('Job opportunity saved successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      handleCancel();
+      await loadJobs(); // Reload the list
+    } catch (error) {
+      console.error("Failed to save job:", error);
+      setErrorMessage("Failed to save job opportunity. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const handleCancel = () => {
@@ -202,12 +269,36 @@ export default function JobOpportunitiesManager() {
     setViewMode('edit');
   };
 
-  const saveJobEdit = () => {
+  const saveJobEdit = async () => {
     if (!selectedJobId) return;
-    setJobs(prev => prev.map(job => job.id === selectedJobId ? { ...job, ...formData } : job));
-    setSuccessMessage('Job updated successfully!');
-    setTimeout(() => setSuccessMessage(''), 3000);
-    setViewMode('detail');
+
+    try {
+      const updateData = {
+        title: formData.title,
+        company: formData.company,
+        location: formData.location,
+        salaryMin: formData.salaryMin,
+        salaryMax: formData.salaryMax,
+        postingUrl: formData.postingUrl,
+        deadline: formData.deadline,
+        description: formData.description,
+        industry: formData.industry,
+        jobType: formData.jobType,
+        personalNotes: formData.personalNotes,
+        salaryNegotiationNotes: formData.salaryNegotiationNotes,
+        interviewNotes: formData.interviewNotes,
+      };
+
+      await updateJobOpportunity(selectedJobId, updateData);
+      setSuccessMessage('Job updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setViewMode('detail');
+      await loadJobs(); // Reload the list
+    } catch (error) {
+      console.error("Failed to update job:", error);
+      setErrorMessage("Failed to update job. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const cancelEdit = () => {
@@ -219,37 +310,86 @@ export default function JobOpportunitiesManager() {
     });
   };
 
-  const addContact = () => {
-    if (!selectedJobId || !newContact.name.trim()) return;
-    setJobs(prev => prev.map(job =>
-      job.id === selectedJobId ? { ...job, contacts: [...job.contacts, { ...newContact }] } : job
-    ));
-    setNewContact({ name: '', role: '', email: '', phone: '' });
-    setSuccessMessage('Contact added successfully!');
-    setTimeout(() => setSuccessMessage(''), 3000);
-  };
-
-  const removeContact = (contactIndex: number) => {
+  const addContact = async () => {
     if (!selectedJobId) return;
-    setJobs(prev => prev.map(job =>
-      job.id === selectedJobId ? { ...job, contacts: job.contacts.filter((_, i) => i !== contactIndex) } : job
-    ));
+    
+    const {name, email, phone } = newContact;
+
+    if (!name.trim()) {
+      setErrorMessage("Contact name is required.");
+      return;
+    }
+
+    // Optional but validate if filled
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
+    if (phone && !/^\+?\d{7,15}$/.test(phone.replace(/[\s()-]/g, ""))) {
+      setErrorMessage("Please enter a valid phone number (digits only).");
+      return;
+    }
+
+    setErrorMessage("")
+
+    try {
+      await createJobContact({
+        jobId: selectedJobId,
+        name: newContact.name,
+        role: newContact.role || undefined,
+        email: newContact.email || undefined,
+        phone: newContact.phone || undefined,
+      });
+
+      setNewContact({ name: '', role: '', email: '', phone: '' });
+      setSuccessMessage('Contact added successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Reload the job to get updated contacts
+      await loadJobs();
+    } catch (error) {
+      console.error("Failed to add contact:", error);
+      setErrorMessage("Failed to add contact. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
-  const addHistoryEntry = () => {
+  const removeContact = async (contactId: string) => {
+    try {
+      await deleteJobContact(contactId);
+      setSuccessMessage('Contact removed successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Reload the job to get updated contacts
+      await loadJobs();
+    } catch (error) {
+      console.error("Failed to remove contact:", error);
+      setErrorMessage("Failed to remove contact. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const addHistoryEntry = async () => {
     if (!selectedJobId || !newHistoryEntry.status.trim()) return;
-    const entry: ApplicationHistoryEntry = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      status: newHistoryEntry.status,
-      notes: newHistoryEntry.notes
-    };
-    setJobs(prev => prev.map(job =>
-      job.id === selectedJobId ? { ...job, applicationHistory: [entry, ...job.applicationHistory] } : job
-    ));
-    setNewHistoryEntry({ status: '', notes: '' });
-    setSuccessMessage('Application history updated!');
-    setTimeout(() => setSuccessMessage(''), 3000);
+
+    try {
+      await createApplicationHistory({
+        jobId: selectedJobId,
+        status: newHistoryEntry.status as ApplicationStatus,
+      });
+
+      setNewHistoryEntry({ status: '', notes: '' });
+      setSuccessMessage('Application history updated!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Reload the job to get updated history
+      await loadJobs();
+    } catch (error) {
+      console.error("Failed to add history entry:", error);
+      setErrorMessage("Failed to update application history. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
   };
 
   const backToList = () => {
@@ -261,14 +401,25 @@ export default function JobOpportunitiesManager() {
     setDeleteConfirm(id);
   };
 
-  const confirmDelete = () => {
-    if (deleteConfirm) {
-      setJobs(prev => prev.filter(job => job.id !== deleteConfirm));
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+
+    try {
+      await deleteJobOpportunity(deleteConfirm);
       setDeleteConfirm(null);
+      
       if (selectedJobId === deleteConfirm) {
         setViewMode('list');
         setSelectedJobId(null);
       }
+      
+      await loadJobs(); // Reload the list
+      setSuccessMessage('Job deleted successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error("Failed to delete job:", error);
+      setErrorMessage("Failed to delete job. Please try again.");
+      setTimeout(() => setErrorMessage(''), 3000);
     }
   };
 
@@ -384,9 +535,17 @@ export default function JobOpportunitiesManager() {
             <CardTitle className="flex items-center gap-2"><User size={20} /> Contacts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <FieldDescription className="text-destructive">
+                {errorMessage}
+              </FieldDescription>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input placeholder="Contact Name" value={newContact.name}
-                onChange={(e) => setNewContact(prev => ({ ...prev, name: e.target.value }))} />
+              <Input 
+                placeholder="Contact Name" 
+                value={newContact.name}
+                onChange={(e) => setNewContact(prev => ({ ...prev, name: e.target.value }))} 
+              />
               <Input placeholder="Role (e.g., Recruiter)" value={newContact.role}
                 onChange={(e) => setNewContact(prev => ({ ...prev, role: e.target.value }))} />
               <Input placeholder="Email" type="email" value={newContact.email}
@@ -398,7 +557,7 @@ export default function JobOpportunitiesManager() {
               <Plus size={18} className="mr-2" /> Add Contact
             </Button>
 
-            {selectedJob.contacts.length > 0 && (
+            {selectedJob?.contacts?.length > 0 && (
               <div className="space-y-3 mt-4">
                 {selectedJob.contacts.map((contact, index) => (
                   <div key={index} className="border rounded-lg p-4 bg-gray-50">
@@ -418,7 +577,7 @@ export default function JobOpportunitiesManager() {
                           </div>
                         )}
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => removeContact(index)}
+                      <Button variant="ghost" size="sm" onClick={() => removeContact(contact.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50">
                         <X size={18} />
                       </Button>
@@ -437,11 +596,22 @@ export default function JobOpportunitiesManager() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Input placeholder="Status (e.g., Applied, Phone Screen)" value={newHistoryEntry.status}
-                onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, status: e.target.value }))} />
-              <textarea placeholder="Notes about this stage..." value={newHistoryEntry.notes}
-                onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, notes: e.target.value }))} rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3bafba] resize-none placeholder:text-gray-500" />
+              <select
+                value={newHistoryEntry.status}
+                onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#3bafba]"
+              >
+                <option value="">Select Status</option>
+                <option value="saved">Saved</option>
+                <option value="applied">Applied</option>
+                <option value="phone_screen">Phone Screen</option>
+                <option value="interview_scheduled">Interview Scheduled</option>
+                <option value="interviewed">Interviewed</option>
+                <option value="offer_received">Offer Received</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
               <Button onClick={addHistoryEntry} className="bg-[#3bafba] hover:bg-[#34a0ab]">
                 <Plus size={18} className="mr-2" /> Add Entry
               </Button>
@@ -455,7 +625,6 @@ export default function JobOpportunitiesManager() {
                       <div className="font-semibold text-gray-900">{entry.status}</div>
                       <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
                     </div>
-                    {entry.notes && <p className="text-sm text-gray-700">{entry.notes}</p>}
                   </div>
                 ))}
               </div>
@@ -563,6 +732,12 @@ export default function JobOpportunitiesManager() {
           <button onClick={() => setSuccessMessage('')}><X size={18} /></button>
         </div>
       )}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="font-medium">{errorMessage}</span>
+          <button onClick={() => setErrorMessage('')}><X size={18} /></button>
+        </div>
+      )}
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -667,8 +842,14 @@ export default function JobOpportunitiesManager() {
         </Card>
       )}
 
-      <div className="space-y-4">
-        {jobs.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3bafba] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading job opportunities...</p>
+          </CardContent>
+        </Card>
+       ) : jobs.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <Briefcase className="mx-auto mb-4 text-gray-400" size={48} />
@@ -690,7 +871,6 @@ export default function JobOpportunitiesManager() {
             />
           ))
         )}
-      </div>
     </div>
-  );
+  )
 }
