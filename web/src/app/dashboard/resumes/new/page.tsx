@@ -15,13 +15,6 @@ export default function NewResumePage() {
     const [resumeName, setResumeName] = useState('');
     const [previewTemplate, setPreviewTemplate] = useState<ResumeTemplate | null>(null);
 
-    /* ========================================
-       Improt disabled
-       Will be enabled with AI parsing in future ticket
-       ======================================== */
-    // const [importing, setImporting] = useState(false);
-    // const fileInputRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         loadTemplates();
     }, []);
@@ -70,16 +63,6 @@ export default function NewResumePage() {
         }
     };
 
-    /*
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        // Import functionality disabled - will be implemented with AI parsing in future sprint
-    };
-    */
-
     const getSimpleTypeName = (type: string): string => {
         const lower = type.toLowerCase();
         if (lower.includes('chrono')) return 'Chronological';
@@ -118,20 +101,13 @@ export default function NewResumePage() {
                             Back to Resumes
                         </Link>
 
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-black mb-2">
-                                    Create New Resume
-                                </h1>
-                                <p className="text-gray-600">
-                                    Choose a template and give your resume a name
-                                </p>
-                            </div>
-
-                            {/* IMPORT BUTTON DISABLED - Coming Soon */}
-                            <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-500 rounded-lg font-medium cursor-not-allowed">
-                                <span>Import (Coming Soon)</span>
-                            </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-black mb-2">
+                                Create New Resume
+                            </h1>
+                            <p className="text-gray-600">
+                                Choose a template and give your resume a name
+                            </p>
                         </div>
                     </div>
 
@@ -264,12 +240,6 @@ export default function NewResumePage() {
                         >
                             Cancel
                         </Link>
-                    </div>
-
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                            <strong>🚀 Coming Soon:</strong> AI-powered resume import will automatically extract and populate your information from uploaded files.
-                        </p>
                     </div>
                 </div>
             </div>

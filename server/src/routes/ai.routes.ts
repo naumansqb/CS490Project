@@ -5,6 +5,12 @@ import { authMiddleware } from "../middleware/auth.middleware";
 const router = Router();
 
 router.post("/resume/tailor", aiController.generateTailoredResume);
+router.post("/resume/:resumeId/tailor-to-job", aiController.tailorResumeToJob);
+router.post(
+    "/resume/parse",
+    aiController.upload.single("file"),
+    aiController.parseResumeFromFile
+);
 router.post("/cover-letter/generate", aiController.generateCoverLetter);
 
 export default router;
