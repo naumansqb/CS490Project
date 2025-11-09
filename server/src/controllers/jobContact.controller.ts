@@ -138,7 +138,7 @@ export const getJobContactsByJobId = async (
 
     const jobContacts = await prisma.jobContact.findMany({
       where: { jobId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { created_at: "asc" },
     });
     res.json(jobContacts);
   } catch (error) {
