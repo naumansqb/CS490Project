@@ -41,7 +41,6 @@ model UserProfile {
   certifications      Certification[]
   education           Education[]
   jobOpportunities    JobOpportunity[]
-  resumes             Resume[]
   skills              Skill[]
   specialProjects     SpecialProject[]
   workExperiences     WorkExperience[]
@@ -166,12 +165,11 @@ model SpecialProject {
 }
 
 model ApplicationHistory {
-  id        String             @id @default(dbgenerated("uuid_generate_v4()"))
-  jobId     String             @map("job_id")
-  status    application_status
-  timestamp DateTime?          @default(now()) @map("timestamp") @db.Timestamp(6)
-
-  jobOpportunity JobOpportunity @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id             String             @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId          String             @map("job_id")
+  status         application_status
+  timestamp      DateTime?          @default(now()) @map("timestamp") @db.Timestamp(6)
+  jobOpportunity JobOpportunity     @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([jobId], map: "idx_application_history_job_id")
   @@index([timestamp], map: "idx_application_history_timestamp")
@@ -179,14 +177,13 @@ model ApplicationHistory {
 }
 
 model JobContact {
-  id        String    @id @default(dbgenerated("uuid_generate_v4()"))
-  jobId     String    @map("job_id")
-  name      String    @db.VarChar(255)
-  role      String?   @db.VarChar(255)
-  email     String?   @db.VarChar(255)
-  phone     String?   @db.VarChar(50)
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
+  id             String         @id @default(dbgenerated("uuid_generate_v4()"))
+  jobId          String         @map("job_id")
+  name           String         @db.VarChar(255)
+  role           String?        @db.VarChar(255)
+  email          String?        @db.VarChar(255)
+  phone          String?        @db.VarChar(50)
+  createdAt      DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
   jobOpportunity JobOpportunity @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([jobId], map: "idx_job_contacts_job_id")
@@ -194,27 +191,26 @@ model JobContact {
 }
 
 model JobOpportunity {
-  id                     String    @id @default(dbgenerated("uuid_generate_v4()"))
-  userId                 String    @map("user_id")
-  title                  String    @db.VarChar(255)
-  company                String    @db.VarChar(255)
-  location               String?   @db.VarChar(255)
-  salaryMin              String?   @map("salary_min") @db.VarChar(50)
-  salaryMax              String?   @map("salary_max") @db.VarChar(50)
-  postingUrl             String?   @map("posting_url")
-  deadline               DateTime? @db.Date
-  description            String?   @db.Text
-  industry               String    @db.VarChar(100)
-  jobType                String    @map("job_type") @db.VarChar(50)
-  personalNotes          String?   @map("personal_notes") @db.Text
-  salaryNegotiationNotes String?   @map("salary_negotiation_notes") @db.Text
-  interviewNotes         String?   @map("interview_notes") @db.Text
-  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt              DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  userProfile        UserProfile          @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
-  applicationHistory ApplicationHistory[]
-  jobContacts        JobContact[]
+  id                     String               @id @default(dbgenerated("uuid_generate_v4()"))
+  userId                 String               @map("user_id")
+  title                  String               @db.VarChar(255)
+  company                String               @db.VarChar(255)
+  location               String?              @db.VarChar(255)
+  salaryMin              String?              @map("salary_min") @db.VarChar(50)
+  salaryMax              String?              @map("salary_max") @db.VarChar(50)
+  postingUrl             String?              @map("posting_url")
+  deadline               DateTime?            @db.Date
+  description            String?
+  industry               String               @db.VarChar(100)
+  jobType                String               @map("job_type") @db.VarChar(50)
+  personalNotes          String?              @map("personal_notes")
+  salaryNegotiationNotes String?              @map("salary_negotiation_notes")
+  interviewNotes         String?              @map("interview_notes")
+  createdAt              DateTime?            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt              DateTime?            @default(now()) @map("updated_at") @db.Timestamp(6)
+  applicationHistory     ApplicationHistory[]
+  jobContacts            JobContact[]
+  userProfile            UserProfile          @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
@@ -241,17 +237,15 @@ model ResumeTemplate {
 }
 
 model Resume {
-  id           String    @id @default(dbgenerated("uuid_generate_v4()"))
-  userId       String    @map("user_id")
-  name         String    @db.VarChar(255)
-  templateId   String    @map("template_id")
-  isDefault    Boolean   @default(false) @map("is_default")
+  id           String         @id @default(dbgenerated("uuid_generate_v4()"))
+  userId       String         @map("user_id")
+  name         String         @db.VarChar(255)
+  templateId   String         @map("template_id")
+  isDefault    Boolean        @default(false) @map("is_default")
   content      Json
-  lastModified DateTime? @default(now()) @map("last_modified") @db.Timestamp(6)
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  userProfile UserProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
-  template    ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+  lastModified DateTime?      @default(now()) @map("last_modified") @db.Timestamp(6)
+  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  template     ResumeTemplate @relation(fields: [templateId], references: [id], onUpdate: NoAction)
 
   @@index([templateId], map: "idx_resumes_template_id")
   @@index([userId, isDefault], map: "idx_resumes_user_default")
