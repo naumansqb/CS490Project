@@ -27,11 +27,6 @@ export function SideBar() {
       icon: Home,
     },
     {
-      title: 'Resumes',
-      url: '/dashboard/resumes',
-      icon: FileText,
-    },
-    {
       title: "Jobs",
       url: `/jobs/${user?.uid}`,
       icon: Briefcase,
@@ -41,6 +36,10 @@ export function SideBar() {
       url: `/calender/${user?.uid}`,
       icon: Calendar,
     },
+      title: 'Resumes',
+      url: '/dashboard/resumes',
+      icon: FileText,
+    }
   ]
 
   return (
