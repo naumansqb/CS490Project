@@ -27,14 +27,14 @@ export function SideBar() {
       icon: Home,
     },
     {
-      title: 'Resumes',
-      url: '/dashboard/resumes',
-      icon: FileText,
-    },
-    {
       title: "Jobs",
       url: `/jobs/${user?.uid}`,
       icon: Briefcase,
+    },
+    {
+      title: 'Resumes',
+      url: '/dashboard/resumes',
+      icon: FileText,
     },
   ]
 
