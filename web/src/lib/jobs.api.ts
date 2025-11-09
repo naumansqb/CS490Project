@@ -129,15 +129,12 @@ export const deleteJobContact = async (id: string): Promise<void> =>  {
 // ============================================
 
 export type ApplicationStatus = 
-  | 'saved'
+  | 'interested'
   | 'applied'
   | 'phone_screen'
-  | 'interview_scheduled'
-  | 'interviewed'
-  | 'offer_received'
-  | 'accepted'
+  | 'interview'
+  | 'offer'
   | 'rejected'
-  | 'withdrawn';
 
 export const createApplicationHistory = async (historyData: {
   jobId: string;

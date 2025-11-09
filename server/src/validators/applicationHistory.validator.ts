@@ -1,14 +1,11 @@
 // validators/applicationHistory.validator.ts
 const VALID_STATUSES = [
-  "saved",
+  "interested",
   "applied",
   "phone_screen",
-  "interview_scheduled",
-  "interviewed",
-  "offer_received",
-  "accepted",
+  "interview",
+  "offer",
   "rejected",
-  "withdrawn",
 ];
 
 export const validateApplicationHistory = (
