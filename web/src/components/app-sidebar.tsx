@@ -32,10 +32,11 @@ export function SideBar() {
       icon: Briefcase,
     },
     {
-      title: "Calender",
+      title: "Calendar",
       url: `/calender/${user?.uid}`,
       icon: Calendar,
     },
+    {
       title: 'Resumes',
       url: '/dashboard/resumes',
       icon: FileText,
