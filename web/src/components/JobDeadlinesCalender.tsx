@@ -63,18 +63,31 @@ export default function JobDeadlinesCalendar() {
 
   // Group jobs by deadline date
   const jobsByDate = useMemo(() => {
-    const map = new Map<string, Job[]>();
-    jobs.forEach(job => {
-      if (job.deadline) {
-        const dateKey = new Date(job.deadline).toISOString().split('T')[0];
-        if (!map.has(dateKey)) {
-          map.set(dateKey, []);
-        }
-        map.get(dateKey)!.push(job);
+  const map = new Map<string, Job[]>();
+  jobs.forEach(job => {
+    if (job.deadline) {
+      // Create a Date object in local timezone, then extract just the date part
+      const deadlineDate = new Date(job.deadline);
+      
+      // Get the local year, month, day (this corrects for timezone)
+      const year = deadlineDate.getFullYear();
+      const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+      const day = String(deadlineDate.getDate()).padStart(2, '0');
+      
+      const dateKey = `${year}-${month}-${day}`;
+      
+      if (!map.has(dateKey)) {
+        map.set(dateKey, []);
       }
-    });
-    return map;
-  }, [jobs]);
+      map.get(dateKey)!.push(job);
+    }
+  });
+  
+  console.log('All stored dates:', Array.from(map.keys()));
+  return map;
+}, [jobs]);
+
+
 
   // Get jobs for a specific date
   const getJobsForDate = (day: number) => {
@@ -238,7 +251,7 @@ export default function JobDeadlinesCalendar() {
               {selectedDate ? (
                 <div className="flex items-center gap-2">
                   <Clock size={20} />
-                  {new Date(selectedDate).toLocaleDateString('en-US', {
+                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric'
