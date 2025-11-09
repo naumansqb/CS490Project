@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Home, User } from "lucide-react"
+import { Home, FileText, Briefcase, Calendar } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext';
 
 import {
@@ -13,28 +13,49 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import UserFooter from "./sidebar-footer"
-import Link from "next/link";
+} from '@/components/ui/sidebar';
+import UserFooter from './sidebar-footer';
+import Link from 'next/link';
 
 export function SideBar() {
   const { user } = useAuth();
-  
-  // Menu items.
+  // Standardize menu items so keys are consistent
   const items = [
     {
-      title: "Dashboard",
-      url: "/dashboard",
+      title: 'Dashboard',
+      url: '/dashboard',
       icon: Home,
     },
+    {
+      title: "Jobs",
+      url: `/jobs/${user?.uid}`,
+      icon: Briefcase,
+    },
+    {
+      title: "Calendar",
+      url: `/calender/${user?.uid}`,
+      icon: Calendar,
+    },
+    {
+      title: 'Resumes',
+      url: '/dashboard/resumes',
+      icon: FileText,
+    }
   ]
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2 font-semibold text-slate-800 hover:opacity-80 transition-opacity">
-            <img src="/Logo/favicon-32x32.png" alt="JobBuddy" className="h-7 w-auto" />
-            JobBuddy
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-semibold text-slate-800 hover:opacity-80 transition-opacity"
+        >
+          <img
+            src="/Logo/favicon-32x32.png"
+            alt="JobBuddy"
+            className="h-7 w-auto"
+          />
+          JobBuddy
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -44,10 +65,10 @@ export function SideBar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -59,5 +80,5 @@ export function SideBar() {
         <UserFooter />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
