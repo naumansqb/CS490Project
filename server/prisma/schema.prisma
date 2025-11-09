@@ -47,6 +47,7 @@ model UserProfile {
   workExperiences     WorkExperience[]
 
   @@index([userId], map: "idx_user_profiles_user_id")
+  resumes             Resume[]
   @@map("user_profiles")
 }
 

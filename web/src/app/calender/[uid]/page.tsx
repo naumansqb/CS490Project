@@ -1,11 +1,11 @@
 'use client'
 
 import { SideBar } from "@/components/app-sidebar"
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import {SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import JobOpportunitiesManager from "@/components/jobManagement";
+import JobDeadlinesCalendar from "@/components/JobDeadlinesCalender";
 
 export default function profile({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -22,7 +22,7 @@ export default function profile({ children }: { children: React.ReactNode }) {
     }
 
     if (user.uid !== urlUid) {
-      setShouldRedirect(`/profile/${user.uid}`);
+      setShouldRedirect(`/calender/${user.uid}`);
       return;
     }
 
@@ -58,7 +58,8 @@ export default function profile({ children }: { children: React.ReactNode }) {
       <main className="w-full">
         <SidebarTrigger />
         <div className="container mx-auto  px-4 space-y-6">
-          <JobOpportunitiesManager />
+          <JobDeadlinesCalendar />
+          {children}
         </div>
       </main>
     </SidebarProvider>
