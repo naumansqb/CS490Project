@@ -11,13 +11,24 @@ import {
     Italic,
     List,
     Type,
-    Palette,
     Sparkles,
 } from 'lucide-react';
 import { resumeApi, ResumeDetail } from '@/lib/resume.api';
 import { useAuth } from '@/contexts/AuthContext';
 import AIResumeGenerationModal from '@/components/AIResumeGenerationModal';
 import { TailoredResumeContent } from '@/lib/ai.api';
+import ResumeSectionCustomizer, { ResumeSection } from '@/components/ResumeSectionCustomizer';
+
+// Default section configuration
+const DEFAULT_SECTIONS: ResumeSection[] = [
+    { id: 'personalInfo', name: 'personalInfo', label: 'Contact Information', enabled: true, order: 1, required: true },
+    { id: 'summary', name: 'summary', label: 'Professional Summary', enabled: true, order: 2 },
+    { id: 'workExperience', name: 'workExperience', label: 'Work Experience', enabled: true, order: 3 },
+    { id: 'education', name: 'education', label: 'Education', enabled: true, order: 4 },
+    { id: 'skills', name: 'skills', label: 'Skills', enabled: true, order: 5 },
+    { id: 'certifications', name: 'certifications', label: 'Certifications', enabled: true, order: 6 },
+    { id: 'projects', name: 'projects', label: 'Projects', enabled: true, order: 7 },
+];
 
 export default function EditResumePage() {
     const router = useRouter();
@@ -31,19 +42,36 @@ export default function EditResumePage() {
     const [resume, setResume] = useState<ResumeDetail | null>(null);
     const [htmlContent, setHtmlContent] = useState<string>('');
     const [showAIModal, setShowAIModal] = useState(false);
+    const [sections, setSections] = useState<ResumeSection[]>(DEFAULT_SECTIONS);
 
     const editorRef = useRef<HTMLDivElement>(null);
 
-    // Generate HTML string from resume data
-    const generateHTML = (resumeData: any): string => {
+    // Generate HTML string from resume data (respecting section configuration)
+    const generateHTML = (resumeData: any, sectionConfig?: ResumeSection[]): string => {
         const content = resumeData.content || {};
         const personalInfo = content.personalInfo || {};
         const templateType = (resumeData.template?.type || '').toLowerCase();
+        const activeSections = sectionConfig || sections;
 
-        // If already has saved HTML, use that
-        if (content.htmlContent) {
+        // If already has saved HTML and we're not regenerating, use that
+        if (content.htmlContent && !sectionConfig) {
             return content.htmlContent;
         }
+
+        // Helper to check if section is enabled
+        const isSectionEnabled = (sectionName: string) => {
+            const section = activeSections.find(s => s.name === sectionName);
+            return section ? section.enabled : true;
+        };
+
+        // Get section order
+        const getSectionOrder = (sectionName: string) => {
+            const section = activeSections.find(s => s.name === sectionName);
+            return section ? section.order : 999;
+        };
+
+        // Generate individual section HTML blocks
+        const sectionBlocks: { order: number; html: string; name: string }[] = [];
 
         // Otherwise generate HTML string
         const nameBlock = `
@@ -73,208 +101,244 @@ export default function EditResumePage() {
             </div>
         `;
 
-        const summarySection = content.summary ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    SUMMARY OF QUALIFICATIONS
-                </div>
-                <div style="font-size: 12pt; white-space: pre-line;">
-                    ${content.summary}
-                </div>
-            </section>
-        ` : '';
+        // Summary section (skip for hybrid template)
+        if (isSectionEnabled('summary') && content.summary && !templateType.includes('hybrid')) {
+            sectionBlocks.push({
+                order: getSectionOrder('summary'),
+                name: 'summary',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            SUMMARY OF QUALIFICATIONS
+                        </div>
+                        <div style="font-size: 12pt; white-space: pre-line;">
+                            ${content.summary}
+                        </div>
+                    </section>
+                `
+            });
+        }
 
-        const workExperience = Array.isArray(content.workExperience) && content.workExperience.length > 0 ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    ${templateType.includes('hybrid') ? 'EXPERIENCE' : 'PROFESSIONAL EXPERIENCE'}
-                </div>
-                ${content.workExperience.map((job: any) => `
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 12pt; font-weight: 600;">
-                            ${job.title}${job.company ? `, ${job.company}` : ''}${job.location ? `, ${job.location}` : ''}
+        // Work Experience section
+        if (isSectionEnabled('workExperience') && Array.isArray(content.workExperience) && content.workExperience.length > 0) {
+            // Removed formatting feature - using defaults('workExperience');
+            sectionBlocks.push({
+                order: getSectionOrder('workExperience'),
+                name: 'workExperience',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            ${templateType.includes('hybrid') ? 'EXPERIENCE' : 'PROFESSIONAL EXPERIENCE'}
                         </div>
-                        <div style="font-size: 11pt; font-style: italic;">
-                            ${job.startDate} – ${job.endDate}
-                        </div>
-                        ${Array.isArray(job.bullets) && job.bullets.length > 0 ? `
-                            <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0 0 0;">
-                                ${job.bullets.map((b: string) => `<li style="margin-bottom: 2px;">${b}</li>`).join('')}
-                            </ul>
-                        ` : ''}
-                    </div>
-                `).join('')}
-            </section>
-        ` : '';
+                        ${content.workExperience.map((job: any) => `
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 12pt; font-weight: 600;">
+                                    ${job.title}${job.company ? `, ${job.company}` : ''}${job.location ? `, ${job.location}` : ''}
+                                </div>
+                                <div style="font-size: 11pt; font-style: italic;">
+                                    ${job.startDate} – ${job.endDate}
+                                </div>
+                                ${Array.isArray(job.bullets) && job.bullets.length > 0 ? `
+                                    <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0 0 0;">
+                                        ${job.bullets.map((b: string) => `<li style="margin-bottom: 2px;">${b}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </section>
+                `
+            });
+        }
 
-        const education = Array.isArray(content.education) && content.education.length > 0 ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    EDUCATION
-                </div>
-                ${content.education.map((edu: any) => `
-                    <div style="font-size: 12pt; margin-bottom: 8px;">
-                        <div style="font-weight: 600;">
-                            ${edu.degree || edu.degreeType}${edu.fieldOfStudy || edu.major ? `, ${edu.fieldOfStudy || edu.major}` : ''}
+        // Education section
+        if (isSectionEnabled('education') && Array.isArray(content.education) && content.education.length > 0) {
+            // Removed formatting feature - using defaults('education');
+            sectionBlocks.push({
+                order: getSectionOrder('education'),
+                name: 'education',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            EDUCATION
                         </div>
-                        <div>${edu.institution || edu.school || edu.institutionName}</div>
-                        ${edu.graduationDate ? `<div style="font-size: 11pt;">Graduated: ${edu.graduationDate}</div>` : ''}
-                    </div>
-                `).join('')}
-            </section>
-        ` : '';
+                        ${content.education.map((edu: any) => `
+                            <div style="font-size: 12pt; margin-bottom: 8px;">
+                                <div style="font-weight: 600;">
+                                    ${edu.degree || edu.degreeType}${edu.fieldOfStudy || edu.major ? `, ${edu.fieldOfStudy || edu.major}` : ''}
+                                </div>
+                                <div>${edu.institution || edu.school || edu.institutionName}</div>
+                                ${edu.graduationDate ? `<div style="font-size: 11pt;">Graduated: ${edu.graduationDate}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </section>
+                `
+            });
+        }
 
         // Certifications section
-        const certifications = Array.isArray(content.certifications) && content.certifications.length > 0 ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    CERTIFICATIONS
-                </div>
-                ${content.certifications.map((cert: any) => `
-                    <div style="font-size: 12pt; margin-bottom: 6px;">
-                        <div style="font-weight: 600;">${cert.name}</div>
-                        <div style="font-size: 11pt;">${cert.organization}${cert.date ? ` | ${cert.date}` : ''}</div>
-                    </div>
-                `).join('')}
-            </section>
-        ` : '';
+        if (isSectionEnabled('certifications') && Array.isArray(content.certifications) && content.certifications.length > 0) {
+            // Removed formatting feature - using defaults('certifications');
+            sectionBlocks.push({
+                order: getSectionOrder('certifications'),
+                name: 'certifications',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            CERTIFICATIONS
+                        </div>
+                        ${content.certifications.map((cert: any) => `
+                            <div style="font-size: 12pt; margin-bottom: 6px;">
+                                <div style="font-weight: 600;">${cert.name}</div>
+                                <div style="font-size: 11pt;">${cert.organization}${cert.date ? ` | ${cert.date}` : ''}</div>
+                            </div>
+                        `).join('')}
+                    </section>
+                `
+            });
+        }
 
         // Projects section
-        const projects = Array.isArray(content.projects) && content.projects.length > 0 ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    PROJECTS
-                </div>
-                ${content.projects.map((proj: any) => `
-                    <div style="margin-bottom: 10px;">
-                        <div style="font-size: 12pt; font-weight: 600;">${proj.name}</div>
-                        <div style="font-size: 12pt; margin-top: 2px;">${proj.description}</div>
-                        ${proj.technologies && proj.technologies.length > 0 ? `
-                            <div style="font-size: 11pt; font-style: italic; margin-top: 2px;">
-                                Technologies: ${proj.technologies.join(', ')}
+        if (isSectionEnabled('projects') && Array.isArray(content.projects) && content.projects.length > 0) {
+            // Removed formatting feature - using defaults('projects');
+            sectionBlocks.push({
+                order: getSectionOrder('projects'),
+                name: 'projects',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            PROJECTS
+                        </div>
+                        ${content.projects.map((proj: any) => `
+                            <div style="margin-bottom: 10px;">
+                                <div style="font-size: 12pt; font-weight: 600;">${proj.name}</div>
+                                <div style="font-size: 12pt; margin-top: 2px;">${proj.description}</div>
+                                ${proj.technologies && proj.technologies.length > 0 ? `
+                                    <div style="font-size: 11pt; font-style: italic; margin-top: 2px;">
+                                        Technologies: ${proj.technologies.join(', ')}
+                                    </div>
+                                ` : ''}
                             </div>
-                        ` : ''}
-                    </div>
-                `).join('')}
-            </section>
-        ` : '';
+                        `).join('')}
+                    </section>
+                `
+            });
+        }
 
-        // Functional template
-        if (templateType.includes('functional')) {
-            // Use skillsWithDescriptions if available (from AI), otherwise use old format
-            const skillsToRender = content.skillsWithDescriptions 
+        // Skills section for Functional template
+        if (templateType.includes('functional') && isSectionEnabled('skills')) {
+            // Removed formatting feature - using defaults('skills');
+            const skillsToRender = content.skillsWithDescriptions
                 ? [
                     ...(content.skillsWithDescriptions.relevant || []),
                     ...(content.skillsWithDescriptions.technical || []),
                     ...(content.skillsWithDescriptions.soft || [])
-                  ]
+                ]
                 : Array.isArray(content.skills) && content.skills.length > 0 ? content.skills : [
                     { category: 'Skill Area #1', items: ['Add accomplishments...'] },
                     { category: 'Skill Area #2', items: ['Add accomplishments...'] }
-                  ];
+                ];
 
-            const skillsSection = `
-                <section style="margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                        PROFESSIONAL EXPERIENCE
-                    </div>
-                    ${skillsToRender.map((skill: any) => `
-                        <div style="margin-bottom: 10px;">
-                            <div style="font-size: 12pt; font-weight: 600;">
-                                ${skill.name || skill.category || 'Skill Area'}
-                            </div>
-                            ${skill.description ? `
-                                <div style="font-size: 12pt; margin-top: 4px;">
-                                    ${skill.description}
+            sectionBlocks.push({
+                order: getSectionOrder('skills'),
+                name: 'skills',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            PROFESSIONAL EXPERIENCE
+                        </div>
+                        ${skillsToRender.map((skill: any) => `
+                            <div style="margin-bottom: 10px;">
+                                <div style="font-size: 12pt; font-weight: 600;">
+                                    ${skill.name || skill.category || 'Skill Area'}
                                 </div>
-                            ` : ''}
-                            ${skill.items ? `
-                                <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0;">
-                                    ${(skill.items || []).map((item: string) => `<li>${item}</li>`).join('')}
-                                </ul>
-                            ` : ''}
-                        </div>
-                    `).join('')}
-                </section>
-            `;
-
-            // Employment History section for Functional template (brief)
-            const employmentHistory = Array.isArray(content.workExperience) && content.workExperience.length > 0 ? `
-                <section style="margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                        EMPLOYMENT HISTORY
-                    </div>
-                    ${content.workExperience.map((job: any) => `
-                        <div style="margin-bottom: 8px; font-size: 12pt;">
-                            <div style="font-weight: 600;">
-                                ${job.title}${job.company ? `, ${job.company}` : ''}
+                                ${skill.description ? `
+                                    <div style="font-size: 12pt; margin-top: 4px;">
+                                        ${skill.description}
+                                    </div>
+                                ` : ''}
+                                ${skill.items ? `
+                                    <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0;">
+                                        ${(skill.items || []).map((item: string) => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
                             </div>
-                            <div style="font-size: 11pt; font-style: italic;">
-                                ${job.startDate} – ${job.endDate}
-                            </div>
-                        </div>
-                    `).join('')}
-                </section>
-            ` : '';
-
-            return nameBlock + twoColumnContacts + summarySection + skillsSection + employmentHistory + education + certifications + projects;
+                        `).join('')}
+                    </section>
+                `
+            });
         }
 
-        // Hybrid template
-        if (templateType.includes('hybrid')) {
-            // Use skillsWithDescriptions if available (from AI), otherwise use old format
-            const skillsToRender = content.skillsWithDescriptions 
+        // Skills section for Hybrid template
+        if (templateType.includes('hybrid') && isSectionEnabled('skills')) {
+            // Removed formatting feature - using defaults('skills');
+            const skillsToRender = content.skillsWithDescriptions
                 ? [
                     ...(content.skillsWithDescriptions.relevant || []),
                     ...(content.skillsWithDescriptions.technical || []),
                     ...(content.skillsWithDescriptions.soft || [])
-                  ]
+                ]
                 : Array.isArray(content.skills) && content.skills.length > 0 ? content.skills : [
                     { category: 'Skill', items: ['Description...'] }
-                  ];
+                ];
 
-            const skillsSection = `
-                <section style="margin-bottom: 16px;">
-                    <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                        SKILLS SUMMARY
-                    </div>
-                    ${skillsToRender.map((s: any) => `
-                        <div style="margin-bottom: 10px;">
-                            <div style="font-size: 12pt; font-weight: 600;">
-                                ${s.name || s.category || 'Skill'}
-                            </div>
-                            ${s.description ? `
-                                <div style="font-size: 12pt; margin-top: 4px;">
-                                    ${s.description}
-                                </div>
-                            ` : ''}
-                            ${s.items || s.bullets ? `
-                                <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0;">
-                                    ${(s.items || s.bullets || []).map((item: string) => `<li>${item}</li>`).join('')}
-                                </ul>
-                            ` : ''}
+            sectionBlocks.push({
+                order: getSectionOrder('skills'),
+                name: 'skills',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            SKILLS SUMMARY
                         </div>
-                    `).join('')}
-                </section>
-            `;
-
-            return nameBlock + singleLineContacts + skillsSection + workExperience + education + certifications + projects;
+                        ${skillsToRender.map((s: any) => `
+                            <div style="margin-bottom: 10px;">
+                                <div style="font-size: 12pt; font-weight: 600;">
+                                    ${s.name || s.category || 'Skill'}
+                                </div>
+                                ${s.description ? `
+                                    <div style="font-size: 12pt; margin-top: 4px;">
+                                        ${s.description}
+                                    </div>
+                                ` : ''}
+                                ${s.items || s.bullets ? `
+                                    <ul style="font-size: 12pt; padding-left: 20px; margin: 4px 0;">
+                                        ${(s.items || s.bullets || []).map((item: string) => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </section>
+                `
+            });
         }
 
         // Skills section for Chronological template
-        const skillsSection = Array.isArray(content.skillsList) && content.skillsList.length > 0 ? `
-            <section style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
-                    SKILLS
-                </div>
-                <div style="font-size: 12pt;">
-                    ${content.skillsList.join(' • ')}
-                </div>
-            </section>
-        ` : '';
+        if (templateType.includes('chronological') && isSectionEnabled('skills') && Array.isArray(content.skillsList) && content.skillsList.length > 0) {
+            // Removed formatting feature - using defaults('skills');
+            sectionBlocks.push({
+                order: getSectionOrder('skills'),
+                name: 'skills',
+                html: `
+                    <section style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; font-size: 10pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 8px;">
+                            SKILLS
+                        </div>
+                        <div style="font-size: 12pt;">
+                            ${content.skillsList.join(' • ')}
+                        </div>
+                    </section>
+                `
+            });
+        }
 
-        // Chronological (default)
-        return nameBlock + twoColumnContacts + summarySection + workExperience + education + skillsSection + certifications + projects;
+        // Sort section blocks by order and concatenate
+        const sortedBlocks = sectionBlocks.sort((a, b) => a.order - b.order);
+        const sectionsHTML = sortedBlocks.map(block => block.html).join('');
+
+        // Determine contact layout based on template
+        const contactsBlock = templateType.includes('hybrid') ? singleLineContacts : twoColumnContacts;
+
+        // Assemble final HTML
+        return nameBlock + contactsBlock + sectionsHTML;
     };
 
     useEffect(() => {
@@ -291,8 +355,27 @@ export default function EditResumePage() {
                 const data = await resumeApi.getResume(resumeId);
                 setResume(data);
 
+                // Load section configuration if exists, otherwise use defaults based on template
+                let sectionsToUse = DEFAULT_SECTIONS;
+                const savedSections = data.content?.sectionConfig;
+                if (savedSections && Array.isArray(savedSections)) {
+                    sectionsToUse = savedSections;
+                    setSections(savedSections);
+                } else {
+                    // Set default sections based on template type
+                    const templateType = (data.template?.type || '').toLowerCase();
+                    if (templateType.includes('hybrid')) {
+                        // For Hybrid, disable summary by default
+                        const hybridSections = DEFAULT_SECTIONS.map(s =>
+                            s.name === 'summary' ? { ...s, enabled: false } : s
+                        );
+                        sectionsToUse = hybridSections;
+                        setSections(hybridSections);
+                    }
+                }
+
                 // Generate HTML once
-                const html = generateHTML(data);
+                const html = generateHTML(data, sectionsToUse);
                 setHtmlContent(html);
             } catch (err: any) {
                 console.error('Failed to load resume:', err);
@@ -318,6 +401,7 @@ export default function EditResumePage() {
                 content: {
                     ...resume?.content,
                     htmlContent: currentHTML,
+                    sectionConfig: sections, // Save section configuration
                 },
             });
 
@@ -337,6 +421,33 @@ export default function EditResumePage() {
             setSaving(false);
         }
     };
+
+    // Handle section configuration changes with real-time preview
+    const handleSectionsChange = (newSections: ResumeSection[]) => {
+        setSections(newSections);
+
+        // Regenerate HTML with new section configuration
+        if (resume) {
+            const newResumeData = {
+                ...resume,
+                content: {
+                    ...resume.content,
+                    htmlContent: undefined, // Force regeneration
+                    sectionConfig: newSections,
+                }
+            };
+            const newHTML = generateHTML(newResumeData, newSections);
+            setHtmlContent(newHTML);
+
+            // Update the editor
+            setTimeout(() => {
+                if (editorRef.current) {
+                    editorRef.current.innerHTML = newHTML;
+                }
+            }, 50);
+        }
+    };
+
 
     // Handle applying AI-generated content with user selection
     const handleApplyAIContent = (content: TailoredResumeContent, selectedSections: any) => {
@@ -361,7 +472,7 @@ export default function EditResumePage() {
                 // Handle date formatting safely
                 let formattedStartDate = exp.startDate;
                 let formattedEndDate = exp.endDate || 'Present';
-                
+
                 try {
                     if (exp.startDate && exp.startDate !== 'Present') {
                         const startDateObj = new Date(exp.startDate);
@@ -369,7 +480,7 @@ export default function EditResumePage() {
                             formattedStartDate = startDateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                         }
                     }
-                    
+
                     if (exp.endDate && exp.endDate !== 'Present') {
                         const endDateObj = new Date(exp.endDate);
                         if (!isNaN(endDateObj.getTime())) {
@@ -379,7 +490,7 @@ export default function EditResumePage() {
                 } catch (e) {
                     console.error('Date formatting error:', e);
                 }
-                
+
                 return {
                     title: exp.positionTitle,
                     company: exp.companyName,
@@ -395,7 +506,7 @@ export default function EditResumePage() {
         if (selectedSections.education && content.education && content.education.length > 0) {
             updatedContent.education = content.education.map(edu => {
                 let formattedGradDate = '';
-                
+
                 try {
                     if (edu.graduationDate) {
                         const gradDateObj = new Date(edu.graduationDate);
@@ -406,7 +517,7 @@ export default function EditResumePage() {
                 } catch (e) {
                     console.error('Graduation date formatting error:', e);
                 }
-                
+
                 return {
                     degree: edu.degreeType,
                     major: edu.major,
@@ -434,7 +545,7 @@ export default function EditResumePage() {
         if (selectedSections.certifications && content.certifications && content.certifications.length > 0) {
             updatedContent.certifications = content.certifications.map(cert => {
                 let formattedDate = cert.date;
-                
+
                 // Format date if it's an ISO string
                 try {
                     if (cert.date && cert.date.includes('T')) {
@@ -446,7 +557,7 @@ export default function EditResumePage() {
                 } catch (e) {
                     console.error('Certification date formatting error:', e);
                 }
-                
+
                 return {
                     name: cert.name,
                     organization: cert.organization,
@@ -471,8 +582,8 @@ export default function EditResumePage() {
         }
 
         // Create new resume object without htmlContent so generateHTML creates fresh HTML
-        const newResumeData = { 
-            ...resume, 
+        const newResumeData = {
+            ...resume,
             content: {
                 ...updatedContent,
                 htmlContent: undefined, // Force regeneration
@@ -583,89 +694,116 @@ export default function EditResumePage() {
 
     return (
         <>
-            <div className="bg-white text-black p-8">
-                <div className="max-w-6xl mx-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <button onClick={() => router.push('/dashboard/resumes')} className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                            <ArrowLeft className="w-4 h-4" />
-                            Back
-                        </button>
-                        <div className="flex gap-3">
-                            <button 
-                                onClick={() => setShowAIModal(true)} 
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-medium shadow-md transition-all"
-                            >
-                                <Sparkles className="w-4 h-4" />
-                                AI Tailor
+            <div className="bg-white text-black min-h-screen">
+                <div className="max-w-full mx-auto">
+                    {/* Header */}
+                    <div className="border-b border-gray-200 bg-white sticky top-0 z-20 shadow-sm">
+                        <div className="px-6 py-4 flex items-center justify-between">
+                            <button onClick={() => router.push('/dashboard/resumes')} className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Resumes
                             </button>
-                            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium">
-                                {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Save className="w-4 h-4" />Save</>}
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowAIModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg font-medium shadow-md transition-all"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    AI Tailor
+                                </button>
+                                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white rounded-lg font-medium shadow-md transition-all">
+                                    {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Save className="w-4 h-4" />Save</>}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                {/* Toolbar */}
-                <div className="bg-white border border-gray-300 rounded-lg p-3 mb-4 flex flex-wrap gap-3 items-center">
-                    <button onClick={formatBold} className="p-2 hover:bg-gray-100 rounded border"><Bold className="w-4 h-4" /></button>
-                    <button onClick={formatItalic} className="p-2 hover:bg-gray-100 rounded border"><Italic className="w-4 h-4" /></button>
-                    <button onClick={formatBulletList} className="p-2 hover:bg-gray-100 rounded border"><List className="w-4 h-4" /></button>
+                    {/* Main Content Area */}
+                    <div className="flex">
+                        {/* Section Customizer Sidebar */}
+                        <div className="w-[400px] border-r border-gray-200 bg-gray-50 overflow-y-auto" style={{ height: 'calc(100vh - 73px)' }}>
+                            <div className="p-4">
+                                <ResumeSectionCustomizer
+                                    sections={sections}
+                                    onSectionsChange={handleSectionsChange}
+                                />
+                            </div>
+                        </div>
 
-                    <div className="w-px h-6 bg-gray-300" />
+                        {/* Editor Area */}
+                        <div className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 73px)' }}>
+                            <div className="p-6">
+                                {/* Toolbar */}
+                                <div className="bg-white border border-gray-300 rounded-lg p-3 mb-6 flex flex-wrap gap-3 items-center shadow-sm">
+                                    <button onClick={formatBold} className="p-2 hover:bg-gray-100 rounded border transition-colors" title="Bold">
+                                        <Bold className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={formatItalic} className="p-2 hover:bg-gray-100 rounded border transition-colors" title="Italic">
+                                        <Italic className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={formatBulletList} className="p-2 hover:bg-gray-100 rounded border transition-colors" title="Bullet List">
+                                        <List className="w-4 h-4" />
+                                    </button>
 
-                    <div className="flex items-center gap-2">
-                        <Type className="w-4 h-4" />
-                        <select onChange={(e) => formatFont(e.target.value)} className="px-2 py-1 border rounded text-sm">
-                            <option value="Inter">Inter</option>
-                            <option value="Arial">Arial</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="Georgia">Georgia</option>
-                        </select>
+                                    <div className="w-px h-6 bg-gray-300" />
+
+                                    <div className="flex items-center gap-2">
+                                        <Type className="w-4 h-4 text-gray-600" />
+                                        <select onChange={(e) => formatFont(e.target.value)} className="px-2 py-1 border rounded text-sm hover:border-gray-400 transition-colors">
+                                            <option value="Inter">Inter</option>
+                                            <option value="Arial">Arial</option>
+                                            <option value="Times New Roman">Times New Roman</option>
+                                            <option value="Georgia">Georgia</option>
+                                        </select>
+                                    </div>
+
+                                    <select onChange={(e) => formatFontSize(e.target.value)} className="px-2 py-1 border rounded text-sm hover:border-gray-400 transition-colors">
+                                        <option value="10">10pt</option>
+                                        <option value="12">12pt</option>
+                                        <option value="14">14pt</option>
+                                        <option value="16">16pt</option>
+                                        <option value="18">18pt</option>
+                                    </select>
+
+                                    <input type="color" onChange={(e) => formatColor(e.target.value)} className="w-8 h-8 cursor-pointer rounded" title="Text Color" />
+
+                                    <span className="text-xs text-gray-500 ml-auto">Select text then format</span>
+                                </div>
+
+                                {/* Resume Preview/Editor */}
+                                <div className="bg-gray-100 p-8 rounded-xl">
+                                    <style>{`
+                                        .resume-editor { color: #000000; }
+                                        .resume-editor ul { list-style-type: disc !important; list-style-position: outside !important; padding-left: 20px !important; }
+                                        .resume-editor li { display: list-item !important; margin-bottom: 2px !important; }
+                                    `}</style>
+                                    <div
+                                        ref={editorRef}
+                                        contentEditable
+                                        suppressContentEditableWarning
+                                        className="resume-editor w-full max-w-[8.5in] min-h-[11in] mx-auto bg-white border border-gray-300 shadow-lg p-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-shadow"
+                                        style={{ lineHeight: '1.4' }}
+                                        dangerouslySetInnerHTML={{ __html: htmlContent }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <select onChange={(e) => formatFontSize(e.target.value)} className="px-2 py-1 border rounded text-sm">
-                        <option value="10">10pt</option>
-                        <option value="12">12pt</option>
-                        <option value="14">14pt</option>
-                        <option value="16">16pt</option>
-                        <option value="18">18pt</option>
-                    </select>
-
-                    <input type="color" onChange={(e) => formatColor(e.target.value)} className="w-8 h-8 cursor-pointer" />
-
-                    <span className="text-xs text-gray-500 ml-auto">Select text then format</span>
-                </div>
-
-                {/* Editor */}
-                <div className="bg-gray-100 p-6 rounded-xl">
-                    <style>{`
-                        .resume-editor { color: #000000; }
-                        .resume-editor ul { list-style-type: disc !important; list-style-position: outside !important; padding-left: 20px !important; }
-                        .resume-editor li { display: list-item !important; margin-bottom: 2px !important; }
-                    `}</style>
-                    <div
-                        ref={editorRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="resume-editor w-full max-w-[8.5in] min-h-[11in] mx-auto bg-white border p-8 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        style={{ lineHeight: '1.4' }}
-                        dangerouslySetInnerHTML={{ __html: htmlContent }}
-                    />
                 </div>
             </div>
-        </div>
 
-        {/* AI Resume Generation Modal */}
-        {user && resume && (
-            <AIResumeGenerationModal
-                isOpen={showAIModal}
-                onClose={() => setShowAIModal(false)}
-                resumeId={resumeId || ''}
-                userId={user.uid}
-                resumeTemplate={resume.template?.type || 'chronological'}
-                currentResumeContent={resume.content}
-                onApplyContent={handleApplyAIContent}
-            />
-        )}
-    </>
+            {/* AI Resume Generation Modal */}
+            {user && resume && (
+                <AIResumeGenerationModal
+                    isOpen={showAIModal}
+                    onClose={() => setShowAIModal(false)}
+                    resumeId={resumeId || ''}
+                    userId={user.uid}
+                    resumeTemplate={resume.template?.type || 'chronological'}
+                    currentResumeContent={resume.content}
+                    onApplyContent={handleApplyAIContent}
+                />
+            )}
+        </>
     );
 }
