@@ -15,17 +15,119 @@ function generateFilename(resumeName: string, format: string): string {
     return `${cleanName}_${timestamp}.${format}`;
 }
 
-// Export to PDF using browser's print dialog
-function exportToPDF(htmlContent: string, resumeName: string): void {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) throw new Error('Popup blocked. Please allow popups to export as PDF.');
+// Convert list items to visible bullets for PDF export
+function convertListsToBullets(element: HTMLElement): void {
+    // Find all list items
+    const listItems = element.querySelectorAll('li');
 
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>${resumeName}</title>
-<style>@page{size:letter;margin:0.5in}body{margin:0.5in;padding:0;background:white}section{page-break-inside:avoid}</style>
-</head><body>${htmlContent}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 250);
+    listItems.forEach((li) => {
+        const parentList = li.parentElement;
+        if (!parentList) return;
+
+        const isOrdered = parentList.tagName === 'OL';
+        const currentStyle = window.getComputedStyle(li);
+        const listStyleType = currentStyle.listStyleType;
+
+        // Skip if already has text content starting with bullet
+        const firstTextNode = li.childNodes[0];
+        if (firstTextNode?.textContent?.trim().startsWith('•')) return;
+
+        // Create bullet or number based on list type
+        let bulletText = '• ';
+        if (isOrdered) {
+            const index = Array.from(parentList.children).indexOf(li) + 1;
+            bulletText = `${index}. `;
+        } else if (listStyleType === 'circle') {
+            bulletText = '○ ';
+        } else if (listStyleType === 'square') {
+            bulletText = '▪ ';
+        }
+
+        // Add bullet as text content
+        const bulletSpan = document.createElement('span');
+        bulletSpan.textContent = bulletText;
+        bulletSpan.style.marginRight = '0.5em';
+        li.insertBefore(bulletSpan, li.firstChild);
+
+        // Remove list styling
+        li.style.listStyleType = 'none';
+        li.style.paddingLeft = '0';
+    });
+
+    // Reset list padding
+    const lists = element.querySelectorAll('ul, ol');
+    lists.forEach((list) => {
+        if (list instanceof HTMLElement) {
+            list.style.listStyleType = 'none';
+            list.style.paddingLeft = '0';
+        }
+    });
+}
+
+// Export to PDF using html2canvas-pro and jspdf
+async function exportToPDF(htmlContent: string, resumeName: string): Promise<void> {
+    const html2canvas = (await import('html2canvas-pro')).default;
+    const { jsPDF } = await import('jspdf');
+
+    // Create a temporary div with the HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    tempDiv.style.width = '8.5in';
+    tempDiv.style.padding = '0.5in';
+    tempDiv.style.background = 'white';
+    tempDiv.style.fontSize = '12px';
+
+    // Append to body temporarily (needed for rendering)
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    document.body.appendChild(tempDiv);
+
+    try {
+        // Convert list bullets to text so they show in PDF
+        convertListsToBullets(tempDiv);
+
+        // Render the HTML to canvas using html2canvas-pro (supports OKLCH natively)
+        const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+
+        // Create PDF with letter size (8.5 x 11 inches)
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'in',
+            format: 'letter'
+        });
+
+        // Calculate dimensions
+        const imgWidth = 8.5;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const pageHeight = 11;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // Add image to PDF
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // Add new pages if content is longer than one page
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        // Save the PDF
+        pdf.save(generateFilename(resumeName, 'pdf'));
+    } finally {
+        // Clean up the temporary div
+        document.body.removeChild(tempDiv);
+    }
 }
 
 function exportToWord(htmlContent: string, filename: string, resumeName: string): void {
@@ -99,13 +201,13 @@ export default function ResumeExportMenu({
     const [isOpen, setIsOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
 
-    const handleExport = (format: 'pdf' | 'docx' | 'html') => {
+    const handleExport = async (format: 'pdf' | 'docx' | 'html') => {
         try {
             setExporting(true);
 
             switch (format) {
                 case 'pdf':
-                    exportToPDF(htmlContent, resumeName);
+                    await exportToPDF(htmlContent, resumeName);
                     break;
                 case 'docx':
                     exportToWord(htmlContent, generateFilename(resumeName, 'doc'), resumeName);
