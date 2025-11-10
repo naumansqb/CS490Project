@@ -21,7 +21,7 @@ import {
   ApplicationStatus,
   updateApplicationHistory,
 } from '@/lib/jobs.api';
-import { FieldDescription } from './ui/field';
+import { FieldDescription } from '../ui/field';
 
 
 const INDUSTRIES = [
