@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, FileText, FileType, Loader2 } from 'lucide-react';
+import { Download, FileText, FileType, Loader2, Printer, AlignLeft } from 'lucide-react';
 
 interface ResumeExportMenuProps {
     resumeName: string;
@@ -193,6 +193,112 @@ function exportToHTML(htmlContent: string, filename: string, resumeName: string)
     URL.revokeObjectURL(url);
 }
 
+function exportToPlainText(htmlContent: string, filename: string, resumeName: string): void {
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+
+    // Extract text content with basic formatting
+    let textContent = '';
+
+    // Process each section
+    const sections = tempDiv.querySelectorAll('section, h1, h2, h3, div');
+    sections.forEach((section) => {
+        const text = section.textContent?.trim();
+        if (text) {
+            // Add section headers with spacing
+            if (section.tagName === 'H1') {
+                textContent += text.toUpperCase() + '\n' + '='.repeat(text.length) + '\n\n';
+            } else if (section.tagName === 'H2' || section.tagName === 'H3') {
+                textContent += '\n' + text.toUpperCase() + '\n' + '-'.repeat(text.length) + '\n';
+            }
+        }
+    });
+
+    // Get clean text from the entire content
+    textContent = tempDiv.textContent || '';
+
+    // Clean up excessive whitespace
+    textContent = textContent
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .join('\n');
+
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function handlePrint(htmlContent: string, resumeName: string): void {
+    // Create a hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+        alert('Unable to print. Please try again.');
+        document.body.removeChild(iframe);
+        return;
+    }
+
+    iframeDoc.open();
+    iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${resumeName}</title>
+            <style>
+                @page {
+                    size: letter;
+                    margin: 0.5in;
+                }
+                body {
+                    margin: 0;
+                    padding: 0.5in;
+                    background: white;
+                    font-family: Inter, Arial, sans-serif;
+                }
+                section {
+                    page-break-inside: avoid;
+                }
+            </style>
+        </head>
+        <body>${htmlContent}</body>
+        </html>
+    `);
+    iframeDoc.close();
+
+    // Wait for content to load, then print
+    setTimeout(() => {
+        try {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        } catch (e) {
+            console.error('Print failed:', e);
+        } finally {
+            // Clean up after a short delay (allows print dialog to show)
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+            }, 1000);
+        }
+    }, 250);
+}
+
 export default function ResumeExportMenu({
     resumeName,
     htmlContent,
@@ -201,7 +307,7 @@ export default function ResumeExportMenu({
     const [isOpen, setIsOpen] = useState(false);
     const [exporting, setExporting] = useState(false);
 
-    const handleExport = async (format: 'pdf' | 'docx' | 'html') => {
+    const handleExport = async (format: 'pdf' | 'docx' | 'html' | 'txt' | 'print') => {
         try {
             setExporting(true);
 
@@ -214,6 +320,12 @@ export default function ResumeExportMenu({
                     break;
                 case 'html':
                     exportToHTML(htmlContent, generateFilename(resumeName, 'html'), resumeName);
+                    break;
+                case 'txt':
+                    exportToPlainText(htmlContent, generateFilename(resumeName, 'txt'), resumeName);
+                    break;
+                case 'print':
+                    handlePrint(htmlContent, resumeName);
                     break;
             }
 
@@ -283,6 +395,24 @@ export default function ResumeExportMenu({
                             >
                                 <FileText className="w-4 h-4" />
                                 <span className="font-medium">HTML File</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleExport('txt')}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-800 rounded-md transition-colors"
+                            >
+                                <AlignLeft className="w-4 h-4" />
+                                <span className="font-medium">Plain Text</span>
+                            </button>
+
+                            <div className="my-1 border-t border-gray-200" />
+
+                            <button
+                                onClick={() => handleExport('print')}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-cyan-50 hover:text-cyan-600 rounded-md transition-colors"
+                            >
+                                <Printer className="w-4 h-4" />
+                                <span className="font-medium">Print</span>
                             </button>
                         </div>
                     </div>
