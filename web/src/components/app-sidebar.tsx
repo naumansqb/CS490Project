@@ -55,7 +55,7 @@ export function SideBar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="bg-gradient-to-t from-[#3BAFBA] to-[#E0F7F7] p-3">
         <UserFooter />
       </SidebarFooter>
     </Sidebar>
