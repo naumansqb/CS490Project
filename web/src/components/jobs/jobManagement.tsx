@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Save, ArrowLeft, User, Phone, Mail, Clock, FileText } from 'lucide-react';
+import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Save, ArrowLeft, User, Phone, Mail, Clock, FileText, Loader2, AlertCircle } from 'lucide-react';
 import JobNotesCard from './jobNotesCard';
 import SearchBox, {JobFilters} from './SearchBox';
 import JobCard from './jobCard';
@@ -22,6 +22,7 @@ import {
   updateApplicationHistory,
 } from '@/lib/jobs.api';
 import { FieldDescription } from '../ui/field';
+import { apiClient } from '@/lib/api';
 
 
 const INDUSTRIES = [
@@ -90,7 +91,73 @@ export default function JobOpportunitiesManager() {
     deadlineTo: '',
     sortBy: 'dateAdded'
   });
-  
+  const [jobUrl, setJobUrl] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState('');
+
+  const handleExtractFromUrl = async () => {
+  if (!jobUrl.trim()) {
+    setExtractError('Please enter a URL');
+    return;
+  }
+
+  setExtracting(true);
+  setExtractError('');
+
+  try {
+    console.log('[Extract Job] Extracting from URL:', jobUrl);
+
+    const result = await apiClient.fetch<{ success: boolean; data: any }>('/ai/job/extract-from-url', {
+      method: 'POST',
+      body: JSON.stringify({ url: jobUrl }),
+    });
+
+    if (!result.success) {
+      throw new Error('Failed to extract job data');
+    }
+
+    const extracted = result.data;
+
+    // Pre-fill the form with extracted data
+    setFormData({
+      title: extracted.title || '',
+      company: extracted.company || '',
+      location: extracted.location || '',
+      salaryMin: extracted.salaryMin || '',
+      salaryMax: extracted.salaryMax || '',
+      postingUrl: jobUrl, // Use the original URL
+      deadline: extracted.deadline || '',
+      description: extracted.description || '',
+      industry: extracted.industry || 'Technology',
+      jobType: extracted.jobType || 'Full-time',
+      personalNotes: '',
+      salaryNegotiationNotes: '',
+      interviewNotes: ''
+    });
+
+    setSuccessMessage('Job data extracted successfully! Review and save.');
+    setTimeout(() => setSuccessMessage(''), 5000);
+    setJobUrl(''); // Clear URL field
+
+  } catch (error: any) {
+    console.error('[Extract Job] Error:', error);
+    
+    let errorMessage = 'Failed to extract job data. ';
+    
+    if (error?.message) {
+      errorMessage += error.message;
+    } else if (error?.error) {
+      errorMessage += error.error;
+    } else {
+      errorMessage += 'Please try again or enter the job details manually.';
+    }
+    
+    setExtractError(errorMessage);
+  } finally {
+    setExtracting(false);
+  }
+};
+
 
   const filteredJobs = useMemo(() => {
     let result = [...jobs];
@@ -787,6 +854,81 @@ export default function JobOpportunitiesManager() {
           jobTypes={JOB_TYPES}
           resultCount={filteredJobs.length}
         />
+
+      {showForm && (
+        <Card className="border-2 border-[#3bafba] shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase size={24} /> Add New Job Opportunity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+        {/* NEW: URL Extraction Section */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-3 mb-3">
+            <ExternalLink size={20} className="text-blue-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-1">Extract from Job Posting URL</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Paste a link to a job posting and we'll automatically fill in the details for you.
+              </p>
+              
+              <div className="flex gap-2">
+                <Input
+                  value={jobUrl}
+                  onChange={(e) => setJobUrl(e.target.value)}
+                  placeholder="https://example.com/job-posting"
+                  className="flex-1"
+                  disabled={extracting}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleExtractFromUrl();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleExtractFromUrl}
+                  disabled={extracting || !jobUrl.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                >
+                  {extracting ? (
+                    <>
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                      Extracting...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink size={16} className="mr-2" />
+                      Extract Data
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {extractError && (
+                <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  {extractError}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="text-sm text-gray-500">or enter manually</span>
+          <div className="flex-1 border-t border-gray-300"></div>
+        </div>
+
+        {/* EXISTING: Your current form fields go here */}
+        <div className="space-y-6">
+          {/* ... rest of your existing form ... */}
+        </div>
+      </CardContent>
+    </Card>
+  )}
 
       {showForm && (
         <Card className="border-2 border-[#3bafba] shadow-lg">
