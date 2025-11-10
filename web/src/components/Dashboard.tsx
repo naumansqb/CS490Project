@@ -1,9 +1,11 @@
 "use client";
 
+import UpcomingDeadlines from "./jobs/UpComingDeadlines";
+
 export default function Dashboard() {
   return (
     <div>
-      {/* Blank dashboard page */}
+      <UpcomingDeadlines />
     </div>
 
   );
