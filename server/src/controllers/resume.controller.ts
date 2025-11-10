@@ -322,7 +322,7 @@ export async function getResumesByAuthUser(req: Request, res: Response) {
                 id: r.template.id,
                 name: r.template.name,
                 type: r.template.type,
-                preview: r.template.preview,
+                preview: r.template.previewUrl,
             },
             content: r.content,
         }));
@@ -389,7 +389,7 @@ export async function createResume(req: Request, res: Response) {
                 id: newResume.template.id,
                 name: newResume.template.name,
                 type: newResume.template.type,
-                preview: newResume.template.preview,
+                preview: newResume.template.previewUrl,
             },
             content: newResume.content,
         });
@@ -425,7 +425,7 @@ export async function getResumeById(req: Request, res: Response) {
                 id: resume.template.id,
                 name: resume.template.name,
                 type: resume.template.type,
-                preview: resume.template.preview,
+                preview: resume.template.previewUrl,
             },
             content: resume.content,
         });
@@ -463,7 +463,7 @@ export async function updateResume(req: Request, res: Response) {
                 id: updated.template.id,
                 name: updated.template.name,
                 type: updated.template.type,
-                preview: updated.template.preview,
+                preview: updated.template.previewUrl,
             },
             content: updated.content,
         });
@@ -524,7 +524,7 @@ export async function setDefaultResume(req: Request, res: Response) {
                 id: updated.template.id,
                 name: updated.template.name,
                 type: updated.template.type,
-                preview: updated.template.preview,
+                preview: updated.template.previewUrl,
             },
             content: updated.content,
         });
