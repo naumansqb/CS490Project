@@ -1,6 +1,6 @@
 "use client";
 
-import UpcomingDeadlines from "./UpComingDeadlines";
+import UpcomingDeadlines from "./jobs/UpComingDeadlines";
 
 export default function Dashboard() {
   return (
