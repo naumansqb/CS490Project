@@ -19,8 +19,9 @@ import {
   createApplicationHistory,
   getApplicationHistoryByJobId,
   ApplicationStatus,
+  updateApplicationHistory,
 } from '@/lib/jobs.api';
-import { FieldDescription } from './ui/field';
+import { FieldDescription } from '../ui/field';
 
 
 const INDUSTRIES = [
@@ -245,7 +246,15 @@ export default function JobOpportunitiesManager() {
         interviewNotes: formData.interviewNotes || undefined,
       };
 
-      await createJobOpportunity(jobData);
+      // Create the job and get the response with the new job ID
+      const newJob = await createJobOpportunity(jobData) as Job;
+      
+      // Now create the initial application history entry
+      await createApplicationHistory({
+        jobId: newJob.id, // Use the ID from the newly created job
+        status: 'interested'
+      });
+
       setSuccessMessage('Job opportunity saved successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       handleCancel();
@@ -416,28 +425,6 @@ export default function JobOpportunitiesManager() {
     }
   };
 
-  const addHistoryEntry = async () => {
-    if (!selectedJobId || !newHistoryEntry.status.trim()) return;
-
-    try {
-      await createApplicationHistory({
-        jobId: selectedJobId,
-        status: newHistoryEntry.status as ApplicationStatus,
-      });
-
-      setNewHistoryEntry({ status: '', notes: '' });
-      setSuccessMessage('Application history updated!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      
-      // Reload the job to get updated history
-      await loadJobs();
-    } catch (error) {
-      console.error("Failed to add history entry:", error);
-      setErrorMessage("Failed to update application history. Please try again.");
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  };
-
   const backToList = () => {
     setViewMode('list');
     setSelectedJobId(null);
@@ -467,6 +454,19 @@ export default function JobOpportunitiesManager() {
       setErrorMessage("Failed to delete job. Please try again.");
       setTimeout(() => setErrorMessage(''), 3000);
     }
+  };
+
+  const formatStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'interested': 'Interested',
+      'applied': 'Applied',
+      'phone_screen': 'Phone Screen',
+      'interview': 'Interview',
+      'offer': 'Offer Received',
+      'rejected': 'Rejected'
+    };
+  
+    return statusMap[status] || status;
   };
 
   // DETAIL VIEW
@@ -619,35 +619,13 @@ export default function JobOpportunitiesManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Clock size={20} /> Application History</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <select
-                value={newHistoryEntry.status}
-                onChange={(e) => setNewHistoryEntry(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#3bafba]"
-              >
-                <option value="">Select Status</option>
-                <option value="saved">Saved</option>
-                <option value="applied">Applied</option>
-                <option value="phone_screen">Phone Screen</option>
-                <option value="interview_scheduled">Interview Scheduled</option>
-                <option value="interviewed">Interviewed</option>
-                <option value="offer_received">Offer Received</option>
-                <option value="accepted">Accepted</option>
-                <option value="rejected">Rejected</option>
-                <option value="withdrawn">Withdrawn</option>
-              </select>
-              <Button onClick={addHistoryEntry} className="bg-[#3bafba] hover:bg-[#34a0ab]">
-                <Plus size={18} className="mr-2" /> Add Entry
-              </Button>
-            </div>
-
+          <CardContent className="">
             {selectedJob.applicationHistory.length > 0 && (
               <div className="space-y-3 mt-4">
                 {selectedJob.applicationHistory.map((entry) => (
                   <div key={entry.id} className="border-l-4 border-[#3bafba] pl-4 py-2">
                     <div className="flex justify-between items-start mb-1">
-                      <div className="font-semibold text-gray-900">{entry.status}</div>
+                      <div className="font-semibold text-gray-900">{formatStatus(entry.status)}</div>
                       <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
                     </div>
                   </div>
