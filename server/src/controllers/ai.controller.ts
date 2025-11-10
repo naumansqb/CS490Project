@@ -476,3 +476,67 @@ export const parseResumeFromFile = async (
     );
   }
 };
+
+export const extractJobFromUrl = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "URL is required", [
+        { field: "url", message: "URL is required" },
+      ]);
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Invalid URL format", [
+        { field: "url", message: "Invalid URL format" },
+      ]);
+      return;
+    }
+
+    // Fetch HTML from URL using CORS proxy
+    const corsProxy = "https://api.allorigins.win/raw?url=";
+    const targetUrl = encodeURIComponent(url);
+    
+    let html: string;
+    try {
+      const response = await fetch(corsProxy + targetUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch URL: ${response.statusText}`);
+      }
+      html = await response.text();
+    } catch (error) {
+      sendErrorResponse(
+        res,
+        500,
+        "FETCH_ERROR",
+        "Failed to fetch job posting content",
+        [{ field: "url", message: "Unable to access the provided URL" }]
+      );
+      return;
+    }
+
+    // Extract job data using AI service
+    const extractedData = await aiService.extractJobData(html);
+
+    res.status(200).json({
+      success: true,
+      data: extractedData,
+    });
+  } catch (error) {
+    console.error("[Extract Job Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      "Failed to extract job data from URL"
+    );
+  }
+};
