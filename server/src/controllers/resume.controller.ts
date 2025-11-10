@@ -147,12 +147,25 @@ You can use 4-8 statements.`;
 
     // ==================== CHRONOLOGICAL ====================
     if (lower.includes('chrono')) {
+        const skillsList = skills.length > 0
+            ? skills.slice(0, 10).map((skill: any) => skill.skillName || skill.name || 'Skill')
+            : [];
+
         return {
             personalInfo,
             summary: summaryText,
             workExperience: formattedWorkExperience,
             education: formattedEducation,
-            skills: [],
+            skillsList: skillsList,
+            sectionConfig: [
+                { id: 'personalInfo', name: 'personalInfo', label: 'Contact Information', enabled: true, order: 1, required: true },
+                { id: 'summary', name: 'summary', label: 'Professional Summary', enabled: true, order: 2 },
+                { id: 'workExperience', name: 'workExperience', label: 'Work Experience', enabled: true, order: 3 },
+                { id: 'education', name: 'education', label: 'Education', enabled: true, order: 4 },
+                { id: 'skills', name: 'skills', label: 'Skills', enabled: true, order: 5 },
+                { id: 'certifications', name: 'certifications', label: 'Certifications', enabled: false, order: 6 },
+                { id: 'projects', name: 'projects', label: 'Projects', enabled: false, order: 7 },
+            ],
             style: {
                 fontFamily: 'Inter, system-ui, sans-serif',
                 fontSize: 12,
@@ -215,6 +228,15 @@ You can use 4-8 statements.`;
                 endDate: job.endDate,
             })),
             education: formattedEducation,
+            sectionConfig: [
+                { id: 'personalInfo', name: 'personalInfo', label: 'Contact Information', enabled: true, order: 1, required: true },
+                { id: 'summary', name: 'summary', label: 'Professional Summary', enabled: true, order: 2 },
+                { id: 'skills', name: 'skills', label: 'Skills & Expertise', enabled: true, order: 3 },
+                { id: 'projects', name: 'projects', label: 'Key Projects', enabled: false, order: 4 },
+                { id: 'workExperience', name: 'workExperience', label: 'Employment History', enabled: true, order: 5 },
+                { id: 'education', name: 'education', label: 'Education', enabled: true, order: 6 },
+                { id: 'certifications', name: 'certifications', label: 'Certifications', enabled: false, order: 7 },
+            ],
             style: {
                 fontFamily: 'Inter, system-ui, sans-serif',
                 fontSize: 12,
@@ -267,6 +289,15 @@ You can use 4-8 statements.`;
             skills: skillCategories,
             workExperience: formattedWorkExperience,
             education: formattedEducation,
+            sectionConfig: [
+                { id: 'personalInfo', name: 'personalInfo', label: 'Contact Information', enabled: true, order: 1, required: true },
+                { id: 'skills', name: 'skills', label: 'Skills Summary', enabled: true, order: 2 },
+                { id: 'workExperience', name: 'workExperience', label: 'Experience', enabled: true, order: 3 },
+                { id: 'education', name: 'education', label: 'Education', enabled: true, order: 4 },
+                { id: 'certifications', name: 'certifications', label: 'Certifications', enabled: false, order: 5 },
+                { id: 'projects', name: 'projects', label: 'Projects', enabled: false, order: 6 },
+                { id: 'summary', name: 'summary', label: 'Professional Summary', enabled: false, order: 7 },
+            ],
             style: {
                 fontFamily: 'Inter, system-ui, sans-serif',
                 fontSize: 12,
@@ -286,6 +317,15 @@ You can use 4-8 statements.`;
         workExperience: formattedWorkExperience,
         education: formattedEducation,
         skills: [],
+        sectionConfig: [
+            { id: 'personalInfo', name: 'personalInfo', label: 'Contact Information', enabled: true, order: 1, required: true },
+            { id: 'summary', name: 'summary', label: 'Professional Summary', enabled: true, order: 2 },
+            { id: 'workExperience', name: 'workExperience', label: 'Work Experience', enabled: true, order: 3 },
+            { id: 'education', name: 'education', label: 'Education', enabled: true, order: 4 },
+            { id: 'skills', name: 'skills', label: 'Skills', enabled: true, order: 5 },
+            { id: 'certifications', name: 'certifications', label: 'Certifications', enabled: false, order: 6 },
+            { id: 'projects', name: 'projects', label: 'Projects', enabled: false, order: 7 },
+        ],
         style: {
             fontFamily: 'Inter, system-ui, sans-serif',
             fontSize: 12,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, FileText, Briefcase, Calendar } from "lucide-react"
+import { Home, FileText, Briefcase, Calendar, Bookmark } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext';
 
 import {
@@ -40,6 +40,11 @@ export function SideBar() {
       title: 'Resumes',
       url: '/dashboard/resumes',
       icon: FileText,
+    },
+    {
+      title: 'Job Status Tracker',
+      url: `/job-status-tracker/${user?.uid}`,
+      icon: Bookmark,
     }
   ]
 

@@ -5,7 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import JobOpportunitiesManager from "@/components/jobManagement";
+import JobOpportunitiesManager from "@/components/jobs/jobManagement";
 
 export default function profile({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

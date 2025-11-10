@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/firebase/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Job } from '@/types/jobs.types';
 import { useEffect, useMemo, useState } from "react";
 import { getJobOpportunitiesByUserId } from "@/lib/jobs.api";
@@ -66,6 +66,10 @@ export default function UpcomingDeadlines(){
         soon: 'font-semibold text-yellow-700 mb-2 flex items-center gap-2',
         normal: 'font-semibold text-green-700 mb-2 flex items-center gap-2'
     };
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div>

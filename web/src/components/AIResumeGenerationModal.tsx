@@ -7,6 +7,15 @@ import { getJobOpportunitiesByUserId } from '@/lib/jobs.api';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
+interface SelectedSections {
+    summary: boolean;
+    workExperience: boolean;
+    skills: boolean;
+    certifications: boolean;
+    projects: boolean;
+    education: boolean;
+}
+
 interface AIResumeGenerationModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,15 +24,6 @@ interface AIResumeGenerationModalProps {
     resumeTemplate: string;
     currentResumeContent?: any;
     onApplyContent: (content: TailoredResumeContent, selectedSections: SelectedSections) => void;
-}
-
-interface SelectedSections {
-    summary: boolean;
-    workExperience: boolean;
-    skills: boolean;
-    certifications: boolean;
-    projects: boolean;
-    education: boolean;
 }
 
 interface Job {
@@ -79,9 +79,29 @@ export default function AIResumeGenerationModal({
 
     useEffect(() => {
         if (isOpen) {
+            // Reset all state first
+            setGeneratedContent(null);
+            setSelectedJobId('');
+            setError(null);
+            setWarning(null);
+            setActiveTab('content');
+        setSelectedSections({
+            summary: true,
+            workExperience: true,
+            skills: true,
+            certifications: true,
+            projects: true,
+            education: false,
+        });
+            setSelectedGeneratedSkills({
+                relevant: [],
+                technical: [],
+                soft: [],
+            });
+            // Then load jobs
             loadJobs();
         }
-    }, [isOpen, userId]);
+    }, [isOpen]);
 
     const loadJobs = async () => {
         try {
@@ -232,6 +252,40 @@ export default function AIResumeGenerationModal({
         }
     };
 
+    const handleRegenerateSkills = async () => {
+        if (!generatedContent) return;
+
+        setLoading(true);
+        try {
+            const response = await apiClient.fetch<{ success: boolean; data: TailoredResumeContent }>(
+                `/ai/resume/${resumeId}/tailor-to-job`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        jobId: selectedJobId,
+                        userId,
+                        currentResumeContent,
+                    }),
+                }
+            );
+
+            const updatedContent = { ...generatedContent };
+            updatedContent.skills = response.data.skills;
+            setGeneratedContent(updatedContent);
+            
+            // Reset skill selections with new skills
+            setSelectedGeneratedSkills({
+                relevant: response.data.skills.relevant.map(s => s.name),
+                technical: response.data.skills.technical.map(s => s.name),
+                soft: response.data.skills.soft.map(s => s.name),
+            });
+        } catch (err) {
+            console.error('Failed to regenerate skills:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleApply = () => {
         if (generatedContent) {
             // Filter skills based on user selection
@@ -256,11 +310,26 @@ export default function AIResumeGenerationModal({
     };
 
     const handleClose = () => {
+        // Don't clear jobs state - let it persist
+        // Only clear generation-related state
         setGeneratedContent(null);
         setSelectedJobId('');
         setError(null);
         setWarning(null);
         setActiveTab('content');
+        setSelectedSections({
+            summary: true,
+            workExperience: true,
+            skills: true,
+            certifications: true,
+            projects: true,
+            education: false,
+        });
+        setSelectedGeneratedSkills({
+            relevant: [],
+            technical: [],
+            soft: [],
+        });
         onClose();
     };
 
@@ -555,12 +624,24 @@ export default function AIResumeGenerationModal({
                                                 className="mt-1 w-5 h-5 text-cyan-600 rounded focus:ring-cyan-500"
                                             />
                                             <div className="flex-1">
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                                    Highlighted Skills
-                                                    <span className="text-sm font-normal text-gray-600 ml-2">
-                                                        (Check individual skills to include)
-                                                    </span>
-                                                </h3>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h3 className="text-lg font-semibold text-gray-900">
+                                                        Highlighted Skills
+                                                        <span className="text-sm font-normal text-gray-600 ml-2">
+                                                            (Check individual skills to include)
+                                                        </span>
+                                                    </h3>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={handleRegenerateSkills}
+                                                        disabled={loading}
+                                                        className="text-xs"
+                                                    >
+                                                        <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                                                        Regenerate
+                                                    </Button>
+                                                </div>
                                                 <div className="space-y-3 bg-white p-3 rounded border border-gray-200">
                                                     {/* Relevant Skills */}
                                                     <div>
@@ -797,7 +878,7 @@ export default function AIResumeGenerationModal({
 
                     {generatedContent && (
                         <div className="mt-3 text-xs text-center text-gray-600">
-                            {Object.values(selectedSections).filter(v => v).length} of {Object.keys(selectedSections).length} sections selected
+                            {Object.values(selectedSections).filter(v => v).length} section(s) selected
                         </div>
                     )}
                 </div>
