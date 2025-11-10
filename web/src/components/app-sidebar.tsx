@@ -37,15 +37,15 @@ export function SideBar() {
       icon: Calendar,
     },
     {
+      title: 'Job Status Tracker',
+      url: `/job-status-tracker/${user?.uid}`,
+      icon: Bookmark,
+    },
+    {
       title: 'Resumes',
       url: '/dashboard/resumes',
       icon: FileText,
     },
-    {
-      title: 'Job Status Tracker',
-      url: `/job-status-tracker/${user?.uid}`,
-      icon: Bookmark,
-    }
   ]
 
   return (
