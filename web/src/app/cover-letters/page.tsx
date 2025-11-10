@@ -1,5 +1,31 @@
 // @ts-nocheck
 "use client";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "next/navigation";
+import CoverLetterAI from "./components/CoverLetterAI";
+
+export default function CoverLettersPage() {
+  const { user } = useAuth();
+  const search = useSearchParams();
+
+  const userId = user?.uid;                 // from Firebase Auth
+  const jobId = search.get("jobId") || "";     // from /jobs/[jobId]/... route
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">AI-Powered Cover Letter</h1>
+
+      {userId && jobId ? (
+        <CoverLetterAI userId={userId} jobId={jobId} />
+      ) : (
+        <p className="text-gray-500">
+          { !userId ? "Please sign in." : "Open a job detail route that has a jobId." }
+        </p>
+      )}
+    </div>
+  );
+}
 import React, { useMemo, useState } from "react";
 import {
   Card,
@@ -174,7 +200,7 @@ const SAMPLE_VARS: Record<string, string> = {
 // -------------------------------------------
 // Page Component
 // -------------------------------------------
-export default function CoverLettersPage() {
+function CoverLettersLibrarySection() {
   // Library state (UC-055)
   const [query, setQuery] = useState("");
   const [industry, setIndustry] = useState("All");

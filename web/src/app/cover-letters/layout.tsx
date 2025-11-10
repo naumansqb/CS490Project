@@ -2,26 +2,27 @@
 "use client";
 
 import React from "react";
-import AppSidebar from "@/components/app-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { SideBar as AppSidebar } from "@/components/app-sidebar";
 import UserFooter from "@/components/sidebar-footer";
 
-export default function CoverLettersLayout({
-  children,
-}: { children: React.ReactNode }) {
+export default function CoverLettersLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      {/* Left: your existing sidebar */}
-      <AppSidebar />
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        {/* Left: your existing sidebar */}
+        <AppSidebar />
 
-      {/* Right: page content area */}
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {children}
-        </main>
-        <div className="p-3">
-          <UserFooter />
+        {/* Right: page content area */}
+        <div className="flex-1 flex flex-col">
+          <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+            {children}
+          </main>
+          <div className="p-3">
+            <UserFooter />
+          </div>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
