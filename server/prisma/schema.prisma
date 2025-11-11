@@ -48,6 +48,7 @@ model UserProfile {
   skills_gap_analysis_history skills_gap_analysis_history[]
   specialProjects             SpecialProject[]
   workExperiences             WorkExperience[]
+  companyFollows              CompanyFollows[]
 
   @@index([userId], map: "idx_user_profiles_user_id")
   @@map("user_profiles")
@@ -303,6 +304,7 @@ model Company {
   competitive_landscape String?
   company_news          company_news[]
   jobOpportunities      JobOpportunity[]
+  companyFollows        CompanyFollows[]
 
   @@index([industry], map: "idx_companies_industry")
   @@index([name], map: "idx_companies_name")
@@ -368,10 +370,10 @@ model job_match_analysis {
   improvement_suggestions Json
   matched_skills          Json
   missing_skills          Json
+  weights_used            Json?
   analysis_date           DateTime?      @default(now()) @db.Timestamp(6)
   created_at              DateTime?      @default(now()) @db.Timestamp(6)
   updated_at              DateTime?      @default(now()) @db.Timestamp(6)
-  weights_used            Json?
   job_opportunity         JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_profiles           UserProfile    @relation(fields: [user_id], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
@@ -454,6 +456,21 @@ model interviews {
   created_at       DateTime?      @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
   job_opportunity  JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model CompanyFollows {
+  id        String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String      @map("user_id")
+  companyId String      @map("company_id") @db.Uuid
+  createdAt DateTime?   @default(now()) @map("created_at") @db.Timestamp(6)
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, companyId])
+  @@index([userId], map: "idx_company_follows_user_id")
+  @@index([companyId], map: "idx_company_follows_company_id")
+  @@index([createdAt], map: "idx_company_follows_created_at")
+  @@map("company_follows")
 }
 
 enum application_status {

@@ -21,7 +21,11 @@ export const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only DOCX, DOC, and TXT files are allowed."));
+      cb(
+        new Error(
+          "Invalid file type. Only DOCX, DOC, and TXT files are allowed."
+        )
+      );
     }
   },
 });
@@ -79,8 +83,9 @@ export const generateTailoredResume = async (
         lastName: userProfile.lastName || "",
         email: userProfile.email || "",
         phone: userProfile.phone_number || "",
-        location: `${userProfile.locationCity || ""}, ${userProfile.locationState || ""
-          }`.trim(),
+        location: `${userProfile.locationCity || ""}, ${
+          userProfile.locationState || ""
+        }`.trim(),
         headline: userProfile.headline || undefined,
         bio: userProfile.bio || undefined,
       },
@@ -142,7 +147,7 @@ export const generateCoverLetter = async (
       companyInitiatives,
       companySize,
       fundingInfo,
-      competitiveLandscape
+      competitiveLandscape,
     } = req.body;
 
     if (!userId) {
@@ -197,13 +202,13 @@ export const generateCoverLetter = async (
         description: job.description || "",
         industry: job.industry || undefined,
         // Use provided research if available, otherwise use job data
-        companyBackground: companyBackground || job.companyBackground || undefined,
-        recentNews: recentNews || job.recentNews || undefined,
-        companyMission: companyMission || job.companyMission || undefined,
-        companyInitiatives: companyInitiatives || job.companyInitiatives || undefined,
-        companySize: companySize || job.companySize || undefined,
-        fundingInfo: fundingInfo || job.fundingInfo || undefined,
-        competitiveLandscape: competitiveLandscape || job.competitiveLandscape || undefined,
+        companyBackground: companyBackground || undefined,
+        recentNews: recentNews || undefined,
+        companyMission: companyMission || undefined,
+        companyInitiatives: companyInitiatives || undefined,
+        companySize: companySize || undefined,
+        fundingInfo: fundingInfo || undefined,
+        competitiveLandscape: competitiveLandscape || undefined,
       },
       relevantExperience: userProfile.workExperiences
         .slice(0, 3)
@@ -333,7 +338,8 @@ Job Type: ${job.jobType}
     // Build input for AI service
     // PRIORITY: Use current resume content if provided (for imported resumes)
     // FALLBACK: Use profile data if no resume content exists
-    const useResumeContent = currentResumeContent &&
+    const useResumeContent =
+      currentResumeContent &&
       (currentResumeContent.workExperience?.length > 0 ||
         currentResumeContent.summary);
 
@@ -343,75 +349,82 @@ Job Type: ${job.jobType}
         lastName: userProfile.lastName || "",
         email: userProfile.email || "",
         phone: userProfile.phone_number || "",
-        location: `${userProfile.locationCity || ""}, ${userProfile.locationState || ""
-          }`.trim(),
+        location: `${userProfile.locationCity || ""}, ${
+          userProfile.locationState || ""
+        }`.trim(),
         headline: userProfile.headline || undefined,
         bio: userProfile.bio || undefined,
       },
       // If resume has content, use that; otherwise use profile data
-      currentResumeSummary: useResumeContent ? currentResumeContent.summary : undefined,
+      currentResumeSummary: useResumeContent
+        ? currentResumeContent.summary
+        : undefined,
       workExperiences: useResumeContent
         ? (currentResumeContent.workExperience || []).map((exp: any) => ({
-          companyName: exp.company,
-          positionTitle: exp.title,
-          startDate: exp.startDate,
-          endDate: exp.endDate,
-          description: (exp.bullets || []).join('\n'),
-        }))
+            companyName: exp.company,
+            positionTitle: exp.title,
+            startDate: exp.startDate,
+            endDate: exp.endDate,
+            description: (exp.bullets || []).join("\n"),
+          }))
         : userProfile.workExperiences.map((exp) => ({
-          companyName: exp.companyName,
-          positionTitle: exp.positionTitle,
-          startDate: exp.startDate.toISOString(),
-          endDate: exp.endDate?.toISOString(),
-          description: exp.description || "",
-        })),
-      education: useResumeContent && currentResumeContent.education?.length > 0
-        ? currentResumeContent.education.map((edu: any) => ({
-          institutionName: edu.school || edu.institutionName,
-          degreeType: edu.degree || edu.degreeType || "",
-          major: edu.major || "",
-          graduationDate: edu.graduationDate,
-        }))
-        : userProfile.education.map((edu) => ({
-          institutionName: edu.institutionName,
-          degreeType: edu.degreeType || "",
-          major: edu.major || "",
-          graduationDate: edu.graduationDate?.toISOString(),
-        })),
+            companyName: exp.companyName,
+            positionTitle: exp.positionTitle,
+            startDate: exp.startDate.toISOString(),
+            endDate: exp.endDate?.toISOString(),
+            description: exp.description || "",
+          })),
+      education:
+        useResumeContent && currentResumeContent.education?.length > 0
+          ? currentResumeContent.education.map((edu: any) => ({
+              institutionName: edu.school || edu.institutionName,
+              degreeType: edu.degree || edu.degreeType || "",
+              major: edu.major || "",
+              graduationDate: edu.graduationDate,
+            }))
+          : userProfile.education.map((edu) => ({
+              institutionName: edu.institutionName,
+              degreeType: edu.degreeType || "",
+              major: edu.major || "",
+              graduationDate: edu.graduationDate?.toISOString(),
+            })),
       // Skills: Use resume skills if available, otherwise profile
-      skills: useResumeContent && currentResumeContent.skillsList?.length > 0
-        ? currentResumeContent.skillsList.map((skillName: string) => ({
-          skillName,
-          proficiencyLevel: undefined,
-        }))
-        : selectedSkills && selectedSkills.length > 0
+      skills:
+        useResumeContent && currentResumeContent.skillsList?.length > 0
+          ? currentResumeContent.skillsList.map((skillName: string) => ({
+              skillName,
+              proficiencyLevel: undefined,
+            }))
+          : selectedSkills && selectedSkills.length > 0
           ? userProfile.skills
-            .filter((skill) => selectedSkills.includes(skill.skillName))
-            .map((skill) => ({
+              .filter((skill) => selectedSkills.includes(skill.skillName))
+              .map((skill) => ({
+                skillName: skill.skillName,
+                proficiencyLevel: skill.proficiencyLevel || undefined,
+              }))
+          : userProfile.skills.map((skill) => ({
               skillName: skill.skillName,
               proficiencyLevel: skill.proficiencyLevel || undefined,
-            }))
-          : userProfile.skills.map((skill) => ({
-            skillName: skill.skillName,
-            proficiencyLevel: skill.proficiencyLevel || undefined,
-          })),
-      certifications: useResumeContent && currentResumeContent.certifications?.length > 0
-        ? currentResumeContent.certifications
-        : userProfile.certifications.map((cert) => ({
-          name: cert.name,
-          issuingOrganization: cert.issuingOrganization,
-          issueDate: cert.issueDate.toISOString(),
-          expirationDate: cert.expirationDate?.toISOString(),
-        })),
-      projects: useResumeContent && currentResumeContent.projects?.length > 0
-        ? currentResumeContent.projects
-        : userProfile.specialProjects.map((proj) => ({
-          projectName: proj.projectName,
-          description: proj.description,
-          technologies: proj.skillsDemonstrated || [],
-          startDate: proj.startDate?.toISOString(),
-          endDate: proj.endDate?.toISOString(),
-        })),
+            })),
+      certifications:
+        useResumeContent && currentResumeContent.certifications?.length > 0
+          ? currentResumeContent.certifications
+          : userProfile.certifications.map((cert) => ({
+              name: cert.name,
+              issuingOrganization: cert.issuingOrganization,
+              issueDate: cert.issueDate.toISOString(),
+              expirationDate: cert.expirationDate?.toISOString(),
+            })),
+      projects:
+        useResumeContent && currentResumeContent.projects?.length > 0
+          ? currentResumeContent.projects
+          : userProfile.specialProjects.map((proj) => ({
+              projectName: proj.projectName,
+              description: proj.description,
+              technologies: proj.skillsDemonstrated || [],
+              startDate: proj.startDate?.toISOString(),
+              endDate: proj.endDate?.toISOString(),
+            })),
       templateType: resumeWithTemplate?.template?.type || "chronological",
       templateName: resumeWithTemplate?.template?.name || "",
       userSelectedSkills: selectedSkills || [], // Pass to AI so it knows these are user-selected
@@ -464,7 +477,7 @@ export const parseResumeFromFile = async (
     // Extract text based on file type (DOCX/DOC/TXT only)
     if (
       file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       file.mimetype === "application/msword"
     ) {
       const result = await mammoth.extractRawText({ buffer: file.buffer });
@@ -517,9 +530,13 @@ export const researchCompany = async (
     const { companyName, industry } = req.body;
 
     if (!companyName) {
-      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Company name is required", [
-        { field: "companyName", message: "Company name is required" },
-      ]);
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "Company name is required",
+        [{ field: "companyName", message: "Company name is required" }]
+      );
       return;
     }
 
@@ -528,7 +545,6 @@ export const researchCompany = async (
     // Use AI to research the company
     const companyResearch = await aiService.researchCompany({
       companyName,
-      industry: industry || undefined,
     });
 
     res.status(200).json({
@@ -611,7 +627,9 @@ export const analyzeExperienceRelevance = async (
       return;
     }
 
-    console.log(`[Experience Analysis] Analyzing experiences for user ${userId} and job ${jobId}`);
+    console.log(
+      `[Experience Analysis] Analyzing experiences for user ${userId} and job ${jobId}`
+    );
 
     // Fetch user profile with experiences
     const userProfile = await prisma.userProfile.findUnique({
@@ -628,7 +646,10 @@ export const analyzeExperienceRelevance = async (
       return;
     }
 
-    if (!userProfile.workExperiences || userProfile.workExperiences.length === 0) {
+    if (
+      !userProfile.workExperiences ||
+      userProfile.workExperiences.length === 0
+    ) {
       sendErrorResponse(
         res,
         400,
@@ -652,8 +673,8 @@ export const analyzeExperienceRelevance = async (
     const experiences = userProfile.workExperiences.map((exp) => ({
       positionTitle: exp.positionTitle,
       companyName: exp.companyName,
-      startDate: exp.startDate.toISOString().split('T')[0],
-      endDate: exp.endDate ? exp.endDate.toISOString().split('T')[0] : null,
+      startDate: exp.startDate.toISOString().split("T")[0],
+      endDate: exp.endDate ? exp.endDate.toISOString().split("T")[0] : null,
       description: exp.description || "",
     }));
 
