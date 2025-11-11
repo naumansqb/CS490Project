@@ -185,21 +185,35 @@ model JobOpportunity {
   createdAt              DateTime?             @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt              DateTime?             @default(now()) @map("updated_at") @db.Timestamp(6)
   currentStatus          application_status?   @default(interested) @map("current_status")
+<<<<<<< HEAD
   company_id             String?               @db.Uuid
   applicationHistory     ApplicationHistory[]
   coverLetters           CoverLetter[]
+=======
+  companyId              String?               @map("company_id") @db.Uuid
+  applicationHistory     ApplicationHistory[]
+  cover_letters          cover_letters[]
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   interview_insights     interview_insights?
   interviews             interviews[]
   jobContacts            JobContact[]
   job_match_analysis     job_match_analysis[]
+<<<<<<< HEAD
   companies              companies?            @relation(fields: [company_id], references: [id], onUpdate: NoAction)
+=======
+  companyRef             Company?              @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   user_profiles          UserProfile           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
   skills_gap_analysis    skills_gap_analysis[]
 
   @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
   @@index([userId], map: "idx_job_opportunity_user_id")
+<<<<<<< HEAD
   @@index([company_id], map: "idx_job_opportunities_company_id")
+=======
+  @@index([companyId], map: "idx_job_opportunities_company_id")
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   @@map("job_opportunity")
 }
 
@@ -265,6 +279,7 @@ model JobContact {
   @@map("job_contacts")
 }
 
+<<<<<<< HEAD
 model CoverLetter {
   id             String          @id @default(dbgenerated("uuid_generate_v4()"))
   userId         String          @map("user_id")
@@ -284,6 +299,25 @@ model CoverLetter {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model companies {
+=======
+model cover_letters {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()"))
+  user_id         String
+  job_id          String?
+  title           String          @db.VarChar(255)
+  content         Json
+  tone            String?         @db.VarChar(50)
+  culture         String?         @db.VarChar(50)
+  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?       @default(now()) @db.Timestamp(6)
+  job_opportunity JobOpportunity? @relation(fields: [job_id], references: [id], onUpdate: NoAction)
+
+  @@index([job_id], map: "idx_cover_letters_job_id")
+  @@index([user_id], map: "idx_cover_letters_user_id")
+}
+
+model Company {
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   id                    String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name                  String           @db.VarChar(255)
   size                  String?          @db.VarChar(50)
@@ -292,15 +326,24 @@ model companies {
   website               String?          @db.VarChar(500)
   description           String?
   mission               String?
+<<<<<<< HEAD
   logo_url              String?          @db.VarChar(500)
   contact_info          Json?
   glassdoor_rating      Decimal?         @db.Decimal(2, 1)
   created_at            DateTime?        @default(now()) @db.Timestamp(6)
   updated_at            DateTime?        @default(now()) @db.Timestamp(6)
+=======
+  logoUrl               String?          @map("logo_url") @db.VarChar(500)
+  contactInfo           Json?            @map("contact_info")
+  glassdoorRating       Decimal?         @map("glassdoor_rating") @db.Decimal(2, 1)
+  createdAt             DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   leadership            Json?
   products_and_services Json?
   competitive_landscape String?
   company_news          company_news[]
+<<<<<<< HEAD
   job_opportunity       JobOpportunity[]
 
   @@index([industry], map: "idx_companies_industry")
@@ -329,6 +372,13 @@ model company_news {
   @@index([category], map: "idx_company_news_category")
   @@index([company_id], map: "idx_company_news_company_id")
   @@index([publish_date], map: "idx_company_news_publish_date")
+=======
+  jobOpportunities      JobOpportunity[]
+
+  @@index([industry], map: "idx_companies_industry")
+  @@index([name], map: "idx_companies_name")
+  @@map("companies")
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -355,6 +405,7 @@ model interview_insights {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+<<<<<<< HEAD
 model interviews {
   id               String         @id @default(dbgenerated("uuid_generate_v4()"))
   job_id           String
@@ -372,6 +423,8 @@ model interviews {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+=======
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 model job_match_analysis {
   id                      String         @id @default(dbgenerated("uuid_generate_v4()"))
   job_id                  String
@@ -418,6 +471,50 @@ model skills_gap_analysis {
   @@index([user_id], map: "idx_skills_gap_analysis_user_id")
 }
 
+<<<<<<< HEAD
+=======
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model company_news {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  company_id      String    @db.Uuid
+  headline        String    @db.VarChar(500)
+  summary         String?
+  publish_date    DateTime  @db.Date
+  category        String    @db.VarChar(50)
+  source          String?   @db.VarChar(255)
+  url             String?   @db.VarChar(1000)
+  relevance_score Int?
+  key_points      Json?
+  thumbnail_url   String?   @db.VarChar(1000)
+  sentiment       String?   @db.VarChar(20)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+  companies       Company   @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([category], map: "idx_company_news_category")
+  @@index([company_id], map: "idx_company_news_company_id")
+  @@index([publish_date], map: "idx_company_news_publish_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interviews {
+  id               String         @id @default(dbgenerated("uuid_generate_v4()"))
+  job_id           String
+  scheduled_date   DateTime       @db.Timestamptz(6)
+  interview_type   String         @db.VarChar(20)
+  duration_minutes Int?           @default(60)
+  status           String         @default("scheduled") @db.VarChar(20)
+  location         String?
+  meeting_link     String?
+  phone_number     String?        @db.VarChar(20)
+  interviewer_name String?        @db.VarChar(255)
+  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  job_opportunity  JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+>>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 enum application_status {
   interested
   applied
