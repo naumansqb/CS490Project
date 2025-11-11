@@ -184,6 +184,8 @@ model JobOpportunity {
   personalNotes               String?                       @map("personal_notes")
   salaryNegotiationNotes      String?                       @map("salary_negotiation_notes")
   interviewNotes              String?                       @map("interview_notes")
+  archivedAt                  DateTime?                      @map("archived_at") @db.Timestamp(6)
+  archiveReason               String?                       @map("archive_reason") @db.VarChar(500)
   createdAt                   DateTime?                     @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt                   DateTime?                     @default(now()) @map("updated_at") @db.Timestamp(6)
   currentStatus               application_status?           @default(interested) @map("current_status")
@@ -203,6 +205,8 @@ model JobOpportunity {
   @@index([deadline], map: "idx_job_opportunity_deadline")
   @@index([userId], map: "idx_job_opportunity_user_id")
   @@index([companyId], map: "idx_job_opportunities_company_id")
+  @@index([currentStatus], map: "idx_job_opportunities_current_status") // NEW INDEX
+  @@index([archivedAt], map: "idx_job_opportunities_archived_at")       // NEW INDEX
   @@map("job_opportunity")
 }
 
@@ -463,4 +467,5 @@ enum application_status {
   interview
   offer
   rejected
+  archived
 }

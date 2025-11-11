@@ -31,4 +31,7 @@ export interface Job {
   applicationHistory: ApplicationHistoryEntry[];
   salaryNegotiationNotes: string;
   interviewNotes: string;
+  // NEW ARCHIVE FIELDS
+  archiveReason?: string;
+  archivedAt?: string;
 }

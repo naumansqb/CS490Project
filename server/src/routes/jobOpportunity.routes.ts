@@ -23,4 +23,39 @@ router.delete(
   jobOpportunityController.deleteJobOpportunity
 );
 
+// Get all archived jobs for user
+router.get(
+  "/archived/user/:userId",
+  authMiddleware,
+  jobOpportunityController.getArchivedJobs
+);
+
+// Archive a single job
+router.post(
+  "/:id/archive",
+  authMiddleware,
+  jobOpportunityController.archiveJobOpportunity
+);
+
+// Bulk archive jobs
+router.post(
+  "/bulk/archive",
+  authMiddleware,
+  jobOpportunityController.bulkArchiveJobs
+);
+
+// Restore archived job
+router.post(
+  "/:id/restore",
+  authMiddleware,
+  jobOpportunityController.restoreJobOpportunity
+);
+
+// Permanently delete job (requires confirmation)
+router.delete(
+  "/:id/permanent",
+  authMiddleware,
+  jobOpportunityController.permanentlyDeleteJob
+);
+
 export default router;

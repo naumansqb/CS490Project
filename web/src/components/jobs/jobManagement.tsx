@@ -1,8 +1,9 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Save, ArrowLeft, User, Phone, Mail, Clock, FileText } from 'lucide-react';
+import { Plus, X, MapPin, Building2, DollarSign, Calendar, ExternalLink, Briefcase, AlertTriangle, Edit2, Save, ArrowLeft, User, Phone, Mail, Clock, Archive, CheckCircle, Search } from 'lucide-react';
 import JobNotesCard from './jobNotesCard';
 import SearchBox, {JobFilters} from './SearchBox';
 import JobCard from './jobCard';
@@ -19,10 +20,11 @@ import {
   createApplicationHistory,
   getApplicationHistoryByJobId,
   ApplicationStatus,
-  updateApplicationHistory,
+  archiveJobOpportunity,
+  bulkArchiveJobs,
+  getArchivedJobs,
 } from '@/lib/jobs.api';
 import { FieldDescription } from '../ui/field';
-
 
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
@@ -38,10 +40,15 @@ export default function JobOpportunitiesManager() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [archivedCount, setArchivedCount] = useState(0);
+  const [showArchiveDialog, setShowArchiveDialog] = useState<{ jobId?: string; isMultiple?: boolean } | null>(null);
+  const [archiveReason, setArchiveReason] = useState('');
 
-    useEffect(() => {
+  useEffect(() => {
     if (user?.uid) {
       loadJobs();
+      loadArchivedCount();
     }
   }, [user]);
 
@@ -50,8 +57,10 @@ export default function JobOpportunitiesManager() {
     setLoading(true);
     try {
       const jobsData = await getJobOpportunitiesByUserId(user.uid) as Job[];
+      // Filter out archived jobs from main view
+      const activeJobs = jobsData.filter(job => job.currentStatus !== 'archived');
       const jobsWithExtras = await Promise.all(
-        jobsData.map(async (job: Job) => {
+        activeJobs.map(async (job: Job) => {
           const contacts = await getJobContactsByJobId(job.id);
           const history = await getApplicationHistoryByJobId(job.id);
           return { ...job, contacts, applicationHistory: history };
@@ -64,6 +73,57 @@ export default function JobOpportunitiesManager() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadArchivedCount = async () => {
+    if (!user?.uid) return;
+    try {
+      const archived = await getArchivedJobs(user.uid) as Job[];
+      setArchivedCount(archived.length);
+    } catch (error) {
+      console.error('Failed to load archived count:', error);
+    }
+  };
+
+  const handleArchive = async (jobId: string, reason?: string) => {
+    try {
+      await archiveJobOpportunity(jobId, reason);
+      setSuccessMessage('Job archived successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      await loadJobs();
+      await loadArchivedCount();
+      setShowArchiveDialog(null);
+      setArchiveReason('');
+    } catch (error) {
+      console.error('Failed to archive job:', error);
+      setErrorMessage('Failed to archive job');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const handleBulkArchive = async (jobIds: string[], reason?: string) => {
+    try {
+      await bulkArchiveJobs(jobIds, reason);
+      setSuccessMessage(`${jobIds.length} jobs archived successfully!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setSelectedJobIds([]);
+      await loadJobs();
+      await loadArchivedCount();
+      setShowArchiveDialog(null);
+      setArchiveReason('');
+    } catch (error) {
+      console.error('Failed to bulk archive:', error);
+      setErrorMessage('Failed to archive jobs');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
+
+  const toggleJobSelection = (jobId: string) => {
+    setSelectedJobIds(prev => 
+      prev.includes(jobId) 
+        ? prev.filter(id => id !== jobId)
+        : [...prev, jobId]
+    );
   };
 
   const [showForm, setShowForm] = useState(false);
@@ -90,12 +150,10 @@ export default function JobOpportunitiesManager() {
     deadlineTo: '',
     sortBy: 'dateAdded'
   });
-  
 
   const filteredJobs = useMemo(() => {
     let result = [...jobs];
     
-    // Search
     if (filters.searchTerm) {
       const term = filters.searchTerm.toLowerCase();
       result = result.filter(job => 
@@ -105,24 +163,20 @@ export default function JobOpportunitiesManager() {
       );
     }
     
-    // Industry
     if (filters.industry !== 'all') {
       result = result.filter(job => job.industry === filters.industry);
     }
     
-    // Job Type
     if (filters.jobType !== 'all') {
       result = result.filter(job => job.jobType === filters.jobType);
     }
     
-    // Location
     if (filters.location) {
       result = result.filter(job => 
         job.location.toLowerCase().includes(filters.location.toLowerCase())
       );
     }
     
-    // Salary Min
     if (filters.salaryMin) {
       result = result.filter(job => {
         const jobSalary = parseInt(job.salaryMax || job.salaryMin || '0');
@@ -130,7 +184,6 @@ export default function JobOpportunitiesManager() {
       });
     }
     
-    // Salary Max
     if (filters.salaryMax) {
       result = result.filter(job => {
         const jobSalary = parseInt(job.salaryMin || job.salaryMax || '999999999');
@@ -138,21 +191,18 @@ export default function JobOpportunitiesManager() {
       });
     }
     
-    // Deadline From
     if (filters.deadlineFrom && result.length > 0) {
       result = result.filter(job => 
         job.deadline && new Date(job.deadline) >= new Date(filters.deadlineFrom)
       );
     }
     
-    // Deadline To
     if (filters.deadlineTo && result.length > 0) {
       result = result.filter(job => 
         job.deadline && new Date(job.deadline) <= new Date(filters.deadlineTo)
       );
     }
     
-    // Sorting
     result.sort((a, b) => {
       switch (filters.sortBy) {
         case 'deadline':
@@ -165,7 +215,7 @@ export default function JobOpportunitiesManager() {
           return bSalary - aSalary;
         case 'company':
           return a.company.localeCompare(b.company);
-        default: // dateAdded
+        default:
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
@@ -188,7 +238,6 @@ export default function JobOpportunitiesManager() {
   };
 
   const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
-  const [newHistoryEntry, setNewHistoryEntry] = useState({ status: '', notes: '' });
 
   const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null;
 
@@ -246,19 +295,17 @@ export default function JobOpportunitiesManager() {
         interviewNotes: formData.interviewNotes || undefined,
       };
 
-      // Create the job and get the response with the new job ID
       const newJob = await createJobOpportunity(jobData) as Job;
       
-      // Now create the initial application history entry
       await createApplicationHistory({
-        jobId: newJob.id, // Use the ID from the newly created job
+        jobId: newJob.id,
         status: 'interested'
       });
 
       setSuccessMessage('Job opportunity saved successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       handleCancel();
-      await loadJobs(); // Reload the list
+      await loadJobs();
     } catch (error) {
       console.error("Failed to save job:", error);
       setErrorMessage("Failed to save job opportunity. Please try again.");
@@ -348,7 +395,7 @@ export default function JobOpportunitiesManager() {
       setSuccessMessage('Job updated successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       setViewMode('detail');
-      await loadJobs(); // Reload the list
+      await loadJobs();
     } catch (error) {
       console.error("Failed to update job:", error);
       setErrorMessage("Failed to update job. Please try again.");
@@ -375,7 +422,6 @@ export default function JobOpportunitiesManager() {
       return;
     }
 
-    // Optional but validate if filled
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrorMessage("Please enter a valid email address.");
       return;
@@ -401,7 +447,6 @@ export default function JobOpportunitiesManager() {
       setSuccessMessage('Contact added successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       
-      // Reload the job to get updated contacts
       await loadJobs();
     } catch (error) {
       console.error("Failed to add contact:", error);
@@ -416,7 +461,6 @@ export default function JobOpportunitiesManager() {
       setSuccessMessage('Contact removed successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       
-      // Reload the job to get updated contacts
       await loadJobs();
     } catch (error) {
       console.error("Failed to remove contact:", error);
@@ -446,7 +490,7 @@ export default function JobOpportunitiesManager() {
         setSelectedJobId(null);
       }
       
-      await loadJobs(); // Reload the list
+      await loadJobs();
       setSuccessMessage('Job deleted successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
@@ -463,10 +507,71 @@ export default function JobOpportunitiesManager() {
       'phone_screen': 'Phone Screen',
       'interview': 'Interview',
       'offer': 'Offer Received',
-      'rejected': 'Rejected'
+      'rejected': 'Rejected',
+      'archived': 'Archived'
     };
   
     return statusMap[status] || status;
+  };
+
+  // Archive Dialog Component
+  const ArchiveDialog = () => {
+    if (!showArchiveDialog) return null;
+
+    const isMultiple = showArchiveDialog.isMultiple;
+    const count = isMultiple ? selectedJobIds.length : 1;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <Archive className="text-blue-600" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Archive {count} Job{count > 1 ? 's' : ''}
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Why are you archiving {count > 1 ? 'these jobs' : 'this job'}? (Optional)
+                </p>
+                <Input
+                  placeholder="e.g., Position filled, No longer interested..."
+                  value={archiveReason}
+                  onChange={(e) => setArchiveReason(e.target.value)}
+                  className="mb-4"
+                />
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowArchiveDialog(null);
+                      setArchiveReason('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (isMultiple) {
+                        handleBulkArchive(selectedJobIds, archiveReason || undefined);
+                      } else if (showArchiveDialog.jobId) {
+                        handleArchive(showArchiveDialog.jobId, archiveReason || undefined);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Archive size={16} className="mr-2" />
+                    Archive
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   // DETAIL VIEW
@@ -479,6 +584,13 @@ export default function JobOpportunitiesManager() {
           </Button>
           <Button onClick={() => editJob(selectedJob)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
             <Edit2 size={18} /> Edit Job
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowArchiveDialog({ jobId: selectedJob.id })}
+            className="flex items-center gap-2"
+          >
+            <Archive size={18} /> Archive
           </Button>
         </div>
 
@@ -537,15 +649,12 @@ export default function JobOpportunitiesManager() {
                 <p className="text-gray-700 whitespace-pre-wrap">{selectedJob.description}</p>
               </div>
             )}
-
-            
           </CardContent>
         </Card>
 
         <JobNotesCard 
           job={selectedJob}
           onNotesUpdate={(jobId, field, value) => {
-            // Update local state immediately for optimistic UI
             setJobs(prev => prev.map(job => 
               job.id === jobId 
                 ? { ...job, [field]: value }
@@ -554,7 +663,6 @@ export default function JobOpportunitiesManager() {
           }}
         />
 
-        {/* Contacts */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><User size={20} /> Contacts</CardTitle>
@@ -614,7 +722,6 @@ export default function JobOpportunitiesManager() {
           </CardContent>
         </Card>
 
-        {/* Application History */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Clock size={20} /> Application History</CardTitle>
@@ -634,6 +741,8 @@ export default function JobOpportunitiesManager() {
             )}
           </CardContent>
         </Card>
+
+        <ArchiveDialog />
       </div>
     );
   }
@@ -739,9 +848,21 @@ export default function JobOpportunitiesManager() {
           <h1 className="text-3xl font-bold text-gray-900">Job Opportunities</h1>
           <p className="text-gray-600 mt-1">Track positions you're interested in applying for</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
-          <Plus size={20} /> Add Job
-        </Button>
+        <div className="flex gap-3">
+          {archivedCount > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/jobs/archived'}
+              className="flex items-center gap-2"
+            >
+              <Archive size={20} />
+              Archived ({archivedCount})
+            </Button>
+          )}
+          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
+            <Plus size={20} /> Add Job
+          </Button>
+        </div>
       </div>
 
       {successMessage && (
@@ -758,7 +879,7 @@ export default function JobOpportunitiesManager() {
       )}
 
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-md w-full shadow-2xl">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
@@ -779,14 +900,64 @@ export default function JobOpportunitiesManager() {
         </div>
       )}
 
+      {/* Bulk Selection Bar */}
+      {selectedJobIds.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-blue-600" size={20} />
+            <span className="font-medium text-blue-900">
+              {selectedJobIds.length} job{selectedJobIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedJobIds([])}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowArchiveDialog({ isMultiple: true })}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Archive size={16} className="mr-2" />
+              Archive Selected
+            </Button>
+          </div>
+        </div>
+      )}
+
       <SearchBox 
-          filters={filters}
-          onFilterChange={setFilters}
-          onClearFilters={handleClearFilters}
-          industries={INDUSTRIES}
-          jobTypes={JOB_TYPES}
-          resultCount={filteredJobs.length}
-        />
+        filters={filters}
+        onFilterChange={setFilters}
+        onClearFilters={handleClearFilters}
+        industries={INDUSTRIES}
+        jobTypes={JOB_TYPES}
+        resultCount={filteredJobs.length}
+      />
+
+      {/* Select All Option */}
+      {filteredJobs.length > 0 && (
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedJobIds.length === filteredJobs.length}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedJobIds(filteredJobs.map(j => j.id));
+                } else {
+                  setSelectedJobIds([]);
+                }
+              }}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            Select All ({filteredJobs.length})
+          </label>
+        </div>
+      )}
 
       {showForm && (
         <Card className="border-2 border-[#3bafba] shadow-lg">
@@ -882,28 +1053,140 @@ export default function JobOpportunitiesManager() {
             <p className="text-gray-600">Loading job opportunities...</p>
           </CardContent>
         </Card>
-       ) : jobs.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Briefcase className="mx-auto mb-4 text-gray-400" size={48} />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No job opportunities yet</h3>
-              <p className="text-gray-600 mb-4">Start tracking positions you're interested in applying for</p>
-              <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 mx-auto bg-[#3bafba] hover:bg-[#34a0ab]">
-                <Plus size={20} /> Add Your First Job
-              </Button>
+      ) : jobs.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Briefcase className="mx-auto mb-4 text-gray-400" size={48} />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No job opportunities yet</h3>
+            <p className="text-gray-600 mb-4">Start tracking positions you're interested in applying for</p>
+            <Button onClick={() => setShowForm(true)} className="flex items-center gap-2 mx-auto bg-[#3bafba] hover:bg-[#34a0ab]">
+              <Plus size={20} /> Add Your First Job
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        filteredJobs.map(job => (
+          <Card key={job.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedJobIds.includes(job.id)}
+                    onChange={() => toggleJobSelection(job.id)}
+                    className="w-4 h-4 mt-1 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">
+                      {job.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-gray-600 mb-2">
+                      <Building2 size={16} />
+                      <span className="font-medium">{job.company}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowArchiveDialog({ jobId: job.id })}
+                    className="flex items-center gap-2"
+                  >
+                    <Archive size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(job.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                {job.location && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <MapPin size={16} className="text-gray-400 shrink-0" />
+                    <span>{job.location}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <DollarSign size={16} className="text-gray-400 shrink-0" />
+                  <span>{formatSalary(job.salaryMin, job.salaryMax)}</span>
+                </div>
+                {job.deadline && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Calendar size={16} className="text-gray-400 shrink-0" />
+                    <span>
+                      Deadline: {new Date(job.deadline).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </span>
+                  </div>
+                )}
+                {job.postingUrl && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <ExternalLink size={16} className="text-gray-400 shrink-0" />
+                    <a 
+                      href={job.postingUrl.startsWith('http') ? job.postingUrl : `https://${job.postingUrl}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline truncate"
+                    >
+                      View Posting
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                  {job.industry}
+                </span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                  {job.jobType}
+                </span>
+              </div>
+
+              {job.description && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3">
+                    {job.description}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-4">
+                <Button
+                  onClick={() => viewJobDetails(job.id)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  View Details
+                </Button>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                  Added {new Date(job.createdAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </p>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          filteredJobs.map(job => (
-            <JobCard 
-            key={job.id} 
-            job={job} 
-            onDelete={handleDelete}
-            onViewDetails={viewJobDetails}
-            searchTerm={filters.searchTerm}
-            />
-          ))
-        )}
+        ))
+      )}
+
+      <ArchiveDialog />
     </div>
-  )
+  );
 }
