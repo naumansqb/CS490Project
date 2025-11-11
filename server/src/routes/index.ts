@@ -14,6 +14,7 @@ import jobOpportunityRoutes from "./jobOpportunity.routes";
 import jobContactRoutes from "./jobContact.routes";
 import applicationHistoryRoutes from "./applicationHistory.routes";
 import aiRoutes from "./ai.routes";
+import coverLetterRoutes from "./coverLetter.routes";
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.use("/job-opportunities", jobOpportunityRoutes);
 router.use("/job-contacts", jobContactRoutes);
 router.use("/application-history", applicationHistoryRoutes);
 router.use("/ai", aiRoutes);
+router.use("/cover-letters", coverLetterRoutes);
 
 export default router;
 

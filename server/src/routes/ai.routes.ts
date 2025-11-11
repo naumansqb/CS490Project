@@ -12,5 +12,7 @@ router.post(
     aiController.parseResumeFromFile
 );
 router.post("/cover-letter/generate", aiController.generateCoverLetter);
+router.post("/company-research", aiController.researchCompany);
+router.post("/editing-suggestions", aiController.getEditingSuggestions);
 
 export default router;

@@ -126,7 +126,24 @@ export const generateCoverLetter = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { userId, jobId } = req.body;
+    const {
+      userId,
+      jobId,
+      tone,
+      culture,
+      length,
+      writingStyle,
+      customInstructions,
+      personalityLevel,
+      // Company research overrides (optional)
+      companyBackground,
+      recentNews,
+      companyMission,
+      companyInitiatives,
+      companySize,
+      fundingInfo,
+      competitiveLandscape
+    } = req.body;
 
     if (!userId) {
       sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
@@ -178,6 +195,15 @@ export const generateCoverLetter = async (
         title: job.title,
         company: job.company,
         description: job.description || "",
+        industry: job.industry || undefined,
+        // Use provided research if available, otherwise use job data
+        companyBackground: companyBackground || job.companyBackground || undefined,
+        recentNews: recentNews || job.recentNews || undefined,
+        companyMission: companyMission || job.companyMission || undefined,
+        companyInitiatives: companyInitiatives || job.companyInitiatives || undefined,
+        companySize: companySize || job.companySize || undefined,
+        fundingInfo: fundingInfo || job.fundingInfo || undefined,
+        competitiveLandscape: competitiveLandscape || job.competitiveLandscape || undefined,
       },
       relevantExperience: userProfile.workExperiences
         .slice(0, 3)
@@ -186,6 +212,12 @@ export const generateCoverLetter = async (
             `${exp.positionTitle} at ${exp.companyName}: ${exp.description}`
         ),
       relevantSkills: userProfile.skills.slice(0, 10).map((s) => s.skillName),
+      tone: tone || "formal",
+      culture: culture || "corporate",
+      length: length || "standard",
+      writingStyle: writingStyle || "direct",
+      customInstructions: customInstructions || undefined,
+      personalityLevel: personalityLevel || "moderate",
     };
 
     const coverLetter = await aiService.generateCoverLetter(coverLetterInput);
@@ -473,6 +505,87 @@ export const parseResumeFromFile = async (
       500,
       "INTERNAL_ERROR",
       error.message || "Failed to parse resume"
+    );
+  }
+};
+
+export const researchCompany = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { companyName, industry } = req.body;
+
+    if (!companyName) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Company name is required", [
+        { field: "companyName", message: "Company name is required" },
+      ]);
+      return;
+    }
+
+    console.log(`[Company Research] Researching: ${companyName}`);
+
+    // Use AI to research the company
+    const companyResearch = await aiService.researchCompany({
+      companyName,
+      industry: industry || undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: companyResearch,
+    });
+  } catch (error: any) {
+    console.error("[Research Company Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to research company"
+    );
+  }
+};
+
+export const getEditingSuggestions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { content, type } = req.body;
+
+    if (!content) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Content is required", [
+        { field: "content", message: "Content is required" },
+      ]);
+      return;
+    }
+
+    if (!type) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Type is required", [
+        { field: "type", message: "Type is required" },
+      ]);
+      return;
+    }
+
+    console.log(`[Editing Suggestions] Analyzing ${type} content`);
+
+    // Get AI editing suggestions
+    const suggestions = await aiService.getEditingSuggestions({
+      content,
+      type,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: suggestions,
+    });
+  } catch (error: any) {
+    console.error("[Get Editing Suggestions Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to get editing suggestions"
     );
   }
 };

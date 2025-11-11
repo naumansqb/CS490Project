@@ -184,6 +184,7 @@ model JobOpportunity {
   updatedAt              DateTime?            @default(now()) @map("updated_at") @db.Timestamp(6)
   currentStatus          application_status?  @default(interested) @map("current_status")
   applicationHistory     ApplicationHistory[]
+  coverLetters           CoverLetter[]
   jobContacts            JobContact[]
   user_profiles          UserProfile          @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
@@ -253,6 +254,23 @@ model JobContact {
 
   @@index([jobId], map: "idx_job_contacts_job_id")
   @@map("job_contacts")
+}
+
+model CoverLetter {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()"))
+  userId         String          @map("user_id")
+  jobId          String?         @map("job_id")
+  title          String          @db.VarChar(255)
+  content        Json
+  tone           String?         @db.VarChar(50)
+  culture        String?         @db.VarChar(50)
+  createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  jobOpportunity JobOpportunity? @relation(fields: [jobId], references: [id], onUpdate: NoAction)
+
+  @@index([userId], map: "idx_cover_letters_user_id")
+  @@index([jobId], map: "idx_cover_letters_job_id")
+  @@map("cover_letters")
 }
 
 enum application_status {
