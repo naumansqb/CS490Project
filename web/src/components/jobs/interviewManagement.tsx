@@ -16,21 +16,13 @@ import {
   Save,
   AlertTriangle
 } from 'lucide-react';
-
-interface Interview {
-  id: string;
-  job_id: string;
-  scheduled_date: string;
-  interview_type: 'phone' | 'video' | 'in-person';
-  duration_minutes: number;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
-  location?: string;
-  meeting_link?: string;
-  phone_number?: string;
-  interviewer_name?: string;
-  created_at: string;
-  updated_at: string;
-}
+import {
+  createInterview,
+  getInterviewByJobId,
+  updateInterview,
+  deleteInterview,
+  Interview,
+} from '@/lib/interviews.api';
 
 interface InterviewManagementProps {
   jobId: string;
@@ -86,15 +78,12 @@ export default function InterviewManagement({
 
   const loadInterview = async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/interviews/job/${jobId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data) {
-          setInterview(data);
-          populateFormData(data);
-        }
+      const data = await getInterviewByJobId(jobId);
+      if (data) {
+        setInterview(data);
+        populateFormData(data);
       }
     } catch (error) {
       console.error('Failed to load interview:', error);
@@ -180,6 +169,7 @@ export default function InterviewManagement({
   const handleSave = async () => {
     if (!validateForm()) return;
 
+    setErrorMessage('');
     try {
       // Combine date and time into ISO string
       const scheduledDateTime = new Date(
@@ -198,45 +188,38 @@ export default function InterviewManagement({
         interviewerName: formData.interviewer_name || undefined,
       };
 
-      const url = isEditing ? `/api/interviews/${interview?.id}` : '/api/interviews';
-      const method = isEditing ? 'PATCH' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save interview');
+      if (isEditing && interview) {
+        // Update existing interview
+        const updatedInterview = await updateInterview(interview.id, payload);
+        setInterview(updatedInterview);
+        setSuccessMessage('Interview updated successfully');
+      } else {
+        // Create new interview
+        const newInterview = await createInterview(payload);
+        setInterview(newInterview);
+        setSuccessMessage('Interview scheduled successfully');
       }
 
-      const savedInterview = await response.json();
-      setInterview(savedInterview);
       setIsEditing(false);
       setIsAdding(false);
-      setSuccessMessage(isEditing ? 'Interview updated successfully' : 'Interview scheduled successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
       
       if (onInterviewChange) {
         onInterviewChange();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save interview:', error);
-      setErrorMessage('Failed to save interview. Please try again.');
+      const errorMsg = error?.message || 'Failed to save interview. Please try again.';
+      setErrorMessage(errorMsg);
     }
   };
 
   const handleDelete = async () => {
+    if (!interview) return;
+
+    setErrorMessage('');
     try {
-      const response = await fetch(`/api/interviews/${interview?.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete interview');
-      }
-
+      await deleteInterview(interview.id);
       setInterview(null);
       setDeleteConfirm(false);
       setSuccessMessage('Interview deleted successfully');
@@ -245,9 +228,11 @@ export default function InterviewManagement({
       if (onInterviewChange) {
         onInterviewChange();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete interview:', error);
-      setErrorMessage('Failed to delete interview. Please try again.');
+      setDeleteConfirm(false);
+      const errorMsg = error?.message || 'Failed to delete interview. Please try again.';
+      setErrorMessage(errorMsg);
     }
   };
 
@@ -299,7 +284,7 @@ export default function InterviewManagement({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
         <Card className="w-full max-w-2xl mx-4">
           <CardContent className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3bafba] mx-auto mb-4"></div>
@@ -311,7 +296,7 @@ export default function InterviewManagement({
   }
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4 overflow-y-auto">
       <Card className="w-full max-w-2xl my-8">
         <CardHeader>
           <div className="flex items-start justify-between">

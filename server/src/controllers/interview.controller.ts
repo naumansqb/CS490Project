@@ -10,6 +10,7 @@ import { sendErrorResponse } from '../utils/errorResponse';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 // Create interviews
+// Create Interview
 export const createInterviews = async (
   req: AuthRequest,
   res: Response
@@ -33,7 +34,7 @@ export const createInterviews = async (
         res,
         403,
         'FORBIDDEN',
-        'Not authorized to create interviews for this job'
+        'Not authorized to create interview for this job'
       );
       return;
     }
@@ -51,30 +52,40 @@ export const createInterviews = async (
       return;
     }
 
-    // Check if interviews already exists for this job
-    const existinginterviews = await prisma.interviews.findFirst({
+    // Check if interview already exists for this job
+    const existingInterview = await prisma.interviews.findFirst({
       where: {
-        job_id : jobId,
+        job_id: jobId,
         status: { in: ['scheduled', 'rescheduled'] },
       },
     });
 
-    if (existinginterviews) {
+    if (existingInterview) {
       sendErrorResponse(
         res,
         409,
         'CONFLICT',
-        'An active interviews already exists for this job opportunity'
+        'An active interview already exists for this job opportunity'
       );
       return;
     }
 
-    // Create interviews
-    const interviews = await prisma.interviews.create({
-      data: req.body,
+    // Create interview
+    const interview = await prisma.interviews.create({
+      data: {
+        job_id: jobId,
+        scheduled_date: new Date(req.body.scheduledDate),
+        interview_type: req.body.interviewType,
+        duration_minutes: req.body.durationMinutes || 60,
+        status: req.body.status || 'scheduled',
+        location: req.body.location || null,
+        meeting_link: req.body.meetingLink || null,
+        phone_number: req.body.phoneNumber || null,
+        interviewer_name: req.body.interviewerName || null,
+      },
     });
 
-    res.status(201).json(interviews);
+    res.status(201).json(interview);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2003') {
@@ -82,8 +93,8 @@ export const createInterviews = async (
         return;
       }
     }
-    console.error('Error creating interviews:', error);
-    sendErrorResponse(res, 500, 'INTERNAL_ERROR', 'Failed to create interviews');
+    console.error('Error creating interview:', error);
+    sendErrorResponse(res, 500, 'INTERNAL_ERROR', 'Failed to create interview');
   }
 };
 
@@ -95,6 +106,9 @@ export const getInterviewsById = async (
   try {
     const userId = req.userId!;
     const { id } = req.params;
+
+    console.log('Auth userId:', userId);
+    console.log('JobId:', id);
 
     const interviews = await prisma.interviews.findUnique({
       where: { id },
@@ -135,6 +149,9 @@ export const getInterviewsByJobId = async (
     const userId = req.userId!;
     const { jobId } = req.params;
 
+    console.log('Auth userId:', userId);
+    console.log('JobId:', jobId);
+
     // Check if job exists and belongs to user
     const job = await prisma.jobOpportunity.findUnique({
       where: { id: jobId },
@@ -150,7 +167,7 @@ export const getInterviewsByJobId = async (
         res,
         403,
         'FORBIDDEN',
-        'Not authorized to access interviews for this job'
+        'Not authorized to access interviews for this job test'
       );
       return;
     }
