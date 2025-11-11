@@ -9,6 +9,7 @@ import jsPDF from "jspdf";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 import RichTextEditor from "./RichTextEditor";
+import ExperienceHighlighting from "./ExperienceHighlighting";
 
 interface Job {
   id: string;
@@ -93,6 +94,12 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
   const [templateMode, setTemplateMode] = useState(false);
   const [templateVariables, setTemplateVariables] = useState<Record<string, string>>({});
   const [templateContent, setTemplateContent] = useState("");
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+
+  // Experience highlighting
+  const [showExperienceHighlighting, setShowExperienceHighlighting] = useState(false);
+  const [selectedExperiences, setSelectedExperiences] = useState<number[]>([]);
+  const [experienceAnalysis, setExperienceAnalysis] = useState<any>(null);
 
   // Export options
   const [showExportModal, setShowExportModal] = useState(false);
@@ -254,6 +261,37 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
           : `Use this template as a base and enhance it:\n${renderedTemplate}`;
       }
 
+      // Add experience highlighting instructions
+      if (selectedExperiences.length > 0 && experienceAnalysis) {
+        const highlightedExperiences = experienceAnalysis.experiences.filter(
+          (exp: any) => selectedExperiences.includes(exp.index)
+        );
+
+        let experienceInstructions = "\n\n⭐ IMPORTANT - HIGHLIGHT THESE EXPERIENCES:\n";
+        experienceInstructions += "The following experiences have been identified as most relevant for this role. Emphasize them prominently in the cover letter:\n\n";
+
+        highlightedExperiences.forEach((exp: any, idx: number) => {
+          experienceInstructions += `${idx + 1}. Experience #${exp.index} (Relevance: ${exp.relevanceScore}%):\n`;
+          experienceInstructions += `   - Connection to role: ${exp.connectionToJob}\n`;
+          experienceInstructions += `   - Presentation suggestion: ${exp.presentationSuggestion}\n`;
+          if (exp.keyStrengths && exp.keyStrengths.length > 0) {
+            experienceInstructions += `   - Key strengths: ${exp.keyStrengths.join(", ")}\n`;
+          }
+          if (exp.quantifiableAchievements && exp.quantifiableAchievements.length > 0) {
+            experienceInstructions += `   - Suggested metrics: ${exp.quantifiableAchievements.join("; ")}\n`;
+          }
+          experienceInstructions += "\n";
+        });
+
+        if (experienceAnalysis.overallRecommendation) {
+          experienceInstructions += `Overall strategy: ${experienceAnalysis.overallRecommendation}`;
+        }
+
+        requestBody.customInstructions = requestBody.customInstructions
+          ? `${requestBody.customInstructions}${experienceInstructions}`
+          : experienceInstructions;
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -290,23 +328,57 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
     setLoading(true);
     setError("");
     try {
+      // Build request body with all customizations
+      const requestBody: any = {
+        userId,
+        jobId: selectedJobId,
+        tone,
+        culture,
+        length,
+        writingStyle,
+        personalityLevel,
+        customInstructions: customInstructions || undefined,
+        // Company research
+        ...Object.fromEntries(
+          Object.entries(companyResearch).filter(([_, value]) => value !== "")
+        ),
+      };
+
+      // Add experience highlighting instructions
+      if (selectedExperiences.length > 0 && experienceAnalysis) {
+        const highlightedExperiences = experienceAnalysis.experiences.filter(
+          (exp: any) => selectedExperiences.includes(exp.index)
+        );
+
+        let experienceInstructions = "\n\n⭐ IMPORTANT - HIGHLIGHT THESE EXPERIENCES:\n";
+        experienceInstructions += "The following experiences have been identified as most relevant for this role. Emphasize them prominently in the cover letter:\n\n";
+
+        highlightedExperiences.forEach((exp: any, idx: number) => {
+          experienceInstructions += `${idx + 1}. Experience #${exp.index} (Relevance: ${exp.relevanceScore}%):\n`;
+          experienceInstructions += `   - Connection to role: ${exp.connectionToJob}\n`;
+          experienceInstructions += `   - Presentation suggestion: ${exp.presentationSuggestion}\n`;
+          if (exp.keyStrengths && exp.keyStrengths.length > 0) {
+            experienceInstructions += `   - Key strengths: ${exp.keyStrengths.join(", ")}\n`;
+          }
+          if (exp.quantifiableAchievements && exp.quantifiableAchievements.length > 0) {
+            experienceInstructions += `   - Suggested metrics: ${exp.quantifiableAchievements.join("; ")}\n`;
+          }
+          experienceInstructions += "\n";
+        });
+
+        if (experienceAnalysis.overallRecommendation) {
+          experienceInstructions += `Overall strategy: ${experienceAnalysis.overallRecommendation}`;
+        }
+
+        requestBody.customInstructions = requestBody.customInstructions
+          ? `${requestBody.customInstructions}${experienceInstructions}`
+          : experienceInstructions;
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          jobId: selectedJobId,
-          tone,
-          culture,
-          length,
-          writingStyle,
-          personalityLevel,
-          customInstructions: customInstructions || undefined,
-          // Company research
-          ...Object.fromEntries(
-            Object.entries(companyResearch).filter(([_, value]) => value !== "")
-          ),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -997,19 +1069,19 @@ ${letterheadName || "Your Name"}`;
 
           <div className="bg-gray-50 rounded-md p-6 border border-gray-200 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium">Template Content</h4>
+              <h4 className="text-sm font-medium">Template Preview</h4>
               <button
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => setIsEditingTemplate(!isEditingTemplate)}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors"
               >
                 <Edit3 className="w-4 h-4" />
-                {isEditing ? "Preview" : "Edit"}
+                {isEditingTemplate ? "Preview" : "Edit"}
               </button>
             </div>
 
-            {isEditing ? (
+            {isEditingTemplate ? (
               <textarea
-                value={formattedLetter}
+                value={templateContent}
                 onChange={(e) => setTemplateContent(e.target.value)}
                 className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#3BAFBA]"
               />
@@ -1264,6 +1336,38 @@ ${letterheadName || "Your Name"}`;
             </div>
           )}
         </div>
+
+        {/* Experience Highlighting Section */}
+        {selectedJobId && (
+          <div className="mb-4">
+            <button
+              onClick={() => setShowExperienceHighlighting(!showExperienceHighlighting)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-green-50 to-teal-50 border-2 border-green-200 rounded-lg hover:from-green-100 hover:to-teal-100 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                <div className="text-left">
+                  <p className="font-semibold text-green-900">Experience Highlighting (AI-Powered)</p>
+                  <p className="text-xs text-green-700">Analyze and select your most relevant experiences for this role</p>
+                </div>
+              </div>
+              <span className="text-green-600 text-xl">{showExperienceHighlighting ? "−" : "+"}</span>
+            </button>
+
+            {showExperienceHighlighting && (
+              <div className="mt-3">
+                <ExperienceHighlighting
+                  userId={userId}
+                  jobId={selectedJobId}
+                  onExperiencesSelected={(indices, analysis) => {
+                    setSelectedExperiences(indices);
+                    setExperienceAnalysis(analysis);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Generate Button */}
         <button

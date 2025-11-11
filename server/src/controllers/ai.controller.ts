@@ -589,3 +589,92 @@ export const getEditingSuggestions = async (
     );
   }
 };
+
+export const analyzeExperienceRelevance = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { userId, jobId } = req.body;
+
+    if (!userId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
+        { field: "userId", message: "User ID is required" },
+      ]);
+      return;
+    }
+
+    if (!jobId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Job ID is required", [
+        { field: "jobId", message: "Job ID is required" },
+      ]);
+      return;
+    }
+
+    console.log(`[Experience Analysis] Analyzing experiences for user ${userId} and job ${jobId}`);
+
+    // Fetch user profile with experiences
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: {
+          orderBy: { displayOrder: "asc" },
+        },
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
+      return;
+    }
+
+    if (!userProfile.workExperiences || userProfile.workExperiences.length === 0) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "No work experiences found for user"
+      );
+      return;
+    }
+
+    // Fetch job opportunity
+    const job = await prisma.jobOpportunity.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Job not found");
+      return;
+    }
+
+    // Format experiences for AI analysis
+    const experiences = userProfile.workExperiences.map((exp) => ({
+      positionTitle: exp.positionTitle,
+      companyName: exp.companyName,
+      startDate: exp.startDate.toISOString().split('T')[0],
+      endDate: exp.endDate ? exp.endDate.toISOString().split('T')[0] : null,
+      description: exp.description || "",
+    }));
+
+    // Analyze experience relevance using AI
+    const analysis = await aiService.analyzeExperienceRelevance({
+      experiences,
+      jobDescription: job.description || "",
+      jobTitle: job.title,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: analysis,
+    });
+  } catch (error: any) {
+    console.error("[Analyze Experience Relevance Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to analyze experience relevance"
+    );
+  }
+};

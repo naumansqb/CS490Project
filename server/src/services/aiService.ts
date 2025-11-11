@@ -169,6 +169,103 @@ Format your response to be directly usable in a cover letter context.`;
     }
   }
 
+  async analyzeExperienceRelevance(input: {
+    experiences: any[];
+    jobDescription: string;
+    jobTitle: string;
+  }): Promise<any> {
+    try {
+      const experiencesText = input.experiences.map((exp, idx) =>
+        `${idx + 1}. ${exp.positionTitle} at ${exp.companyName}
+Duration: ${exp.startDate} - ${exp.endDate || 'Present'}
+Description: ${exp.description || 'No description provided'}`
+      ).join('\n\n');
+
+      const prompt = `Analyze the following work experiences against this job posting and score their relevance.
+
+JOB POSTING:
+Title: ${input.jobTitle}
+${input.jobDescription}
+
+CANDIDATE'S EXPERIENCES:
+${experiencesText}
+
+For each experience, provide:
+1. **Relevance Score** (0-100): How relevant is this experience to the job?
+2. **Key Strengths**: What aspects make it relevant?
+3. **Quantifiable Achievements**: Suggest metrics/numbers that could strengthen this experience
+4. **Connection to Job**: How does it relate to specific job requirements?
+5. **Presentation Suggestion**: How should this be framed in the cover letter?
+
+Also provide:
+- **Top 3 Experiences**: Which experiences should be highlighted most prominently?
+- **Missing Experiences**: What types of experience would strengthen the application?
+- **Alternative Angles**: Different ways to present these experiences
+
+GUIDELINES:
+- Be specific about what makes each experience relevant
+- Look for transferable skills even if industry is different
+- Consider impact, scope, and technical alignment
+- Prioritize experiences with measurable outcomes`;
+
+      const systemPrompt = `You are an expert career advisor specializing in analyzing candidate experiences against job requirements. Provide actionable insights that help candidates present their background most effectively.`;
+
+      const schema = {
+        type: "object",
+        properties: {
+          experiences: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                index: { type: "number", description: "Experience index (1-based)" },
+                relevanceScore: { type: "number", description: "Score from 0-100" },
+                keyStrengths: { type: "array", items: { type: "string" } },
+                quantifiableAchievements: { type: "array", items: { type: "string" } },
+                connectionToJob: { type: "string" },
+                presentationSuggestion: { type: "string" }
+              },
+              required: ["index", "relevanceScore", "keyStrengths", "connectionToJob", "presentationSuggestion"]
+            }
+          },
+          top3Experiences: {
+            type: "array",
+            items: { type: "number" },
+            description: "Indices of top 3 most relevant experiences"
+          },
+          missingExperiences: {
+            type: "array",
+            items: { type: "string" },
+            description: "Types of experience that would strengthen application"
+          },
+          alternativeAngles: {
+            type: "array",
+            items: { type: "string" },
+            description: "Different ways to frame the experiences"
+          },
+          overallRecommendation: {
+            type: "string",
+            description: "Overall strategy for highlighting experiences"
+          }
+        },
+        required: ["experiences", "top3Experiences", "overallRecommendation"]
+      };
+
+      const response = await this.llmProvider.generate<any>({
+        prompt,
+        systemPrompt,
+        jsonSchema: schema,
+        temperature: 0.4,
+        maxTokens: 2500,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Experience Analysis Error]", error);
+      throw new Error("Failed to analyze experience relevance");
+    }
+  }
+
   async getEditingSuggestions(input: { content: string; type: string }): Promise<any> {
     try {
       const prompt = `Analyze the following ${input.type} content and provide comprehensive editing suggestions to improve its quality, clarity, and professional impact.
