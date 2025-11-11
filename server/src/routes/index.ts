@@ -16,6 +16,8 @@ import applicationHistoryRoutes from "./applicationHistory.routes";
 import aiRoutes from "./ai.routes";
 import coverLetterRoutes from "./coverLetter.routes";
 import companyRoutes from "./company.routes";
+import interviewRoutes from "./interview.routes";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -37,6 +39,7 @@ router.use("/application-history", applicationHistoryRoutes);
 router.use("/ai", aiRoutes);
 router.use("/cover-letters", coverLetterRoutes);
 router.use("/companies", companyRoutes);
+router.use("/interviews", authMiddleware,interviewRoutes)
 
 export default router;
 

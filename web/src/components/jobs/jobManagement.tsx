@@ -40,6 +40,7 @@ import {
 } from '@/lib/jobs.api';
 import { FieldDescription } from '../ui/field';
 import { apiClient } from '@/lib/api';
+import InterviewManagement from './interviewManagement';
 import {
   researchCompany,
   researchAndSaveCompany,
@@ -145,13 +146,24 @@ export default function JobOpportunitiesManager() {
   };
 
   const [showForm, setShowForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'edit'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'edit' | 'interview'>('list');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [jobTitleError, setJobTtitleError] = useState<string>("")
   const [companyNameError, setCompanyNameError] = useState<string>("")
   const [rangeError, setRangeError] = useState<string>("")
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [selectedJobForInterview, setSelectedJobForInterview] = useState<Job | null>(null);
+  const openInterviewModal = (job: Job) => {
+    setSelectedJobForInterview(job);
+    setShowInterviewModal(true);
+  };
+
+  const closeInterviewModal = () => {
+    setShowInterviewModal(false);
+    setSelectedJobForInterview(null);
+  };
   const [formData, setFormData] = useState({
     title: '', company: '', location: '', salaryMin: '', salaryMax: '',
     postingUrl: '', deadline: '', description: '', industry: 'Technology',
@@ -1073,18 +1085,33 @@ const [exportingComparison, setExportingComparison] = useState(false);
     return statusMap[status] || status;
   };
 
+  if (showInterviewModal && selectedJobForInterview) {
+    return (
+      <InterviewManagement
+        jobId={selectedJobForInterview.id}
+        jobTitle={selectedJobForInterview.title}
+        companyName={selectedJobForInterview.company}
+        onClose={closeInterviewModal}
+        onInterviewChange={loadJobs}
+      />
+    );
+  }
+
   // DETAIL VIEW
   if (viewMode === 'detail' && selectedJob) {
     return (
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={backToList} className="flex items-center gap-2">
-            <ArrowLeft size={18} /> Back to List
-          </Button>
-          <Button onClick={() => editJob(selectedJob)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
-            <Edit2 size={18} /> Edit Job
-          </Button>
-        </div>
+        <Button variant="outline" onClick={backToList} className="flex items-center gap-2">
+          <ArrowLeft size={18} /> Back to List
+        </Button>
+        <Button onClick={() => editJob(selectedJob)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
+          <Edit2 size={18} /> Edit Job
+        </Button>
+        <Button onClick={() => openInterviewModal(selectedJob)} className="flex items-center gap-2 bg-black">
+          <Calendar size={18} /> Manage Interview
+        </Button>
+      </div>
 
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center justify-between">
@@ -1812,6 +1839,7 @@ const [exportingComparison, setExportingComparison] = useState(false);
     );
   }
 
+
   // LIST VIEW
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -2162,4 +2190,6 @@ const [exportingComparison, setExportingComparison] = useState(false);
       )}
     </div>
   )
+
 }
+
