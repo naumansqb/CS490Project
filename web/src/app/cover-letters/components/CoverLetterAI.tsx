@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { generateAICoverLetter } from "@/lib/api/ai";
 import { getJobOpportunitiesByUserId } from "@/lib/jobs.api";
 import { saveCoverLetter, updateCoverLetter } from "@/lib/coverLetter.api";
-import { Download, Edit3, Link2, Save, RefreshCw, Copy, FileText, Mail, Printer, Clock, Lightbulb, BookOpen } from "lucide-react";
+import { Download, Edit3, Link2, Save, RefreshCw, Copy, FileText, Mail, Printer, Clock, Lightbulb, BookOpen, CheckCircle2, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
@@ -131,6 +132,8 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [editingSuggestions, setEditingSuggestions] = useState<any>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [newsImported, setNewsImported] = useState(false);
+  const [importedNewsTitle, setImportedNewsTitle] = useState<string | null>(null);
 
   // Fetch user's jobs on mount
   useEffect(() => {
@@ -141,8 +144,28 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
         const jobsList = response.data || response || [];
         setJobs(jobsList);
 
-        // Auto-select first job if available
-        if (jobsList.length > 0 && !selectedLetter) {
+        // Check if there's selected news from job management page
+        const storedNews = localStorage.getItem('selectedNewsForCoverLetter');
+        if (storedNews) {
+          try {
+            const newsData = JSON.parse(storedNews);
+            // Auto-select the job that the news is for
+            const matchingJob = jobsList.find((job: Job) => job.id === newsData.jobId);
+            if (matchingJob) {
+              setSelectedJobId(newsData.jobId);
+            } else if (jobsList.length > 0 && !selectedLetter) {
+              // Fallback to first job if news job not found
+              setSelectedJobId(jobsList[0].id);
+            }
+          } catch (error) {
+            console.error('Error parsing stored news:', error);
+            // Fallback to first job if parsing fails
+            if (jobsList.length > 0 && !selectedLetter) {
+              setSelectedJobId(jobsList[0].id);
+            }
+          }
+        } else if (jobsList.length > 0 && !selectedLetter) {
+          // Auto-select first job if available and no stored news
           setSelectedJobId(jobsList[0].id);
         }
       } catch (error) {
@@ -161,9 +184,36 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
   useEffect(() => {
     const currentJob = jobs.find(job => job.id === selectedJobId);
     if (currentJob) {
+      // Check if there's selected news from job management page
+      const storedNews = localStorage.getItem('selectedNewsForCoverLetter');
+      let recentNewsText = currentJob.recentNews || "";
+      
+      if (storedNews) {
+        try {
+          const newsData = JSON.parse(storedNews);
+          // Only use if it's for the current job
+          if (newsData.jobId === selectedJobId) {
+            recentNewsText = newsData.newsText;
+            // Show success indicator
+            console.log('Setting news imported indicator:', newsData.articleTitle);
+            setNewsImported(true);
+            setImportedNewsTitle(newsData.articleTitle);
+            // Clear the stored news after using it
+            localStorage.removeItem('selectedNewsForCoverLetter');
+            // Auto-hide the indicator after 8 seconds (increased from 5)
+            setTimeout(() => {
+              setNewsImported(false);
+              setImportedNewsTitle(null);
+            }, 8000);
+          }
+        } catch (error) {
+          console.error('Error parsing stored news:', error);
+        }
+      }
+      
       setCompanyResearch({
         companyBackground: currentJob.companyBackground || "",
-        recentNews: currentJob.recentNews || "",
+        recentNews: recentNewsText,
         companyMission: currentJob.companyMission || "",
         companyInitiatives: currentJob.companyInitiatives || "",
         companySize: currentJob.companySize || "",
@@ -172,6 +222,37 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
       });
     }
   }, [selectedJobId, jobs]);
+  
+  // Also check for stored news on component mount (in case job is already selected)
+  useEffect(() => {
+    if (selectedJobId) {
+      const storedNews = localStorage.getItem('selectedNewsForCoverLetter');
+      if (storedNews) {
+        try {
+          const newsData = JSON.parse(storedNews);
+          if (newsData.jobId === selectedJobId) {
+            setCompanyResearch(prev => ({
+              ...prev,
+              recentNews: newsData.newsText
+            }));
+            // Show success indicator
+            console.log('Setting news imported indicator (mount):', newsData.articleTitle);
+            setNewsImported(true);
+            setImportedNewsTitle(newsData.articleTitle);
+            // Clear the stored news after using it
+            localStorage.removeItem('selectedNewsForCoverLetter');
+            // Auto-hide the indicator after 8 seconds (increased from 5)
+            setTimeout(() => {
+              setNewsImported(false);
+              setImportedNewsTitle(null);
+            }, 8000);
+          }
+        } catch (error) {
+          console.error('Error parsing stored news:', error);
+        }
+      }
+    }
+  }, [selectedJobId]);
 
   // Load selected letter when passed in or reset when null
   useEffect(() => {
@@ -1165,6 +1246,31 @@ ${letterheadName || "Your Name"}`;
           </p>
         )}
 
+        {/* News Imported Success Indicator - Prominent at top */}
+        {newsImported && importedNewsTitle && (
+          <div className="mb-4 bg-green-50 border-2 border-green-200 rounded-lg p-4 flex items-start justify-between shadow-md">
+            <div className="flex items-start gap-3 flex-1">
+              <CheckCircle2 size={20} className="text-green-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-green-900 mb-1">News Article Imported!</p>
+                <p className="text-sm text-green-700">
+                  "{importedNewsTitle}" has been added to the Recent News field below.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setNewsImported(false);
+                setImportedNewsTitle(null);
+              }}
+              className="text-green-600 hover:text-green-800 shrink-0"
+              aria-label="Dismiss"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
         {/* Job Selector */}
         <div className="mb-4">
           <label htmlFor="job-select" className="block text-sm font-medium text-gray-700 mb-2">
@@ -1251,16 +1357,39 @@ ${letterheadName || "Your Name"}`;
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recent News/Achievements
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Recent News/Achievements
+                  </label>
+                  {newsImported && (
+                    <Badge className="bg-green-100 text-green-800 border-green-300 text-xs flex items-center gap-1">
+                      <CheckCircle2 size={12} />
+                      Imported
+                    </Badge>
+                  )}
+                </div>
                 <textarea
                   value={companyResearch.recentNews}
-                  onChange={(e) => setCompanyResearch({ ...companyResearch, recentNews: e.target.value })}
+                  onChange={(e) => {
+                    setCompanyResearch({ ...companyResearch, recentNews: e.target.value });
+                    // Clear the imported indicator when user edits
+                    if (newsImported) {
+                      setNewsImported(false);
+                      setImportedNewsTitle(null);
+                    }
+                  }}
                   placeholder="e.g., Recently launched new AI feature, won Best Tech Startup 2024..."
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#3BAFBA] text-sm"
+                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#3BAFBA] text-sm ${
+                    newsImported ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                  }`}
                 />
+                {newsImported && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <CheckCircle2 size={12} />
+                    News article imported from company news feed
+                  </p>
+                )}
               </div>
 
               <div>
