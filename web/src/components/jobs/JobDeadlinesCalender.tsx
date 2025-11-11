@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getJobOpportunitiesByUserId } from '@/lib/jobs.api';
 import { Job } from '@/types/jobs.types';
 import UpcomingDeadlines from './UpComingDeadlines';
+import { getUserInterviews, InterviewWithJob } from '@/lib/interviews.api';
 
 export default function JobDeadlinesCalendar() {
   const { user } = useAuth(); 
@@ -15,27 +16,33 @@ export default function JobDeadlinesCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); 
+  const [interviews, setInterviews] = useState<InterviewWithJob[]>([]);
 
   useEffect(() => {
-    const loadJobs = async () => {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
+  const loadData = async () => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const jobsData = await getJobOpportunitiesByUserId(user.uid);
-        setJobs(jobsData as Job[]);
-      } catch (error) {
-        console.error('Failed to load jobs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      setLoading(true);
+      // Load jobs
+      const jobsData = await getJobOpportunitiesByUserId(user.uid);
+      setJobs(jobsData as Job[]);
+      
+      // Load interviews
+      const interviewsData = await getUserInterviews();
+      setInterviews(interviewsData);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadJobs();
-  }, [user]);
+  loadData();
+}, [user]);
   
 
   const goToPreviousMonth = () => {
@@ -66,14 +73,10 @@ export default function JobDeadlinesCalendar() {
   const map = new Map<string, Job[]>();
   jobs.forEach(job => {
     if (job.deadline) {
-      // Create a Date object in local timezone, then extract just the date part
       const deadlineDate = new Date(job.deadline);
-      
-      // Get the local year, month, day (this corrects for timezone)
       const year = deadlineDate.getFullYear();
       const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
       const day = String(deadlineDate.getDate()).padStart(2, '0');
-      
       const dateKey = `${year}-${month}-${day}`;
       
       if (!map.has(dateKey)) {
@@ -83,23 +86,48 @@ export default function JobDeadlinesCalendar() {
     }
   });
   
-  console.log('All stored dates:', Array.from(map.keys()));
   return map;
 }, [jobs]);
+
+const interviewsByDate = useMemo(() => {
+  const map = new Map<string, InterviewWithJob[]>();
+  interviews.forEach(interview => {
+    if (interview.scheduled_date) {
+      const interviewDate = new Date(interview.scheduled_date);
+      const year = interviewDate.getFullYear();
+      const month = String(interviewDate.getMonth() + 1).padStart(2, '0');
+      const day = String(interviewDate.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+      
+      if (!map.has(dateKey)) {
+        map.set(dateKey, []);
+      }
+      map.get(dateKey)!.push(interview);
+    }
+  });
+  
+  return map;
+}, [interviews]);
 
 
 
   // Get jobs for a specific date
-  const getJobsForDate = (day: number) => {
-    const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return jobsByDate.get(dateStr) || [];
+  const getDataForDate = (day: number) => {
+  const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return {
+    jobs: jobsByDate.get(dateStr) || [],
+    interviews: interviewsByDate.get(dateStr) || [],
   };
+};
 
   // Get jobs for selected date
-  const selectedDateJobs = useMemo(() => {
-    if (!selectedDate) return [];
-    return jobsByDate.get(selectedDate) || [];
-  }, [selectedDate, jobsByDate]);
+  const selectedDateData = useMemo(() => {
+  if (!selectedDate) return { jobs: [], interviews: [] };
+  return {
+    jobs: jobsByDate.get(selectedDate) || [],
+    interviews: interviewsByDate.get(selectedDate) || [],
+  };
+}, [selectedDate, jobsByDate, interviewsByDate]);
 
   // Check if date is today
   const isToday = (day: number) => {
@@ -186,117 +214,170 @@ export default function JobDeadlinesCalendar() {
             {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-2">
               {calendarDays.map((day, index) => {
-                if (typeof day !== 'number') return day;
+                  if (typeof day !== 'number') return day;
 
-                const jobs = getJobsForDate(day);
-                const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const isSelected = selectedDate === dateStr;
-                const hasJobs = jobs.length > 0;
-                const todayDate = isToday(day);
-                const pastDate = isPast(day);
+                  const { jobs: dayJobs, interviews: dayInterviews } = getDataForDate(day);
+                  const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const isSelected = selectedDate === dateStr;
+                  const hasDeadlines = dayJobs.length > 0;
+                  const hasInterviews = dayInterviews.length > 0;
+                  const hasEvents = hasDeadlines || hasInterviews;
+                  const todayDate = isToday(day);
+                  const pastDate = isPast(day);
 
-                return (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedDate(dateStr)}
-                    className={`
-                      aspect-square p-2 rounded-lg border-2 transition-all
-                      ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
-                      ${todayDate ? 'bg-blue-100 font-bold' : ''}
-                      ${pastDate ? 'bg-gray-50 text-gray-400' : 'hover:bg-gray-50'}
-                      ${hasJobs ? 'font-semibold' : ''}
-                      relative
-                    `}
-                  >
-                    <div className="text-sm">{day}</div>
-                    {hasJobs && (
-                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-                        {jobs.slice(0, 3).map((_, i) => (
-                          <div
-                            key={i}
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              pastDate ? 'bg-red-400' : 'bg-blue-500'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedDate(dateStr)}
+                      className={`
+                        aspect-square p-2 rounded-lg border-2 transition-all
+                        ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
+                        ${todayDate ? 'bg-blue-100 font-bold' : ''}
+                        ${pastDate ? 'bg-gray-50 text-gray-400' : 'hover:bg-gray-50'}
+                        ${hasEvents ? 'font-semibold' : ''}
+                        relative
+                      `}
+                    >
+                      <div className="text-sm">{day}</div>
+                      {hasEvents && (
+                        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
+                          {/* Show deadline dots */}
+                          {dayJobs.slice(0, 2).map((_, i) => (
+                            <div
+                              key={`deadline-${i}`}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                pastDate ? 'bg-red-400' : 'bg-blue-500'
+                              }`}
+                            />
+                          ))}
+                          {/* Show interview dots */}
+                          {dayInterviews.slice(0, 2).map((_, i) => (
+                            <div
+                              key={`interview-${i}`}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                pastDate ? 'bg-orange-400' : 'bg-green-500'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  );
               })}
             </div>
 
             {/* Legend */}
             <div className="mt-6 pt-4 border-t border-gray-200 flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded border-2 border-blue-500 bg-blue-50"></div>
-                <span>Selected Date</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-blue-100"></div>
-                <span>Today</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                <span>Has Deadline</span>
-              </div>
-            </div>
+  <div className="flex items-center gap-2">
+    <div className="w-6 h-6 rounded border-2 border-blue-500 bg-blue-50"></div>
+    <span>Selected Date</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-6 h-6 rounded bg-blue-100"></div>
+    <span>Today</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+    <span>Deadline</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+    <span>Interview</span>
+  </div>
+</div>
           </CardContent>
         </Card>
 
         {/* Selected Date Details */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>
-              {selectedDate ? (
-                <div className="flex items-center gap-2">
-                  <Clock size={20} />
-                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
+        <CardContent>
+  {!selectedDate ? (
+    <p className="text-gray-500 text-sm text-center py-8">
+      Click on a date to view deadlines and interviews
+    </p>
+  ) : selectedDateData.jobs.length === 0 && selectedDateData.interviews.length === 0 ? (
+    <p className="text-gray-500 text-sm text-center py-8">
+      No deadlines or interviews on this date
+    </p>
+  ) : (
+    <div className="space-y-4">
+      {/* Deadlines Section */}
+      {selectedDateData.jobs.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+            Application Deadlines ({selectedDateData.jobs.length})
+          </h4>
+          <div className="space-y-2">
+            {selectedDateData.jobs.map(job => (
+              <div
+                key={job.id}
+                className="p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
+              >
+                <h5 className="font-semibold text-gray-900 mb-1">{job.title}</h5>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <Building2 size={14} />
+                  <span>{job.company}</span>
                 </div>
-              ) : (
-                'Select a Date'
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!selectedDate ? (
-              <p className="text-gray-500 text-sm text-center py-8">
-                Click on a date to view deadlines
-              </p>
-            ) : selectedDateJobs.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-8">
-                No deadlines on this date
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {selectedDateJobs.map(job => (
-                  <div
-                    key={job.id}
-                    className="p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
-                  >
-                    <h4 className="font-semibold text-gray-900 mb-1">{job.title}</h4>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                      <Building2 size={14} />
-                      <span>{job.company}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
-                        {job.industry}
-                      </span>
-                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">
-                        {job.jobType}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <div className="flex gap-2">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    {job.industry}
+                  </span>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">
+                    {job.jobType}
+                  </span>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Interviews Section */}
+      {selectedDateData.interviews.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            Interviews ({selectedDateData.interviews.length})
+          </h4>
+          <div className="space-y-2">
+            {selectedDateData.interviews.map(interview => (
+              <div
+                key={interview.id}
+                className="p-3 border border-green-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all bg-green-50"
+              >
+                <h5 className="font-semibold text-gray-900 mb-1">
+                  {interview.job_opportunity.title}
+                </h5>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <Building2 size={14} />
+                  <span>{interview.job_opportunity.company}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <Clock size={14} />
+                  <span>
+                    {new Date(interview.scheduled_date).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full capitalize">
+                    {interview.interview_type.replace('-', ' ')}
+                  </span>
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full capitalize">
+                    {interview.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )}
+</CardContent>
       </div>
 
       {/* Upcoming Deadlines List */}

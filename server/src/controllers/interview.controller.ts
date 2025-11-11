@@ -9,7 +9,6 @@ import {
 import { sendErrorResponse } from '../utils/errorResponse';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-// Create interviews
 // Create Interview
 export const createInterviews = async (
   req: AuthRequest,
@@ -196,7 +195,7 @@ export const getUserInterviews = async (
     const { status, fromDate, toDate } = req.query;
 
     const where: any = {
-      jobOpportunity: {
+      job_opportunity: {
         userId,
       },
     };
