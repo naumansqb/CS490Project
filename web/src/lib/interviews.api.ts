@@ -37,7 +37,7 @@ export interface InterviewWithJob extends Interview {
 
 export const createInterview = async (interviewData: {
   jobId: string;
-  scheduledDate: string;
+  scheduleDate: string;
   interviewType: 'phone' | 'video' | 'in-person';
   durationMinutes?: number;
   status?: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
@@ -91,7 +91,7 @@ export const getUpcomingInterviews = async (): Promise<InterviewWithJob[]> => {
 export const updateInterview = async (
   id: string,
   interviewData: Partial<{
-    scheduledDate: string;
+    scheduled_date: string;
     interviewType: 'phone' | 'video' | 'in-person';
     durationMinutes: number;
     status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';

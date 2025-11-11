@@ -178,23 +178,24 @@ export default function InterviewManagement({
 
       const payload = {
         jobId: jobId,
-        scheduledDate: scheduledDateTime,
-        interviewType: formData.interview_type,
-        durationMinutes: formData.duration_minutes,
+        scheduled_date: scheduledDateTime,  // camelCase for API
+        interview_type: formData.interview_type,  // camelCase for API
+        duration_minutes: formData.duration_minutes,  // camelCase for API
         status: formData.status,
         location: formData.location || undefined,
-        meetingLink: formData.meeting_link || undefined,
-        phoneNumber: formData.phone_number || undefined,
-        interviewerName: formData.interviewer_name || undefined,
+        meeting_link: formData.meeting_link || undefined,  // camelCase for API
+        phone_number: formData.phone_number || undefined,  // camelCase for API
+        interviewer_name: formData.interviewer_name || undefined,  // camelCase for API
       };
 
       if (isEditing && interview) {
-        // Update existing interview
-        const updatedInterview = await updateInterview(interview.id, payload);
+        // Update existing interview - remove jobId from payload
+        const { jobId: _, ...updatePayload } = payload;
+        const updatedInterview = await updateInterview(interview.id, updatePayload);
         setInterview(updatedInterview);
         setSuccessMessage('Interview updated successfully');
       } else {
-        // Create new interview
+        // Create new interview - use full payload with jobId
         const newInterview = await createInterview(payload);
         setInterview(newInterview);
         setSuccessMessage('Interview scheduled successfully');
