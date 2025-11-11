@@ -10,11 +10,39 @@ import { cn } from "@/lib/utils";
 import type { Skill, CreateSkillInput } from "@/lib/skills.api";
 
 const COMMON_SKILLS = [
+  // Programming Languages
   "JavaScript", "TypeScript", "React", "Node.js", "Python", "Java", "C++", "C#",
-  "HTML", "CSS", "SQL", "MongoDB", "PostgreSQL", "Git", "Docker", "AWS",
+  "Go", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "R", "Scala",
+  
+  // Web Technologies
+  "HTML", "CSS", "GraphQL", "REST APIs", "WebSocket", "Next.js", "Vue.js", "Angular",
+  
+  // Databases & Data
+  "SQL", "MongoDB", "PostgreSQL", "MySQL", "Redis", "NoSQL", "Database Design", "Data Modeling",
+  
+  // DevOps & Infrastructure
+  "Git", "Docker", "Kubernetes", "CI/CD", "Containerization", "Terraform", "Jenkins", "GitHub Actions",
+  "AWS", "Azure", "Google Cloud", "Linux", "Bash", "Shell Scripting",
+  
+  // System Design & Architecture
+  "System Design", "Data Structures and Algorithms", "Microservices", "API Design", "Cloud Architecture",
+  
+  // Testing & Quality
+  "Testing Frameworks", "Jest", "Cypress", "Selenium", "Unit Testing", "Integration Testing",
+  
+  // Data & Analytics
+  "Machine Learning", "Data Analysis", "Data Science", "Big Data", "Apache Spark", "Pandas",
+  
+  // Design & Tools
+  "UI/UX Design", "Figma", "Photoshop", "Sketch", "Adobe XD", "Prototyping",
+  
+  // Soft Skills
   "Communication", "Leadership", "Problem Solving", "Teamwork", "Time Management",
-  "Project Management", "Agile", "Scrum", "English", "Spanish", "French", "German",
-  "Machine Learning", "Data Analysis", "UI/UX Design", "Figma", "Photoshop"
+  "Project Management", "Agile", "Scrum", "Critical Thinking", "Adaptability",
+  "Collaboration", "Conflict Resolution", "Presentation Skills", "Negotiation",
+  
+  // Languages
+  "English", "Spanish", "French", "German", "Mandarin", "Japanese", "Portuguese"
 ];
 
 const PROFICIENCY_LEVELS = [

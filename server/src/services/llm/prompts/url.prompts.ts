@@ -105,10 +105,28 @@ export function validateExtractedData(rawData: any): ExtractedJobData {
   };
 
   // Truncate description if too long (max 2000 chars as per your form)
+  // Add truncation indicator if cut off
   const truncateDescription = (desc: any): string | null => {
     if (!desc) return null;
     const str = String(desc);
-    return str.length > 2000 ? str.substring(0, 2000) : str;
+    
+    // If description exceeds 2000 chars, truncate and add indicator
+    if (str.length > 2000) {
+      // Truncate to 1997 chars to leave room for "..."
+      return str.substring(0, 1997) + '...';
+    }
+    
+    // Check if description might have been truncated by AI (ends abruptly)
+    // If it doesn't end with punctuation and is close to max length, add indicator
+    const trimmed = str.trim();
+    if (trimmed.length > 1950 && !trimmed.match(/[.!?]\s*$/)) {
+      // Might be truncated by AI - add indicator if not already present
+      if (!trimmed.endsWith('...')) {
+        return trimmed + '...';
+      }
+    }
+    
+    return str;
   };
 
   return {
