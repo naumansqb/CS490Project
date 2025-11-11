@@ -30,6 +30,14 @@ export const createSkill = async (
     const skill = await prisma.skill.create({
       data: { ...req.body, userId },
     });
+
+    // Invalidate skills gap analysis cache when skills change
+    // Delete the analyses so they will be regenerated with updated skills
+    // This prevents creating history snapshots with stale data
+    await prisma.skills_gap_analysis.deleteMany({
+      where: { user_id: userId },
+    });
+
     res.status(201).json(skill);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -170,6 +178,14 @@ export const updateSkill = async (
       where: { id },
       data: req.body,
     });
+
+    // Invalidate skills gap analysis cache when skills change
+    // Delete the analyses so they will be regenerated with updated skills
+    // This prevents creating history snapshots with stale data
+    await prisma.skills_gap_analysis.deleteMany({
+      where: { user_id: userId },
+    });
+
     res.json(skill);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -217,6 +233,14 @@ export const deleteSkill = async (
     await prisma.skill.delete({
       where: { id },
     });
+
+    // Invalidate skills gap analysis cache when skills change
+    // Delete the analyses so they will be regenerated with updated skills
+    // This prevents creating history snapshots with stale data
+    await prisma.skills_gap_analysis.deleteMany({
+      where: { user_id: userId },
+    });
+
     res.status(204).send();
   } catch (error) {
     sendErrorResponse(res, 500, "INTERNAL_ERROR", "Failed to delete skill");
