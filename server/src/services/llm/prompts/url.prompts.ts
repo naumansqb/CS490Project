@@ -9,12 +9,18 @@ export function generateJobExtractionPrompt(html: string): string {
   return `You are a job posting data extraction assistant. Your task is to analyze the provided HTML content and extract structured job information.
 
 IMPORTANT INSTRUCTIONS:
-1. Extract ONLY the information that is explicitly present in the HTML
-2. If a field is not found or unclear, use null for that field
-3. For Industry and Job Type, match to the closest option from the allowed values
-4. Return ONLY valid JSON with no additional text, markdown, or explanations
-5. Salary values should be numbers only (no currency symbols or commas)
-6. Dates should be in ISO format (YYYY-MM-DD) if found
+1. Extract information that is explicitly present in the HTML
+2. For Industry and Job Type, match to the closest option from the allowed values
+3. Return ONLY valid JSON with no additional text, markdown, or explanations
+4. Salary values should be numbers only (no currency symbols or commas)
+5. Dates should be in ISO format (YYYY-MM-DD) if found
+6. SALARY RESEARCH: If salary information (salaryMin/salaryMax) is NOT found in the HTML, you should research and estimate a typical salary range based on:
+   - The job title and level (e.g., "Engineer II" = mid-level, "Senior" = senior, "Lead" = lead, "Principal" = principal)
+   - The company name and reputation (if known)
+   - The location and cost of living (if provided)
+   - The industry standards (if identified)
+   - Market rates for similar positions
+   Provide a realistic salary range in USD. If you cannot provide a reasonable estimate, use null for both salaryMin and salaryMax.
 
 ALLOWED VALUES:
 - Industry: Technology, Finance, Healthcare, Education, Manufacturing, Retail, Consulting, Marketing, Real Estate, Other

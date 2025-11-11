@@ -430,9 +430,13 @@ const [exportingComparison, setExportingComparison] = useState(false);
       errorFound = true
     }
 
-    if(formData.salaryMax < formData.salaryMin){
-      setRangeError("Min range can't be greater than max range")
-      errorFound = true
+    if(formData.salaryMin && formData.salaryMax){
+      const min = Number(formData.salaryMin);
+      const max = Number(formData.salaryMax);
+      if(!isNaN(min) && !isNaN(max) && min > max){
+        setRangeError("Min range can't be greater than max range")
+        errorFound = true
+      }
     }
 
     if (errorFound){
@@ -501,9 +505,9 @@ const [exportingComparison, setExportingComparison] = useState(false);
 
   const formatSalary = (min: string, max: string) => {
     if (!min && !max) return 'Not specified';
-    if (min && max) return `$${min} - $${max}`;
-    if (min) return `From $${min}`;
-    return `Up to $${max}`;
+    if (min && max) return `$${parseInt(min).toLocaleString()} - $${parseInt(max).toLocaleString()}`;
+    if (min) return `From $${parseInt(min).toLocaleString()}`;
+    return `Up to $${parseInt(max).toLocaleString()}`;
   };
 
   const getColorClass = (score: number) => {
@@ -917,9 +921,13 @@ const [exportingComparison, setExportingComparison] = useState(false);
       errorFound = true
     }
 
-    if(formData.salaryMax < formData.salaryMin){
-      setRangeError("Min range can't be greater than max range")
-      errorFound = true
+    if(formData.salaryMin && formData.salaryMax){
+      const min = Number(formData.salaryMin);
+      const max = Number(formData.salaryMax);
+      if(!isNaN(min) && !isNaN(max) && min > max){
+        setRangeError("Min range can't be greater than max range")
+        errorFound = true
+      }
     }
 
     if (errorFound){

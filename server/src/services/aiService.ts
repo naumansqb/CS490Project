@@ -641,6 +641,7 @@ GUIDELINES:
       throw new Error(`Failed to extract job from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
 }
 
 export const aiService = new AIService();
