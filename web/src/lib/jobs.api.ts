@@ -127,7 +127,6 @@ export const deleteJobContact = async (id: string): Promise<void> =>  {
 // ============================================
 // APPLICATION HISTORY CRUD
 // ============================================
-
 export type ApplicationStatus = 
   | 'interested'
   | 'applied'
@@ -135,6 +134,7 @@ export type ApplicationStatus =
   | 'interview'
   | 'offer'
   | 'rejected'
+  | 'archived'
 
 export const createApplicationHistory = async (historyData: {
   jobId: string;
@@ -173,5 +173,53 @@ export const updateApplicationHistory = async (
 export const deleteApplicationHistory = async (id: string) => {
   return apiClient.fetch(`/application-history/${id}`, {
     method: "DELETE",
+  });
+};
+
+// Archive a single job
+export const archiveJobOpportunity = async (
+  jobId: string,
+  reason?: string
+) => {
+  return apiClient.fetch(`/job-opportunities/${jobId}/archive`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+};
+
+// Bulk archive multiple jobs
+export const bulkArchiveJobs = async (
+  jobIds: string[],
+  reason?: string
+) => {
+  return apiClient.fetch("/job-opportunities/bulk/archive", {
+    method: "POST",
+    body: JSON.stringify({ jobIds, reason }),
+  });
+};
+
+// Restore an archived job
+export const restoreJobOpportunity = async (
+  jobId: string,
+  restoreToStatus?: ApplicationStatus
+) => {
+  return apiClient.fetch(`/job-opportunities/${jobId}/restore`, {
+    method: "POST",
+    body: JSON.stringify({ restoreToStatus }),
+  });
+};
+
+// Get all archived jobs for a user
+export const getArchivedJobs = async (userId: string) => {
+  return apiClient.fetch(`/job-opportunities/archived/user/${userId}`, {
+    method: "GET",
+  });
+};
+
+// Permanently delete a job (requires confirmation)
+export const permanentlyDeleteJob = async (jobId: string) => {
+  return apiClient.fetch(`/job-opportunities/${jobId}/permanent`, {
+    method: "DELETE",
+    body: JSON.stringify({ confirmDelete: true }),
   });
 };
