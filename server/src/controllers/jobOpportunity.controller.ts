@@ -31,6 +31,11 @@ export const createJobOpportunity = async (
     const jobOpportunity = await prisma.jobOpportunity.create({
       data: { ...req.body, userId },
     });
+
+    // UC-063: Company research is automatically triggered by the frontend
+    // after job creation (see jobManagement.tsx handleSubmit)
+    // This ensures the response is sent immediately and research happens in background
+
     res.status(201).json(jobOpportunity);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

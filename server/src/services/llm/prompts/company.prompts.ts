@@ -53,31 +53,42 @@ ${additionalContext ? `**Additional Context:**\n${additionalContext}` : ""}
    - Current Glassdoor rating (0-5 scale)
    - Only include if you have recent/reliable information
 
-9. **Leadership Team**:
+9. **Leadership Team** (REQUIRED - Always provide if possible):
    - Array of key executives with name and title
    - Focus on C-level (CEO, CTO, CFO, etc.) and other prominent leaders
+   - Research publicly available information from company websites, LinkedIn, press releases
+   - Provide at least 1-3 key leaders if available
    - Example: [{ "name": "John Doe", "title": "CEO" }]
+   - Only set to null if you genuinely cannot find any leadership information
 
-10. **Products and Services**:
+10. **Products and Services** (REQUIRED - Always provide if possible):
     - Array of main products/services offered
     - List 3-7 key offerings
     - Be specific (e.g., "Cloud Infrastructure", "Mobile Banking App", not just "Software")
+    - Research the company's website, product pages, and marketing materials
+    - This information is almost always available on company websites
+    - Only set to null if the company's products/services are completely unclear
 
-11. **Competitive Landscape** (1-2 sentences):
-    - Brief description of market position
+11. **Competitive Landscape** (REQUIRED - Always provide if possible):
+    - Brief description of market position (1-2 sentences)
     - Main competitors if notable
     - Unique competitive advantages
+    - Research industry reports, company positioning, and market analysis
+    - Even basic competitive information is valuable (e.g., "Leading provider in the CRM space, competing with Salesforce and Microsoft")
+    - Only set to null if you cannot determine any market positioning
 
 **CRITICAL INSTRUCTIONS:**
 
-- **Accuracy First**: Only include information you're confident about
+- **Completeness**: Always attempt to provide leadership, productsAndServices, and competitiveLandscape. These fields are highly valuable for job seekers.
+- **Research Thoroughly**: Use your knowledge base to find this information. Company websites, LinkedIn pages, and industry knowledge should provide these details.
+- **Accuracy First**: Only include information you're confident about, but make a genuine effort to find reliable information for all fields.
 - **Current Data**: Prioritize recent information (last 1-2 years)
 - **Job Seeker Focus**: Frame information to help someone preparing for an interview
 - **Concise**: Keep descriptions brief but informative
 - **Size Categories**: Use ONLY the specified ranges ('1-10', '11-50', '51-200', '201-500', '501-1000', '1001-5000', '5001-10000', '10000+')
-- **No Fabrication**: If you don't have reliable information for an optional field, omit it (set to null)
 - **Logo URLs**: Only include legitimate, direct URLs - no placeholders
 - **Location Format**: Always use "City, State, Country" or "City, Country" format
+- **Priority Fields**: Leadership, Products/Services, and Competitive Landscape should almost always be provided for well-known companies
 
 **TONE**: Professional, informative, and objective. Write as a knowledgeable business analyst would.
 

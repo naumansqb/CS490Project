@@ -34,12 +34,57 @@ export class GeminiProvider extends BaseLLMClient {
 
       const text = response.text;
 
+      // Note: We don't throw on truncation detection here - let JSON.parse attempt first
+      // If parsing fails, we'll try to repair it in the catch block below
+
       let content: T;
       if (request.jsonSchema) {
         try {
           content = JSON.parse(text ?? "{}") as T;
         } catch (error) {
-          throw new Error(`Failed to parse JSON response: ${text}`);
+          // Try to repair truncated JSON by closing incomplete structures
+          let repairedText = text ?? "";
+          const trimmedText = repairedText.trim();
+          
+          // Count unclosed structures
+          const openBraces = (trimmedText.match(/\{/g) || []).length;
+          const closeBraces = (trimmedText.match(/\}/g) || []).length;
+          const openBrackets = (trimmedText.match(/\[/g) || []).length;
+          const closeBrackets = (trimmedText.match(/\]/g) || []).length;
+          
+          // If it ends mid-string, try to close it
+          if (trimmedText.match(/"[^"]*$/)) {
+            // Remove incomplete string and add closing quote
+            repairedText = trimmedText.replace(/"[^"]*$/, '"');
+          }
+          
+          // If it ends with a comma (incomplete array/object entry), remove it
+          repairedText = repairedText.replace(/,\s*$/, '');
+          
+          // Close incomplete objects first (inner to outer)
+          for (let i = 0; i < openBraces - closeBraces; i++) {
+            repairedText += '}';
+          }
+          
+          // Close incomplete arrays
+          for (let i = 0; i < openBrackets - closeBrackets; i++) {
+            repairedText += ']';
+          }
+          
+          // Try parsing the repaired JSON
+          try {
+            content = JSON.parse(repairedText) as T;
+            console.warn(`[Gemini Provider] Repaired truncated JSON response. Original length: ${text?.length || 0}, Repaired length: ${repairedText.length}`);
+          } catch (repairError) {
+            // If repair failed, throw original error with more context
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(
+              `Failed to parse JSON response (and repair attempt failed): ${errorMessage}. ` +
+              `Response length: ${text?.length || 0} chars. ` +
+              `Unbalanced: braces ${openBraces}/${closeBraces}, brackets ${openBrackets}/${closeBrackets}. ` +
+              `First 500 chars: ${text?.substring(0, 500) || 'empty'}...`
+            );
+          }
         }
       } else {
         content = text as T;

@@ -11,12 +11,31 @@ const app: Application = express();
 initializeFirebaseAdmin();
 
 app.use(helmet());
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL || "http://localhost:3000",
+//     credentials: true,
+//   })
+// );
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    credentials: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      // Allow all origins (since many clients on localhost:3000 but different hosts)
+      if (origin.startsWith("http://localhost:3000")) {
+        return callback(null, true);
+      }
+
+      // Otherwise, reject
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true, // needed for cookies, Authorization headers, etc.
   })
 );
+
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

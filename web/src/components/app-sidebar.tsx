@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, FileText, Briefcase, Calendar, Bookmark } from "lucide-react"
+import { Home, FileText, Briefcase, Calendar, Bookmark, Mail } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext';
 
 import {
@@ -37,15 +37,20 @@ export function SideBar() {
       icon: Calendar,
     },
     {
-      title: 'Job Status Tracker',
-      url: `/job-status-tracker/${user?.uid}`,
-      icon: Bookmark,
-    },
-    {
       title: 'Resumes',
       url: '/dashboard/resumes',
       icon: FileText,
     },
+    {
+      title: 'Cover Letters',
+      url: '/cover-letters',
+      icon: Mail,
+    },
+    {
+      title: 'Job Status Tracker',
+      url: `/job-status-tracker/${user?.uid}`,
+      icon: Bookmark,
+    }
   ]
 
   return (
@@ -81,7 +86,7 @@ export function SideBar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="bg-gradient-to-t from-[#3BAFBA] to-[#E0F7F7] p-3">
         <UserFooter />
       </SidebarFooter>
     </Sidebar>
