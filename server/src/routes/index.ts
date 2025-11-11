@@ -17,6 +17,7 @@ import aiRoutes from "./ai.routes";
 import coverLetterRoutes from "./coverLetter.routes";
 import companyRoutes from "./company.routes";
 
+import materialsRoutes from "./materials.routes";
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -34,6 +35,7 @@ router.use('/resume-templates', resumeTemplateRoutes);
 router.use("/job-opportunities", jobOpportunityRoutes);
 router.use("/job-contacts", jobContactRoutes);
 router.use("/application-history", applicationHistoryRoutes);
+router.use("/", materialsRoutes);
 router.use("/ai", aiRoutes);
 router.use("/cover-letters", coverLetterRoutes);
 router.use("/companies", companyRoutes);
