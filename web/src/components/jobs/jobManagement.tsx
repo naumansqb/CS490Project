@@ -23,6 +23,7 @@ import {
 } from '@/lib/jobs.api';
 import { FieldDescription } from '../ui/field';
 import { apiClient } from '@/lib/api';
+import InterviewManagement from './interviewManagement';
 
 
 const INDUSTRIES = [
@@ -68,7 +69,7 @@ export default function JobOpportunitiesManager() {
   };
 
   const [showForm, setShowForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'edit'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'edit' | 'interview'>('list');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -547,6 +548,9 @@ export default function JobOpportunitiesManager() {
           <Button onClick={() => editJob(selectedJob)} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
             <Edit2 size={18} /> Edit Job
           </Button>
+          <Button onClick={() => setViewMode('interview')} className="flex items-center gap-2 bg-[#3bafba] hover:bg-[#34a0ab]">
+            <Edit2 size={18} /> Manage Interview
+          </Button>
         </div>
 
         {successMessage && (
@@ -795,6 +799,15 @@ export default function JobOpportunitiesManager() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // INTERVIEW VIEW
+  if (viewMode === 'interview' && selectedJob) {
+    return (
+      <InterviewManagement jobId={selectedJob.id} jobTitle={selectedJob.title} companyName={selectedJob.company} onClose={function (): void {
+        throw new Error('Function not implemented.');
+      } } />
     );
   }
 
