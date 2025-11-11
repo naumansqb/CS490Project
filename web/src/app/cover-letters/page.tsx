@@ -33,9 +33,16 @@ export default function CoverLettersPage() {
   }
 
   function handleSelectTemplate(template: any, variables: any) {
-    setSelectedTemplate({ template, variables });
+    console.log('Page received template:', template.title);
+    console.log('Setting selectedTemplate state...');
+    const templateData = { template, variables };
+    setSelectedTemplate(templateData);
+    setSelectedLetter(null); // Clear any selected letter
     setMode("ai");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    console.log('Switching to AI mode and scrolling...');
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 100);
   }
 
   return (

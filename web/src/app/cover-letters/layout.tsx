@@ -4,7 +4,6 @@
 import React from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SideBar as AppSidebar } from "@/components/app-sidebar";
-import UserFooter from "@/components/sidebar-footer";
 
 export default function CoverLettersLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,9 +24,6 @@ export default function CoverLettersLayout({ children }: { children: React.React
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
           </main>
-          <div className="p-3">
-            <UserFooter />
-          </div>
         </div>
       </div>
     </SidebarProvider>

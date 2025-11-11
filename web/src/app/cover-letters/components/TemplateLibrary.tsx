@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FileText, Eye, Edit3, Upload, Filter, Plus, Download } from "lucide-react";
 
 type TemplateCategory = "Formal" | "Creative" | "Technical" | "General";
@@ -118,7 +118,14 @@ export default function TemplateLibrary({ onSelectTemplate }: TemplateLibraryPro
   const [industry, setIndustry] = useState("All");
   const [activeTab, setActiveTab] = useState<TemplateCategory | "All">("All");
   const [templates, setTemplates] = useState<LibraryTemplate[]>(SEED_TEMPLATES);
-  const [myTemplates, setMyTemplates] = useState<LibraryTemplate[]>([]);
+  const [myTemplates, setMyTemplates] = useState<LibraryTemplate[]>(() => {
+    // Load custom templates from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('customCoverLetterTemplates');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [previewTemplate, setPreviewTemplate] = useState<LibraryTemplate | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -126,6 +133,13 @@ export default function TemplateLibrary({ onSelectTemplate }: TemplateLibraryPro
   const [showImport, setShowImport] = useState(false);
   const [importTitle, setImportTitle] = useState("");
   const [importText, setImportText] = useState("");
+
+  // Save custom templates to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && myTemplates.length > 0) {
+      localStorage.setItem('customCoverLetterTemplates', JSON.stringify(myTemplates));
+    }
+  }, [myTemplates]);
 
   // Unique industries list
   const industries = useMemo(() => {
@@ -150,6 +164,8 @@ export default function TemplateLibrary({ onSelectTemplate }: TemplateLibraryPro
 
   // Handle template selection
   function handleSelectTemplate(t: LibraryTemplate) {
+    console.log('Template selected:', t.title);
+
     // Track usage
     if (!t.isUser) {
       setTemplates((prev) =>
@@ -161,7 +177,8 @@ export default function TemplateLibrary({ onSelectTemplate }: TemplateLibraryPro
       );
     }
 
-    // Pass to parent
+    // Pass to parent with full data
+    console.log('Calling onSelectTemplate with:', { template: t, variables: SAMPLE_VARS });
     onSelectTemplate(t, SAMPLE_VARS);
   }
 
@@ -173,26 +190,37 @@ export default function TemplateLibrary({ onSelectTemplate }: TemplateLibraryPro
 
   // Import custom template
   function handleImport() {
-    if (!importTitle || !importText) {
-      alert("Please provide a title and content.");
+    if (!importTitle.trim() || !importText.trim()) {
+      alert("⚠️ Please provide both a title and content for your template.");
       return;
     }
 
     const newT: LibraryTemplate = {
       id: `user-${Date.now()}`,
-      title: importTitle,
+      title: importTitle.trim(),
       category: "General",
       industries: ["All"],
-      content: importText,
+      content: importText.trim(),
       isUser: true,
       usageCount: 0,
     };
 
-    setMyTemplates((prev) => [newT, ...prev]);
+    setMyTemplates((prev) => {
+      const updated = [newT, ...prev];
+      // Save to localStorage immediately
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('customCoverLetterTemplates', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    // Reset form
     setShowImport(false);
     setImportTitle("");
     setImportText("");
-    alert("Template imported successfully!");
+
+    console.log('✅ Custom template created:', newT.title);
+    alert(`✅ Template "${newT.title}" saved successfully!\n\nYour custom template is now available in the library and will persist across sessions.`);
   }
 
   return (

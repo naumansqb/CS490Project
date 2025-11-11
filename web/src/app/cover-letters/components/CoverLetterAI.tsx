@@ -205,12 +205,19 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
 
   // Load selected template when passed in
   useEffect(() => {
+    console.log('CoverLetterAI: selectedTemplate changed:', selectedTemplate);
     if (selectedTemplate) {
+      console.log('Loading template:', selectedTemplate.template.title);
+      console.log('Template content:', selectedTemplate.template.content);
+      console.log('Template variables:', selectedTemplate.variables);
+
       setTemplateMode(true);
       setTemplateContent(selectedTemplate.template.content);
       setTemplateVariables(selectedTemplate.variables);
       setCoverLetter(null);
       setSavedCoverLetterId(null);
+
+      console.log('Template mode activated');
     }
   }, [selectedTemplate]);
 
@@ -223,23 +230,34 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
     setLoading(true);
     setError("");
     try {
+      // If in template mode, include template content for AI enhancement
+      const requestBody: any = {
+        userId,
+        jobId: selectedJobId,
+        tone,
+        culture,
+        length,
+        writingStyle,
+        personalityLevel,
+        customInstructions: customInstructions || undefined,
+        // Company research
+        ...Object.fromEntries(
+          Object.entries(companyResearch).filter(([_, value]) => value !== "")
+        ),
+      };
+
+      // Add template content if in template mode
+      if (templateMode && templateContent) {
+        const renderedTemplate = renderTemplate(templateContent, templateVariables);
+        requestBody.customInstructions = requestBody.customInstructions
+          ? `${requestBody.customInstructions}\n\nUse this template as a base:\n${renderedTemplate}`
+          : `Use this template as a base and enhance it:\n${renderedTemplate}`;
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          jobId: selectedJobId,
-          tone,
-          culture,
-          length,
-          writingStyle,
-          personalityLevel,
-          customInstructions: customInstructions || undefined,
-          // Company research
-          ...Object.fromEntries(
-            Object.entries(companyResearch).filter(([_, value]) => value !== "")
-          ),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -255,6 +273,7 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
       setCoverLetter(letterData);
       setIsEditing(false);
       setSavedCoverLetterId(null); // Reset saved state on new generation
+      setTemplateMode(false); // Exit template mode after generation
     } catch (error) {
       console.error("Error generating cover letter:", error);
       setError("⚠️ Something went wrong while generating your cover letter. Please try again.");
@@ -977,20 +996,72 @@ ${letterheadName || "Your Name"}`;
           </div>
 
           <div className="bg-gray-50 rounded-md p-6 border border-gray-200 mb-4">
-            <h4 className="text-sm font-medium mb-3">Live Preview</h4>
-            <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
-              {formattedLetter}
-            </pre>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Template Content</h4>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              >
+                <Edit3 className="w-4 h-4" />
+                {isEditing ? "Preview" : "Edit"}
+              </button>
+            </div>
+
+            {isEditing ? (
+              <textarea
+                value={formattedLetter}
+                onChange={(e) => setTemplateContent(e.target.value)}
+                className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#3BAFBA]"
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
+                {formattedLetter}
+              </pre>
+            )}
           </div>
 
-          {/* Export Options for Template */}
+          {/* Action Buttons for Template */}
           <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={() => setShowExportModal(true)}
+              onClick={() => {
+                // Use the template content directly
+                const lines = formattedLetter.split('\n\n');
+                setCoverLetter({
+                  greeting: lines[0] || "",
+                  opening: lines[1] || "",
+                  body: lines.slice(2, -2).length > 0 ? lines.slice(2, -2) : [lines[2] || ""],
+                  closing: lines[lines.length - 2] || "",
+                  signature: lines[lines.length - 1] || "",
+                });
+                setEditableContent(formattedLetter);
+                setIsEditing(true); // Start in edit mode so user can modify
+                setTemplateMode(false);
+                // Scroll to the editing section
+                setTimeout(() => {
+                  document.querySelector('#editing-section')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-[#3BAFBA] hover:bg-[#2d9ba5] text-white rounded transition-colors text-sm font-medium"
             >
+              <Edit3 className="w-4 h-4" />
+              Edit Template
+            </button>
+            <button
+              onClick={() => {
+                // Scroll to AI enhancement section below
+                document.querySelector('#ai-enhance-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded transition-colors text-sm font-medium shadow-md"
+            >
+              <Lightbulb className="w-4 h-4" />
+              Enhance with AI
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-sm"
+            >
               <Download className="w-4 h-4" />
-              Export Options
+              Export
             </button>
             <button
               onClick={handleCopyForEmail}
@@ -1006,17 +1077,14 @@ ${letterheadName || "Your Name"}`;
               <Printer className="w-4 h-4" />
               Print
             </button>
-            <div className="ml-auto text-sm text-gray-500">
-              Or generate AI-enhanced version below ↓
-            </div>
           </div>
         </div>
       )}
 
       {/* Generation Section */}
-      <div className="border rounded-lg p-6 bg-white shadow-sm">
+      <div id="ai-enhance-section" className="border rounded-lg p-6 bg-white shadow-sm">
         <h2 className="text-lg font-semibold mb-4">
-          {templateMode ? "Enhance with AI (Optional)" : "AI Cover Letter Generator"}
+          {templateMode ? "AI Enhancement (Optional)" : "AI Cover Letter Generator"}
         </h2>
 
         {templateMode && (
@@ -1203,7 +1271,7 @@ ${letterheadName || "Your Name"}`;
           disabled={loading || !selectedJobId}
           className="w-full bg-[#3BAFBA] text-white px-4 py-2 rounded hover:bg-[#2d9ba5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? "Generating AI Cover Letter..." : templateMode ? "Generate AI Enhancement" : "Generate AI Cover Letter"}
+          {loading ? "Enhancing with AI..." : templateMode ? "Enhance Template with AI" : "Generate AI Cover Letter"}
         </button>
 
         {error && (
@@ -1216,7 +1284,7 @@ ${letterheadName || "Your Name"}`;
 
       {/* Tone Customization & Preview */}
       {coverLetter && (
-        <div className="border rounded-lg p-6 bg-white shadow-sm">
+        <div id="editing-section" className="border rounded-lg p-6 bg-white shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Customize & Preview</h3>
             <div className="flex gap-2">
@@ -1553,9 +1621,10 @@ ${letterheadName || "Your Name"}`;
             </div>
           ) : (
             <div className="bg-gray-50 rounded-md p-6 border border-gray-200">
-              <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
-                {formattedLetter}
-              </pre>
+              <div
+                className="whitespace-pre-wrap font-serif text-sm leading-relaxed prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: editableContent || formattedLetter }}
+              />
             </div>
           )}
 
