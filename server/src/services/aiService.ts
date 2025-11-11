@@ -21,6 +21,14 @@ import {
 import { resumeSchema } from "./llm/schemas/resume.schema";
 import { coverLetterSchema } from "./llm/schemas/coverLetter.schema";
 import { resumeParserSchema } from "./llm/schemas/resumeParser.schema";
+import {
+  buildCompanyNewsPrompt,
+  buildCompanyResearchPrompt,
+  companyNewsSystemPrompt,
+  companyResearchSystemPrompt,
+} from "./llm/prompts/company.prompts";
+import { companyNewsSchema, companyResearchSchema } from "./llm/schemas/company.schema";
+import { CompanyNewsInput, CompanyNewsResult, CompanyResearchInput, CompanyResearchResult } from "../types/company.types";
 
 export class AIService {
   private llmProvider: GeminiProvider;
@@ -88,78 +96,40 @@ export class AIService {
     }
   }
 
-  async researchCompany(input: { companyName: string; industry?: string }): Promise<any> {
+  /**
+   * Get recent company news and updates
+   */
+  async getCompanyNews(input: CompanyNewsInput): Promise<CompanyNewsResult> {
     try {
-      const industryContext = input.industry ? `in the ${input.industry} industry` : "";
+      const prompt = buildCompanyNewsPrompt(input);
 
-      const prompt = `Research the company "${input.companyName}" ${industryContext} and provide comprehensive information for a job applicant writing a cover letter.
-
-Based on your knowledge, provide:
-
-1. **Company Background**: Brief history, what they do, size/scale
-2. **Recent News/Achievements**: Recent milestones, product launches, awards, or significant events
-3. **Company Mission/Values**: Their stated mission, core values, and what they stand for
-4. **Key Initiatives/Projects**: Major ongoing projects, strategic initiatives, or focus areas
-5. **Company Size**: Approximate employee count and company stage (startup, mid-size, enterprise)
-6. **Funding/Growth**: Recent funding rounds, expansion, or growth trajectory
-7. **Competitive Position**: Market position, key differentiators, and competitive advantages
-
-IMPORTANT GUIDELINES:
-- Provide factual, realistic information based on what you know
-- If you're uncertain about recent information, use phrases like "typically known for" or "historically has focused on"
-- Focus on information that would be useful for someone writing a cover letter
-- Keep responses concise but informative (2-3 sentences per section)
-- If you don't have specific information, provide general guidance on what to research
-
-Format your response to be directly usable in a cover letter context.`;
-
-      const systemPrompt = `You are a company research assistant helping job applicants learn about companies. Provide accurate, helpful information that demonstrates genuine research and interest. Be honest about limitations in your knowledge and guide users on where to find more current information if needed.`;
-
-      const schema = {
-        type: "object",
-        properties: {
-          companyBackground: {
-            type: "string",
-            description: "Company history and overview"
-          },
-          recentNews: {
-            type: "string",
-            description: "Recent company achievements and news"
-          },
-          companyMission: {
-            type: "string",
-            description: "Mission statement and core values"
-          },
-          companyInitiatives: {
-            type: "string",
-            description: "Key projects and strategic initiatives"
-          },
-          companySize: {
-            type: "string",
-            description: "Company size and stage"
-          },
-          fundingInfo: {
-            type: "string",
-            description: "Funding and growth information"
-          },
-          competitiveLandscape: {
-            type: "string",
-            description: "Market position and differentiators"
-          },
-          researchNote: {
-            type: "string",
-            description: "Note about information accuracy and where to verify"
-          }
-        },
-        required: ["companyBackground", "recentNews", "companyMission", "companyInitiatives", "companySize", "fundingInfo", "competitiveLandscape", "researchNote"]
-      };
-
-      const response = await this.llmProvider.generate<any>({
+      const response = await this.llmProvider.generate<CompanyNewsResult>({
         prompt,
-        systemPrompt,
-        jsonSchema: schema,
-        temperature: 0.7,
-        maxTokens: 1500,
+        systemPrompt: companyNewsSystemPrompt,
+        jsonSchema: companyNewsSchema,
+        temperature: 0.5, // Moderate temperature for balanced analysis
+        maxTokens: 3500,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Company News Error]", error);
+      throw new Error("Failed to fetch company news");
+    }
+  }
+
+  async researchCompany(
+    input: CompanyResearchInput
+  ): Promise<CompanyResearchResult> {
+    try {
+      const prompt = buildCompanyResearchPrompt(input);
+
+      const response = await this.llmProvider.generate<CompanyResearchResult>({
+        prompt,
+        systemPrompt: companyResearchSystemPrompt,
+        jsonSchema: companyResearchSchema,
+        temperature: 0.4, // Lower temperature for factual accuracy
+        maxTokens: 4000,
       });
 
       return response.content;
@@ -175,11 +145,14 @@ Format your response to be directly usable in a cover letter context.`;
     jobTitle: string;
   }): Promise<any> {
     try {
-      const experiencesText = input.experiences.map((exp, idx) =>
-        `${idx + 1}. ${exp.positionTitle} at ${exp.companyName}
-Duration: ${exp.startDate} - ${exp.endDate || 'Present'}
-Description: ${exp.description || 'No description provided'}`
-      ).join('\n\n');
+      const experiencesText = input.experiences
+        .map(
+          (exp, idx) =>
+            `${idx + 1}. ${exp.positionTitle} at ${exp.companyName}
+Duration: ${exp.startDate} - ${exp.endDate || "Present"}
+Description: ${exp.description || "No description provided"}`
+        )
+        .join("\n\n");
 
       const prompt = `Analyze the following work experiences against this job posting and score their relevance.
 
@@ -218,37 +191,53 @@ GUIDELINES:
             items: {
               type: "object",
               properties: {
-                index: { type: "number", description: "Experience index (1-based)" },
-                relevanceScore: { type: "number", description: "Score from 0-100" },
+                index: {
+                  type: "number",
+                  description: "Experience index (1-based)",
+                },
+                relevanceScore: {
+                  type: "number",
+                  description: "Score from 0-100",
+                },
                 keyStrengths: { type: "array", items: { type: "string" } },
-                quantifiableAchievements: { type: "array", items: { type: "string" } },
+                quantifiableAchievements: {
+                  type: "array",
+                  items: { type: "string" },
+                },
                 connectionToJob: { type: "string" },
-                presentationSuggestion: { type: "string" }
+                presentationSuggestion: { type: "string" },
               },
-              required: ["index", "relevanceScore", "keyStrengths", "connectionToJob", "presentationSuggestion"]
-            }
+              required: [
+                "index",
+                "relevanceScore",
+                "keyStrengths",
+                "connectionToJob",
+                "presentationSuggestion",
+              ],
+            },
           },
           top3Experiences: {
             type: "array",
             items: { type: "number" },
-            description: "Indices of top 3 most relevant experiences"
+            description: "Indices of top 3 most relevant experiences",
           },
           missingExperiences: {
             type: "array",
             items: { type: "string" },
-            description: "Types of experience that would strengthen application"
+            description:
+              "Types of experience that would strengthen application",
           },
           alternativeAngles: {
             type: "array",
             items: { type: "string" },
-            description: "Different ways to frame the experiences"
+            description: "Different ways to frame the experiences",
           },
           overallRecommendation: {
             type: "string",
-            description: "Overall strategy for highlighting experiences"
-          }
+            description: "Overall strategy for highlighting experiences",
+          },
         },
-        required: ["experiences", "top3Experiences", "overallRecommendation"]
+        required: ["experiences", "top3Experiences", "overallRecommendation"],
       };
 
       const response = await this.llmProvider.generate<any>({
@@ -266,7 +255,10 @@ GUIDELINES:
     }
   }
 
-  async getEditingSuggestions(input: { content: string; type: string }): Promise<any> {
+  async getEditingSuggestions(input: {
+    content: string;
+    type: string;
+  }): Promise<any> {
     try {
       const prompt = `Analyze the following ${input.type} content and provide comprehensive editing suggestions to improve its quality, clarity, and professional impact.
 
@@ -302,10 +294,13 @@ GUIDELINES:
               properties: {
                 original: { type: "string", description: "Original text" },
                 suggestion: { type: "string", description: "Corrected text" },
-                reason: { type: "string", description: "Why this change improves the text" }
+                reason: {
+                  type: "string",
+                  description: "Why this change improves the text",
+                },
               },
-              required: ["original", "suggestion", "reason"]
-            }
+              required: ["original", "suggestion", "reason"],
+            },
           },
           wordChoice: {
             type: "array",
@@ -317,11 +312,11 @@ GUIDELINES:
                 alternatives: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Better alternatives"
-                }
+                  description: "Better alternatives",
+                },
               },
-              required: ["word", "alternatives"]
-            }
+              required: ["word", "alternatives"],
+            },
           },
           structure: {
             type: "array",
@@ -330,17 +325,20 @@ GUIDELINES:
               type: "object",
               properties: {
                 title: { type: "string", description: "Area to improve" },
-                suggestion: { type: "string", description: "How to improve it" }
+                suggestion: {
+                  type: "string",
+                  description: "How to improve it",
+                },
               },
-              required: ["title", "suggestion"]
-            }
+              required: ["title", "suggestion"],
+            },
           },
           overall: {
             type: "string",
-            description: "Overall assessment and key recommendations"
-          }
+            description: "Overall assessment and key recommendations",
+          },
         },
-        required: ["overall"]
+        required: ["overall"],
       };
 
       const response = await this.llmProvider.generate<any>({
