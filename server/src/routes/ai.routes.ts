@@ -12,6 +12,8 @@ router.post(
     aiController.parseResumeFromFile
 );
 router.post("/cover-letter/generate", aiController.generateCoverLetter);
-router.post("/job/extract-from-url", aiController.extractJobFromUrl);
+router.post("/company-research", aiController.researchCompany);
+router.post("/editing-suggestions", aiController.getEditingSuggestions);
+router.post("/experience-analysis", aiController.analyzeExperienceRelevance);
 
 export default router;

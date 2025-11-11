@@ -62,9 +62,23 @@ export interface CoverLetterInput {
     title: string;
     company: string;
     description: string;
+    industry?: string;
+    companyBackground?: string;
+    recentNews?: string;
+    companyMission?: string;
+    companyInitiatives?: string;
+    companySize?: string;
+    fundingInfo?: string;
+    competitiveLandscape?: string;
   };
   relevantExperience: string[];
   relevantSkills: string[];
+  tone?: "formal" | "casual" | "enthusiastic" | "analytical";
+  culture?: "startup" | "corporate";
+  length?: "brief" | "standard" | "detailed";
+  writingStyle?: "direct" | "narrative" | "bullet-points";
+  customInstructions?: string;
+  personalityLevel?: "minimal" | "moderate" | "strong";
 }
 
 export interface TailoredResume {
