@@ -5,7 +5,7 @@ export async function generateAICoverLetter({
     userId: string;
     jobId: string;
   }) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/cover-letter/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, jobId }),

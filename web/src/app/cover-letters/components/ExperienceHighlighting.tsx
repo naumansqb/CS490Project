@@ -49,7 +49,7 @@ export default function ExperienceHighlighting({
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await fetch(`${apiUrl}/ai/experience-analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -172,11 +172,10 @@ export default function ExperienceHighlighting({
           return (
             <div
               key={exp.index}
-              className={`border rounded-lg p-4 transition-all ${
-                isSelected
+              className={`border rounded-lg p-4 transition-all ${isSelected
                   ? "border-[#3BAFBA] bg-[#3BAFBA]/5"
                   : "border-gray-200 hover:border-gray-300"
-              }`}
+                }`}
             >
               {/* Experience Header */}
               <div className="flex items-start gap-3">

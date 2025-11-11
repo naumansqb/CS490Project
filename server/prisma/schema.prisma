@@ -8,44 +8,46 @@ datasource db {
 }
 
 model UserProfile {
-  userId              String                @id @map("user_id")
-  firstName           String?               @map("first_name") @db.VarChar(100)
-  lastName            String?               @map("last_name") @db.VarChar(100)
-  preferredName       String?               @map("preferred_name") @db.VarChar(100)
-  email               String?               @db.VarChar(255)
-  phone_number        String?               @db.VarChar(20)
-  headline            String?               @db.VarChar(255)
-  bio                 String?
-  profilePhotoUrl     String?               @map("profile_photo_url") @db.VarChar(500)
-  industry            String?               @db.VarChar(100)
-  locationCity        String?               @map("location_city") @db.VarChar(100)
-  locationState       String?               @map("location_state") @db.VarChar(100)
-  locationCountry     String?               @map("location_country") @db.VarChar(100)
-  willingToRelocate   Boolean?              @default(false) @map("willing_to_relocate")
-  linkedinUrl         String?               @map("linkedin_url") @db.VarChar(255)
-  githubUrl           String?               @map("github_url") @db.VarChar(255)
-  portfolioUrl        String?               @map("portfolio_url") @db.VarChar(255)
-  websiteUrl          String?               @map("website_url") @db.VarChar(255)
-  yearsOfExperience   Decimal?              @map("years_of_experience") @db.Decimal(4, 1)
-  careerLevel         String?               @map("career_level") @db.VarChar(50)
-  desiredSalaryMin    Decimal?              @map("desired_salary_min") @db.Decimal(12, 2)
-  desiredSalaryMax    Decimal?              @map("desired_salary_max") @db.Decimal(12, 2)
-  salaryCurrency      String?               @default("USD") @map("salary_currency") @db.VarChar(10)
-  openToOpportunities Boolean?              @default(true) @map("open_to_opportunities")
-  jobSearchStatus     String?               @map("job_search_status") @db.VarChar(50)
-  preferredWorkType   String?               @map("preferred_work_type") @db.VarChar(50)
-  profileCompleteness Int?                  @default(0) @map("profile_completeness")
-  profileVisibility   String?               @default("private") @map("profile_visibility") @db.VarChar(50)
-  createdAt           DateTime?             @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt           DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  certifications      Certification[]
-  education           Education[]
-  job_match_analysis  job_match_analysis[]
-  jobOpportunities    JobOpportunity[]
-  skills              Skill[]
-  skills_gap_analysis skills_gap_analysis[]
-  specialProjects     SpecialProject[]
-  workExperiences     WorkExperience[]
+  userId                      String                        @id @map("user_id")
+  firstName                   String?                       @map("first_name") @db.VarChar(100)
+  lastName                    String?                       @map("last_name") @db.VarChar(100)
+  preferredName               String?                       @map("preferred_name") @db.VarChar(100)
+  email                       String?                       @db.VarChar(255)
+  phone_number                String?                       @db.VarChar(20)
+  headline                    String?                       @db.VarChar(255)
+  bio                         String?
+  profilePhotoUrl             String?                       @map("profile_photo_url") @db.VarChar(500)
+  industry                    String?                       @db.VarChar(100)
+  locationCity                String?                       @map("location_city") @db.VarChar(100)
+  locationState               String?                       @map("location_state") @db.VarChar(100)
+  locationCountry             String?                       @map("location_country") @db.VarChar(100)
+  willingToRelocate           Boolean?                      @default(false) @map("willing_to_relocate")
+  linkedinUrl                 String?                       @map("linkedin_url") @db.VarChar(255)
+  githubUrl                   String?                       @map("github_url") @db.VarChar(255)
+  portfolioUrl                String?                       @map("portfolio_url") @db.VarChar(255)
+  websiteUrl                  String?                       @map("website_url") @db.VarChar(255)
+  yearsOfExperience           Decimal?                      @map("years_of_experience") @db.Decimal(4, 1)
+  careerLevel                 String?                       @map("career_level") @db.VarChar(50)
+  desiredSalaryMin            Decimal?                      @map("desired_salary_min") @db.Decimal(12, 2)
+  desiredSalaryMax            Decimal?                      @map("desired_salary_max") @db.Decimal(12, 2)
+  salaryCurrency              String?                       @default("USD") @map("salary_currency") @db.VarChar(10)
+  openToOpportunities         Boolean?                      @default(true) @map("open_to_opportunities")
+  jobSearchStatus             String?                       @map("job_search_status") @db.VarChar(50)
+  preferredWorkType           String?                       @map("preferred_work_type") @db.VarChar(50)
+  profileCompleteness         Int?                          @default(0) @map("profile_completeness")
+  profileVisibility           String?                       @default("private") @map("profile_visibility") @db.VarChar(50)
+  createdAt                   DateTime?                     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                   DateTime?                     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  certifications              Certification[]
+  education                   Education[]
+  job_match_analysis          job_match_analysis[]
+  job_match_preferences       job_match_preferences?
+  jobOpportunities            JobOpportunity[]
+  skills                      Skill[]
+  skills_gap_analysis         skills_gap_analysis[]
+  skills_gap_analysis_history skills_gap_analysis_history[]
+  specialProjects             SpecialProject[]
+  workExperiences             WorkExperience[]
 
   @@index([userId], map: "idx_user_profiles_user_id")
   @@map("user_profiles")
@@ -167,53 +169,40 @@ model SpecialProject {
 }
 
 model JobOpportunity {
-  id                     String                @id @default(dbgenerated("uuid_generate_v4()"))
-  userId                 String                @map("user_id")
-  title                  String                @db.VarChar(255)
-  company                String                @db.VarChar(255)
-  location               String?               @db.VarChar(255)
-  salaryMin              String?               @map("salary_min") @db.VarChar(50)
-  salaryMax              String?               @map("salary_max") @db.VarChar(50)
-  postingUrl             String?               @map("posting_url")
-  deadline               DateTime?             @db.Date
-  description            String?
-  industry               String                @db.VarChar(100)
-  jobType                String                @map("job_type") @db.VarChar(50)
-  personalNotes          String?               @map("personal_notes")
-  salaryNegotiationNotes String?               @map("salary_negotiation_notes")
-  interviewNotes         String?               @map("interview_notes")
-  createdAt              DateTime?             @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt              DateTime?             @default(now()) @map("updated_at") @db.Timestamp(6)
-  currentStatus          application_status?   @default(interested) @map("current_status")
-<<<<<<< HEAD
-  company_id             String?               @db.Uuid
-  applicationHistory     ApplicationHistory[]
-  coverLetters           CoverLetter[]
-=======
-  companyId              String?               @map("company_id") @db.Uuid
-  applicationHistory     ApplicationHistory[]
-  cover_letters          cover_letters[]
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
-  interview_insights     interview_insights?
-  interviews             interviews[]
-  jobContacts            JobContact[]
-  job_match_analysis     job_match_analysis[]
-<<<<<<< HEAD
-  companies              companies?            @relation(fields: [company_id], references: [id], onUpdate: NoAction)
-=======
-  companyRef             Company?              @relation(fields: [companyId], references: [id], onUpdate: NoAction)
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
-  user_profiles          UserProfile           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
-  skills_gap_analysis    skills_gap_analysis[]
+  id                          String                        @id @default(dbgenerated("uuid_generate_v4()"))
+  userId                      String                        @map("user_id")
+  title                       String                        @db.VarChar(255)
+  company                     String                        @db.VarChar(255)
+  location                    String?                       @db.VarChar(255)
+  salaryMin                   String?                       @map("salary_min") @db.VarChar(50)
+  salaryMax                   String?                       @map("salary_max") @db.VarChar(50)
+  postingUrl                  String?                       @map("posting_url")
+  deadline                    DateTime?                     @db.Date
+  description                 String?
+  industry                    String                        @db.VarChar(100)
+  jobType                     String                        @map("job_type") @db.VarChar(50)
+  personalNotes               String?                       @map("personal_notes")
+  salaryNegotiationNotes      String?                       @map("salary_negotiation_notes")
+  interviewNotes              String?                       @map("interview_notes")
+  createdAt                   DateTime?                     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                   DateTime?                     @default(now()) @map("updated_at") @db.Timestamp(6)
+  currentStatus               application_status?           @default(interested) @map("current_status")
+  companyId                   String?                       @map("company_id") @db.Uuid
+  applicationHistory          ApplicationHistory[]
+  cover_letters               cover_letters[]
+  interview_insights          interview_insights?
+  interviews                  interviews[]
+  jobContacts                 JobContact[]
+  job_match_analysis          job_match_analysis[]
+  companyRef                  Company?                      @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+  user_profiles               UserProfile                   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  skills_gap_analysis         skills_gap_analysis[]
+  skills_gap_analysis_history skills_gap_analysis_history[]
 
   @@index([createdAt], map: "idx_job_opportunity_created_at")
   @@index([deadline], map: "idx_job_opportunity_deadline")
   @@index([userId], map: "idx_job_opportunity_user_id")
-<<<<<<< HEAD
-  @@index([company_id], map: "idx_job_opportunities_company_id")
-=======
   @@index([companyId], map: "idx_job_opportunities_company_id")
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   @@map("job_opportunity")
 }
 
@@ -279,27 +268,6 @@ model JobContact {
   @@map("job_contacts")
 }
 
-<<<<<<< HEAD
-model CoverLetter {
-  id             String          @id @default(dbgenerated("uuid_generate_v4()"))
-  userId         String          @map("user_id")
-  jobId          String?         @map("job_id")
-  title          String          @db.VarChar(255)
-  content        Json
-  tone           String?         @db.VarChar(50)
-  culture        String?         @db.VarChar(50)
-  createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt      DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  jobOpportunity JobOpportunity? @relation(fields: [jobId], references: [id], onUpdate: NoAction)
-
-  @@index([userId], map: "idx_cover_letters_user_id")
-  @@index([jobId], map: "idx_cover_letters_job_id")
-  @@map("cover_letters")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model companies {
-=======
 model cover_letters {
   id              String          @id @default(dbgenerated("uuid_generate_v4()"))
   user_id         String
@@ -317,7 +285,6 @@ model cover_letters {
 }
 
 model Company {
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   id                    String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name                  String           @db.VarChar(255)
   size                  String?          @db.VarChar(50)
@@ -326,28 +293,20 @@ model Company {
   website               String?          @db.VarChar(500)
   description           String?
   mission               String?
-<<<<<<< HEAD
-  logo_url              String?          @db.VarChar(500)
-  contact_info          Json?
-  glassdoor_rating      Decimal?         @db.Decimal(2, 1)
-  created_at            DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at            DateTime?        @default(now()) @db.Timestamp(6)
-=======
   logoUrl               String?          @map("logo_url") @db.VarChar(500)
   contactInfo           Json?            @map("contact_info")
   glassdoorRating       Decimal?         @map("glassdoor_rating") @db.Decimal(2, 1)
   createdAt             DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt             DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
   leadership            Json?
   products_and_services Json?
   competitive_landscape String?
   company_news          company_news[]
-<<<<<<< HEAD
-  job_opportunity       JobOpportunity[]
+  jobOpportunities      JobOpportunity[]
 
   @@index([industry], map: "idx_companies_industry")
   @@index([name], map: "idx_companies_name")
+  @@map("companies")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -366,19 +325,12 @@ model company_news {
   thumbnail_url   String?   @db.VarChar(1000)
   sentiment       String?   @db.VarChar(20)
   created_at      DateTime? @default(now()) @db.Timestamp(6)
-  updated_at      DateTime? @default(now()) @db.Timestamp(6)
-  companies       companies @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  companies       Company   @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([category], map: "idx_company_news_category")
   @@index([company_id], map: "idx_company_news_company_id")
   @@index([publish_date], map: "idx_company_news_publish_date")
-=======
-  jobOpportunities      JobOpportunity[]
-
-  @@index([industry], map: "idx_companies_industry")
-  @@index([name], map: "idx_companies_name")
-  @@map("companies")
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -405,26 +357,6 @@ model interview_insights {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-<<<<<<< HEAD
-model interviews {
-  id               String         @id @default(dbgenerated("uuid_generate_v4()"))
-  job_id           String
-  scheduled_date   DateTime       @db.Timestamptz(6)
-  interview_type   String         @db.VarChar(20)
-  duration_minutes Int?           @default(60)
-  status           String         @default("scheduled") @db.VarChar(20)
-  location         String?
-  meeting_link     String?
-  phone_number     String?        @db.VarChar(20)
-  interviewer_name String?        @db.VarChar(255)
-  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
-  job_opportunity  JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-=======
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 model job_match_analysis {
   id                      String         @id @default(dbgenerated("uuid_generate_v4()"))
   job_id                  String
@@ -439,13 +371,26 @@ model job_match_analysis {
   analysis_date           DateTime?      @default(now()) @db.Timestamp(6)
   created_at              DateTime?      @default(now()) @db.Timestamp(6)
   updated_at              DateTime?      @default(now()) @db.Timestamp(6)
+  weights_used            Json?
   job_opportunity         JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_profiles           UserProfile    @relation(fields: [user_id], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([job_id, user_id])
   @@index([analysis_date], map: "idx_job_match_analysis_date")
   @@index([job_id], map: "idx_job_match_analysis_job_id")
   @@index([user_id], map: "idx_job_match_analysis_user_id")
+  @@index([user_id, job_id, analysis_date(sort: Desc)], map: "idx_job_match_analysis_user_job_date")
+}
+
+model job_match_preferences {
+  user_id             String      @id
+  skills_weight       Decimal?    @default(1.00) @db.Decimal(5, 2)
+  experience_weight   Decimal?    @default(1.00) @db.Decimal(5, 2)
+  education_weight    Decimal?    @default(1.00) @db.Decimal(5, 2)
+  requirements_weight Decimal?    @default(1.00) @db.Decimal(5, 2)
+  custom_criteria     Json?
+  created_at          DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?   @default(now()) @db.Timestamp(6)
+  user_profile        UserProfile @relation(fields: [user_id], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -471,30 +416,27 @@ model skills_gap_analysis {
   @@index([user_id], map: "idx_skills_gap_analysis_user_id")
 }
 
-<<<<<<< HEAD
-=======
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model company_news {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  company_id      String    @db.Uuid
-  headline        String    @db.VarChar(500)
-  summary         String?
-  publish_date    DateTime  @db.Date
-  category        String    @db.VarChar(50)
-  source          String?   @db.VarChar(255)
-  url             String?   @db.VarChar(1000)
-  relevance_score Int?
-  key_points      Json?
-  thumbnail_url   String?   @db.VarChar(1000)
-  sentiment       String?   @db.VarChar(20)
-  created_at      DateTime? @default(now()) @db.Timestamp(6)
-  updated_at      DateTime? @default(now()) @db.Timestamp(6)
-  companies       Company   @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+/// This table stores historical snapshots of skills gap analyses to track progress over time
+model skills_gap_analysis_history {
+  id                        String         @id @default(dbgenerated("uuid_generate_v4()"))
+  job_id                    String
+  user_id                   String
+  matched_skills            Json           @map("matched_skills")
+  missing_skills            Json           @map("missing_skills")
+  weak_skills               Json           @map("weak_skills")
+  learning_resources        Json           @map("learning_resources")
+  prioritized_learning_path Json           @map("prioritized_learning_path")
+  overall_gap_score         Int            @map("overall_gap_score")
+  snapshot_date             DateTime       @default(now()) @map("snapshot_date") @db.Timestamp(6)
+  created_at                DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  job_opportunity           JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_profiles             UserProfile    @relation(fields: [user_id], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([category], map: "idx_company_news_category")
-  @@index([company_id], map: "idx_company_news_company_id")
-  @@index([publish_date], map: "idx_company_news_publish_date")
+  @@index([user_id], map: "idx_skills_gap_history_user_id")
+  @@index([job_id], map: "idx_skills_gap_history_job_id")
+  @@index([snapshot_date], map: "idx_skills_gap_history_snapshot_date")
+  @@index([user_id, job_id, snapshot_date(sort: Desc)], map: "idx_skills_gap_history_user_job_date")
+  @@map("skills_gap_analysis_history")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -514,7 +456,6 @@ model interviews {
   job_opportunity  JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
->>>>>>> 54ff17b0995a8ab35d8c54bd9cbb915d0a42e4dd
 enum application_status {
   interested
   applied

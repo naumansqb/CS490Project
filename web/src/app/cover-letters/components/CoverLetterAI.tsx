@@ -292,7 +292,7 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
           : experienceInstructions;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/cover-letter/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -375,7 +375,7 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
           : experienceInstructions;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/cover-letter/generate`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/cover-letter/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -410,7 +410,7 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
 
     setResearchingCompany(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/company-research`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/company-research`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -532,7 +532,7 @@ export default function CoverLetterAI({ userId, selectedLetter, selectedTemplate
 
     setLoadingSuggestions(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ai/editing-suggestions`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/editing-suggestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

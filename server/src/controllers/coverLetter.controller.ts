@@ -31,10 +31,10 @@ export const createCoverLetter = async (
       return;
     }
 
-    const coverLetter = await prisma.coverLetter.create({
+    const coverLetter = await prisma.cover_letters.create({
       data: {
-        userId,
-        jobId: jobId || null,
+        user_id: userId,
+        job_id: jobId || null,
         title,
         content,
         tone: tone || null,
@@ -64,10 +64,10 @@ export const getCoverLetter = async (
   try {
     const { id } = req.params;
 
-    const coverLetter = await prisma.coverLetter.findUnique({
+    const coverLetter = await prisma.cover_letters.findUnique({
       where: { id },
       include: {
-        jobOpportunity: true,
+        job_opportunity: true,
       },
     });
 
@@ -98,10 +98,10 @@ export const getCoverLettersByUserId = async (
   try {
     const { userId } = req.params;
 
-    const coverLetters = await prisma.coverLetter.findMany({
-      where: { userId },
+    const coverLetters = await prisma.cover_letters.findMany({
+      where: { user_id: userId },
       include: {
-        jobOpportunity: {
+        job_opportunity: {
           select: {
             id: true,
             title: true,
@@ -109,7 +109,7 @@ export const getCoverLettersByUserId = async (
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { created_at: "desc" },
     });
 
     res.status(200).json({
@@ -134,9 +134,9 @@ export const getCoverLettersByJobId = async (
   try {
     const { jobId } = req.params;
 
-    const coverLetters = await prisma.coverLetter.findMany({
-      where: { jobId },
-      orderBy: { createdAt: "desc" },
+    const coverLetters = await prisma.cover_letters.findMany({
+      where: { job_id: jobId },
+      orderBy: { created_at: "desc" },
     });
 
     res.status(200).json({
@@ -162,7 +162,7 @@ export const updateCoverLetter = async (
     const { id } = req.params;
     const { title, content, tone, culture } = req.body;
 
-    const coverLetter = await prisma.coverLetter.findUnique({
+    const coverLetter = await prisma.cover_letters.findUnique({
       where: { id },
     });
 
@@ -171,7 +171,7 @@ export const updateCoverLetter = async (
       return;
     }
 
-    const updated = await prisma.coverLetter.update({
+    const updated = await prisma.cover_letters.update({
       where: { id },
       data: {
         title: title || coverLetter.title,
@@ -203,7 +203,7 @@ export const deleteCoverLetter = async (
   try {
     const { id } = req.params;
 
-    const coverLetter = await prisma.coverLetter.findUnique({
+    const coverLetter = await prisma.cover_letters.findUnique({
       where: { id },
     });
 
@@ -212,7 +212,7 @@ export const deleteCoverLetter = async (
       return;
     }
 
-    await prisma.coverLetter.delete({
+    await prisma.cover_letters.delete({
       where: { id },
     });
 
