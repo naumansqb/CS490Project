@@ -22,6 +22,23 @@ import { resumeSchema } from "./llm/schemas/resume.schema";
 import { coverLetterSchema } from "./llm/schemas/coverLetter.schema";
 import { resumeParserSchema } from "./llm/schemas/resumeParser.schema";
 
+import {
+  CompanyResearchInput,
+  CompanyNewsInput,
+  CompanyResearchResult,
+  CompanyNewsResult,
+} from "../types/company.types";
+import {
+  buildCompanyResearchPrompt,
+  companyResearchSystemPrompt,
+  buildCompanyNewsPrompt,
+  companyNewsSystemPrompt,
+} from "./llm/prompts/company.prompts";
+import {
+  companyResearchSchema,
+  companyNewsSchema,
+} from "./llm/schemas/company.schema";
+
 export class AIService {
   private llmProvider: GeminiProvider;
 
@@ -85,6 +102,49 @@ export class AIService {
     } catch (error) {
       console.error("[AI Service - Resume Parsing Error]", error);
       throw new Error("Failed to parse resume");
+    }
+  }
+
+  async researchCompany(
+    input: CompanyResearchInput
+  ): Promise<CompanyResearchResult> {
+    try {
+      const prompt = buildCompanyResearchPrompt(input);
+
+      const response = await this.llmProvider.generate<CompanyResearchResult>({
+        prompt,
+        systemPrompt: companyResearchSystemPrompt,
+        jsonSchema: companyResearchSchema,
+        temperature: 0.4, // Lower temperature for factual accuracy
+        maxTokens: 4000,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Company Research Error]", error);
+      throw new Error("Failed to research company");
+    }
+  }
+
+  /**
+   * Get recent company news and updates
+   */
+  async getCompanyNews(input: CompanyNewsInput): Promise<CompanyNewsResult> {
+    try {
+      const prompt = buildCompanyNewsPrompt(input);
+
+      const response = await this.llmProvider.generate<CompanyNewsResult>({
+        prompt,
+        systemPrompt: companyNewsSystemPrompt,
+        jsonSchema: companyNewsSchema,
+        temperature: 0.5, // Moderate temperature for balanced analysis
+        maxTokens: 3500,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Company News Error]", error);
+      throw new Error("Failed to fetch company news");
     }
   }
 }
