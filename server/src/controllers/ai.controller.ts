@@ -126,7 +126,24 @@ export const generateCoverLetter = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { userId, jobId } = req.body;
+    const {
+      userId,
+      jobId,
+      tone,
+      culture,
+      length,
+      writingStyle,
+      customInstructions,
+      personalityLevel,
+      // Company research overrides (optional)
+      companyBackground,
+      recentNews,
+      companyMission,
+      companyInitiatives,
+      companySize,
+      fundingInfo,
+      competitiveLandscape
+    } = req.body;
 
     if (!userId) {
       sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
@@ -178,6 +195,15 @@ export const generateCoverLetter = async (
         title: job.title,
         company: job.company,
         description: job.description || "",
+        industry: job.industry || undefined,
+        // Use provided research if available, otherwise use job data
+        companyBackground: companyBackground || job.companyBackground || undefined,
+        recentNews: recentNews || job.recentNews || undefined,
+        companyMission: companyMission || job.companyMission || undefined,
+        companyInitiatives: companyInitiatives || job.companyInitiatives || undefined,
+        companySize: companySize || job.companySize || undefined,
+        fundingInfo: fundingInfo || job.fundingInfo || undefined,
+        competitiveLandscape: competitiveLandscape || job.competitiveLandscape || undefined,
       },
       relevantExperience: userProfile.workExperiences
         .slice(0, 3)
@@ -186,6 +212,12 @@ export const generateCoverLetter = async (
             `${exp.positionTitle} at ${exp.companyName}: ${exp.description}`
         ),
       relevantSkills: userProfile.skills.slice(0, 10).map((s) => s.skillName),
+      tone: tone || "formal",
+      culture: culture || "corporate",
+      length: length || "standard",
+      writingStyle: writingStyle || "direct",
+      customInstructions: customInstructions || undefined,
+      personalityLevel: personalityLevel || "moderate",
     };
 
     const coverLetter = await aiService.generateCoverLetter(coverLetterInput);
@@ -477,66 +509,172 @@ export const parseResumeFromFile = async (
   }
 };
 
-export const extractJobFromUrl = async (
+export const researchCompany = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { url } = req.body;
+    const { companyName, industry } = req.body;
 
-    if (!url) {
-      sendErrorResponse(res, 400, "VALIDATION_ERROR", "URL is required", [
-        { field: "url", message: "URL is required" },
+    if (!companyName) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Company name is required", [
+        { field: "companyName", message: "Company name is required" },
       ]);
       return;
     }
 
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch {
-      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Invalid URL format", [
-        { field: "url", message: "Invalid URL format" },
-      ]);
-      return;
-    }
+    console.log(`[Company Research] Researching: ${companyName}`);
 
-    // Fetch HTML from URL using CORS proxy
-    const corsProxy = "https://api.allorigins.win/raw?url=";
-    const targetUrl = encodeURIComponent(url);
-    
-    let html: string;
-    try {
-      const response = await fetch(corsProxy + targetUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch URL: ${response.statusText}`);
-      }
-      html = await response.text();
-    } catch (error) {
-      sendErrorResponse(
-        res,
-        500,
-        "FETCH_ERROR",
-        "Failed to fetch job posting content",
-        [{ field: "url", message: "Unable to access the provided URL" }]
-      );
-      return;
-    }
-
-    // Extract job data using AI service
-    const extractedData = await aiService.extractJobData(html);
+    // Use AI to research the company
+    const companyResearch = await aiService.researchCompany({
+      companyName,
+      industry: industry || undefined,
+    });
 
     res.status(200).json({
       success: true,
-      data: extractedData,
+      data: companyResearch,
     });
-  } catch (error) {
-    console.error("[Extract Job Error]", error);
+  } catch (error: any) {
+    console.error("[Research Company Error]", error);
     sendErrorResponse(
       res,
       500,
       "INTERNAL_ERROR",
-      "Failed to extract job data from URL"
+      error.message || "Failed to research company"
+    );
+  }
+};
+
+export const getEditingSuggestions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { content, type } = req.body;
+
+    if (!content) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Content is required", [
+        { field: "content", message: "Content is required" },
+      ]);
+      return;
+    }
+
+    if (!type) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Type is required", [
+        { field: "type", message: "Type is required" },
+      ]);
+      return;
+    }
+
+    console.log(`[Editing Suggestions] Analyzing ${type} content`);
+
+    // Get AI editing suggestions
+    const suggestions = await aiService.getEditingSuggestions({
+      content,
+      type,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: suggestions,
+    });
+  } catch (error: any) {
+    console.error("[Get Editing Suggestions Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to get editing suggestions"
+    );
+  }
+};
+
+export const analyzeExperienceRelevance = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { userId, jobId } = req.body;
+
+    if (!userId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "User ID is required", [
+        { field: "userId", message: "User ID is required" },
+      ]);
+      return;
+    }
+
+    if (!jobId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Job ID is required", [
+        { field: "jobId", message: "Job ID is required" },
+      ]);
+      return;
+    }
+
+    console.log(`[Experience Analysis] Analyzing experiences for user ${userId} and job ${jobId}`);
+
+    // Fetch user profile with experiences
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: {
+          orderBy: { displayOrder: "asc" },
+        },
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "User profile not found");
+      return;
+    }
+
+    if (!userProfile.workExperiences || userProfile.workExperiences.length === 0) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "No work experiences found for user"
+      );
+      return;
+    }
+
+    // Fetch job opportunity
+    const job = await prisma.jobOpportunity.findUnique({
+      where: { id: jobId },
+    });
+
+    if (!job) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Job not found");
+      return;
+    }
+
+    // Format experiences for AI analysis
+    const experiences = userProfile.workExperiences.map((exp) => ({
+      positionTitle: exp.positionTitle,
+      companyName: exp.companyName,
+      startDate: exp.startDate.toISOString().split('T')[0],
+      endDate: exp.endDate ? exp.endDate.toISOString().split('T')[0] : null,
+      description: exp.description || "",
+    }));
+
+    // Analyze experience relevance using AI
+    const analysis = await aiService.analyzeExperienceRelevance({
+      experiences,
+      jobDescription: job.description || "",
+      jobTitle: job.title,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: analysis,
+    });
+  } catch (error: any) {
+    console.error("[Analyze Experience Relevance Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to analyze experience relevance"
     );
   }
 };

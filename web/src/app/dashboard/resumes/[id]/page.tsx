@@ -4,7 +4,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, AlertCircle, Edit } from 'lucide-react';
 import { resumeApi, ResumeDetail } from '@/lib/resume.api';
-import ResumeExportMenu from '@/components/ResumeExportMenu';
 
 export default function ViewResumePage() {
     const router = useRouter();
@@ -672,19 +671,13 @@ export default function ViewResumePage() {
                         Back to Resumes
                     </button>
 
-                    <div className="flex gap-3">
-                        <ResumeExportMenu
-                            resumeName={resume?.name || 'Resume'}
-                            htmlContent={resumeRef.current?.innerHTML || ''}
-                        />
-                        <button
-                            onClick={() => router.push(`/dashboard/resumes/${resumeId}/edit`)}
-                            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium transition-colors shadow"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Edit Resume
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => router.push(`/dashboard/resumes/${resumeId}/edit`)}
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium transition-colors shadow"
+                    >
+                        <Edit className="w-4 h-4" />
+                        Edit Resume
+                    </button>
                 </div>
 
                 {/* Resume Preview */}

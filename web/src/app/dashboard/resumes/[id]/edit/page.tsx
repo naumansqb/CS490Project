@@ -17,7 +17,6 @@ import { resumeApi, ResumeDetail } from '@/lib/resume.api';
 import { useAuth } from '@/contexts/AuthContext';
 import AIResumeGenerationModal from '@/components/AIResumeGenerationModal';
 import { TailoredResumeContent } from '@/lib/ai.api';
-import ResumeExportMenu from '@/components/ResumeExportMenu';
 import ResumeSectionCustomizer, { ResumeSection } from '@/components/ResumeSectionCustomizer';
 
 // Default section configuration
@@ -705,10 +704,6 @@ export default function EditResumePage() {
                                 Back to Resumes
                             </button>
                             <div className="flex items-center gap-3">
-                                <ResumeExportMenu
-                                    resumeName={resume?.name || 'Resume'}
-                                    htmlContent={editorRef.current?.innerHTML || ''}
-                                />
                                 <button
                                     onClick={() => setShowAIModal(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg font-medium shadow-md transition-all"
