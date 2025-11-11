@@ -26,17 +26,17 @@ export default function UserFooter() {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            if (!firebase?.uid) return; 
-          
+            if (!firebase?.uid) return;
+
             try {
               const token = await firebase.getIdToken?.();
               const headers: Record<string, string> = {};
               if (token) headers.Authorization = `Bearer ${token}`;
-          
+
               const data = await apiClient.fetch(`/user-profiles/${firebase.uid}`, {
                 headers,
               }) as Record<string, any>;
-          
+
               setUser(data);
               console.log("Fetched profile data:", data);
             } catch (error: any) {
@@ -46,7 +46,7 @@ export default function UserFooter() {
               });
             }
           };
-        
+
         fetchProfile();
     }, []);
 
