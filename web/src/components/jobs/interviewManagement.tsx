@@ -178,24 +178,35 @@ export default function InterviewManagement({
 
       const payload = {
         jobId: jobId,
-        scheduled_date: scheduledDateTime,  // camelCase for API
-        interview_type: formData.interview_type,  // camelCase for API
-        duration_minutes: formData.duration_minutes,  // camelCase for API
+        scheduledDate: scheduledDateTime,  
+        interviewType: formData.interview_type,  
+        duration_minutes: formData.duration_minutes,  
         status: formData.status,
         location: formData.location || undefined,
-        meeting_link: formData.meeting_link || undefined,  // camelCase for API
-        phone_number: formData.phone_number || undefined,  // camelCase for API
-        interviewer_name: formData.interviewer_name || undefined,  // camelCase for API
+        meeting_link: formData.meeting_link || undefined,  
+        phone_number: formData.phone_number || undefined,  
+        interviewer_name: formData.interviewer_name || undefined,  
+      };
+
+      const updatePayload = {
+        scheduled_date: scheduledDateTime,  
+        interview_type: formData.interview_type,  
+        duration_minutes: formData.duration_minutes,  
+        status: formData.status,
+        location: formData.location || undefined,
+        meeting_link: formData.meeting_link || undefined,  
+        phone_number: formData.phone_number || undefined,  
+        interviewer_name: formData.interviewer_name || undefined,  
       };
 
       if (isEditing && interview) {
         // Update existing interview - remove jobId from payload
-        const { jobId: _, ...updatePayload } = payload;
         const updatedInterview = await updateInterview(interview.id, updatePayload);
         setInterview(updatedInterview);
         setSuccessMessage('Interview updated successfully');
       } else {
         // Create new interview - use full payload with jobId
+        console.log('Creating interview with payload:', payload);
         const newInterview = await createInterview(payload);
         setInterview(newInterview);
         setSuccessMessage('Interview scheduled successfully');
