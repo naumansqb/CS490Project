@@ -11,30 +11,22 @@ const app: Application = express();
 initializeFirebaseAdmin();
 
 app.use(helmet());
-// app.use(
-//   cors({
-//     origin: process.env.CLIENT_URL || "http://localhost:3000",
-//     credentials: true,
-//   })
-// );
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, etc.)
-      if (!origin) return callback(null, true);
-
-      // Allow all origins (since many clients on localhost:3000 but different hosts)
-      if (origin.startsWith("http://localhost:3000")) {
-        return callback(null, true);
-      }
-
-      // Otherwise, reject
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true, // needed for cookies, Authorization headers, etc.
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
   })
 );
+
+// app.use(cors({
+//   origin: [
+//     'http://localhost:3000',
+//     'http://localhost:3001', // if anyone uses different port
+//     // Add any other origins your groupmates might use
+//   ],
+//   credentials: true, // This is CRITICAL - allows cookies
+//   optionsSuccessStatus: 200
+// }));
 
 app.use(morgan("dev"));
 app.use(express.json());
