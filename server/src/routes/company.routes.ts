@@ -2,6 +2,7 @@
 import { Router } from "express";
 import * as companyController from "../controllers/company.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { auth } from "firebase-admin";
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.delete("/:id", authMiddleware, companyController.deleteCompany);
 
 // Research company using AI
 router.post("/research", companyController.researchCompany);
+router.get("/:companyId/research/export", companyController.exportCompanyResearch);
 
 // Get recent company news and updates
 router.post("/news", companyController.getCompanyNews);

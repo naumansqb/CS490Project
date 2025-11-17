@@ -22,9 +22,10 @@ import {
   Bell,
   BellOff,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Download  
 } from 'lucide-react';
-import { checkFollowStatus, followCompany, unfollowCompany } from '@/lib/company.api';
+import { checkFollowStatus, followCompany, unfollowCompany, exportCompanyProfile  } from '@/lib/company.api';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Company data interface matching our AI output
@@ -79,6 +80,7 @@ export default function CompanyProfile({
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followStatusLoading, setFollowStatusLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Check follow status when component mounts or companyId changes
   useEffect(() => {
@@ -129,6 +131,24 @@ export default function CompanyProfile({
       setFollowLoading(false);
     }
   };
+
+    const handleExport = async () => {
+  if (!companyId) {
+    alert('Company data must be saved before exporting.');
+    return;
+  }
+  
+  try {
+    setExportLoading(true);
+    await exportCompanyProfile(companyId); // No need to handle blob manually now
+  } catch (error) {
+    console.error('[Company Profile] Failed to export:', error);
+    alert('Failed to export company profile. Please try again.');
+  } finally {
+    setExportLoading(false);
+  }
+};
+
   // Show loading state
   if (loading) {
     return (
@@ -228,6 +248,23 @@ export default function CompanyProfile({
           </CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            {companyId && (
+              <Button
+                onClick={handleExport}
+                disabled={exportLoading || loading}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                title="Export company profile as PDF"
+              >
+                {exportLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Download size={16} />
+                )}
+                Export
+              </Button>
+            )}
             {onRefresh && (
               <Button
                 onClick={onRefresh}
