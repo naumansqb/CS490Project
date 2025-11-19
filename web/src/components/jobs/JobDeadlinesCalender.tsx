@@ -9,6 +9,7 @@ import { getJobOpportunitiesByUserId } from '@/lib/jobs.api';
 import { Job } from '@/types/jobs.types';
 import UpcomingDeadlines from './UpComingDeadlines';
 import { getUserInterviews, InterviewWithJob } from '@/lib/interviews.api';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function JobDeadlinesCalendar() {
   const { user } = useAuth(); 
@@ -17,6 +18,7 @@ export default function JobDeadlinesCalendar() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); 
   const [interviews, setInterviews] = useState<InterviewWithJob[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
   const loadData = async () => {
@@ -343,7 +345,8 @@ const interviewsByDate = useMemo(() => {
             {selectedDateData.interviews.map(interview => (
               <div
                 key={interview.id}
-                className="p-3 border border-green-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all bg-green-50"
+                className="p-3 border border-green-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all bg-green-50 cursor-pointer"
+                onClick={() => router.push(`/jobs/${user?.uid}?jobId=${interview.job_opportunity.id}`)}
               >
                 <h5 className="font-semibold text-gray-900 mb-1">
                   {interview.job_opportunity.title}

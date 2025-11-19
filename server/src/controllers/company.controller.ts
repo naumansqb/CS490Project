@@ -1757,3 +1757,323 @@ export const getNewsAlerts = async (
     );
   }
 };
+
+/**
+ * Export company research as PDF
+ * GET /companies/:companyId/research/export
+ */
+/**
+ * Export company research as PDF
+ * GET /companies/:companyId/research/export
+ */
+export const exportCompanyResearch = async (
+  req: Request<{ companyId: string }, {}, {}, {}>,
+  res: Response
+): Promise<void> => {
+  console.log("Test")
+  try {
+    console.log("[Export Company Research] Starting export");
+    console.log("[Export Company Research] Params:", req.params);
+    console.log("[Export Company Research] User:", (req as any).user);
+    console.log("[Export Company Research] Headers:", req.headers);
+    const { companyId } = req.params;
+    const userId = (req as any).user?.uid;
+
+    if (!companyId) {
+      sendErrorResponse(res, 400, "INVALID_INPUT", "Company ID is required");
+      return;
+    }
+
+    // Fetch company research from database
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Company research not found");
+      return;
+    }
+
+    // Verify user has access by checking if they have a job associated with this company
+    const job = await prisma.jobOpportunity.findFirst({
+      where: {
+        userId: userId,
+        company: company.name,
+      },
+    });
+
+    if (!job) {
+      sendErrorResponse(
+        res, 
+        403, 
+        "FORBIDDEN", 
+        "You don't have access to this company's research. You must have a job opportunity associated with this company."
+      );
+      return;
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateCompanyResearchPDF(company);
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${sanitizeFilename(company.name)}-research.pdf"`
+    );
+
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("[Export Company Research] Error:", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error instanceof Error
+        ? error.message
+        : "Failed to export company research"
+    );
+  }
+};
+
+/**
+ * Helper function to generate company research PDF (async version)
+ */
+async function generateCompanyResearchPDF(companyData: any): Promise<Buffer> {
+  const PDFDocument = require("pdfkit");
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    // Title
+    doc
+      .fontSize(24)
+      .font("Helvetica-Bold")
+      .text(companyData.name || "Company Research", {
+        align: "center",
+      });
+
+    doc.moveDown();
+    doc
+      .fontSize(12)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleDateString()}`, {
+        align: "center",
+      });
+
+    doc.moveDown(2);
+
+    // Basic Information Section
+    doc.fontSize(16).font("Helvetica-Bold").text("Company Overview");
+    doc.moveDown(0.5);
+
+    if (companyData.size) {
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Company Size: ", { continued: true })
+        .font("Helvetica")
+        .text(`${companyData.size} employees`);
+    }
+
+    if (companyData.industry) {
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Industry: ", { continued: true })
+        .font("Helvetica")
+        .text(companyData.industry);
+    }
+
+    if (companyData.location) {
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Headquarters: ", { continued: true })
+        .font("Helvetica")
+        .text(companyData.location);
+    }
+
+    if (companyData.website) {
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Website: ", { continued: true })
+        .font("Helvetica")
+        .fillColor("blue")
+        .text(companyData.website, { link: companyData.website })
+        .fillColor("black");
+    }
+
+    if (companyData.glassdoorRating) {
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Glassdoor Rating: ", { continued: true })
+        .font("Helvetica")
+        .text(`${Number(companyData.glassdoorRating).toFixed(1)} / 5.0`);
+    }
+
+    doc.moveDown(1.5);
+
+    // Description
+    if (companyData.description) {
+      doc.fontSize(16).font("Helvetica-Bold").text("About");
+      doc.moveDown(0.5);
+      doc
+        .fontSize(11)
+        .font("Helvetica")
+        .text(companyData.description, { align: "justify" });
+      doc.moveDown(1.5);
+    }
+
+    // Mission
+    if (companyData.mission) {
+      doc.fontSize(16).font("Helvetica-Bold").text("Mission & Values");
+      doc.moveDown(0.5);
+      doc
+        .fontSize(11)
+        .font("Helvetica-Oblique")
+        .text(companyData.mission, { align: "justify" });
+      doc.moveDown(1.5);
+    }
+
+    // Products & Services - from Json field
+    const productsAndServices = companyData.products_and_services;
+    if (productsAndServices && Array.isArray(productsAndServices) && productsAndServices.length > 0) {
+      doc.fontSize(16).font("Helvetica-Bold").text("Products & Services");
+      doc.moveDown(0.5);
+      productsAndServices.forEach((product: string) => {
+        doc.fontSize(11).font("Helvetica").text(`• ${product}`);
+      });
+      doc.moveDown(1.5);
+    }
+
+    // Leadership - from Json field
+    const leadership = companyData.leadership;
+    if (leadership && Array.isArray(leadership) && leadership.length > 0) {
+      doc.fontSize(16).font("Helvetica-Bold").text("Leadership Team");
+      doc.moveDown(0.5);
+      leadership.forEach((leader: any) => {
+        doc
+          .fontSize(11)
+          .font("Helvetica-Bold")
+          .text(leader.name, { continued: true })
+          .font("Helvetica")
+          .text(` - ${leader.title}`);
+      });
+      doc.moveDown(1.5);
+    }
+
+    // Market Position
+    if (companyData.competitive_landscape) {
+      doc.fontSize(16).font("Helvetica-Bold").text("Market Position");
+      doc.moveDown(0.5);
+      doc
+        .fontSize(11)
+        .font("Helvetica")
+        .text(companyData.competitive_landscape, { align: "justify" });
+      doc.moveDown(1.5);
+    }
+
+    // Contact Information - from Json field
+    const contactInfo = companyData.contactInfo;
+    if (contactInfo) {
+      const hasContact = contactInfo.email || contactInfo.phone || contactInfo.address;
+      
+      if (hasContact) {
+        doc.fontSize(16).font("Helvetica-Bold").text("Contact Information");
+        doc.moveDown(0.5);
+
+        if (contactInfo.email) {
+          doc
+            .fontSize(11)
+            .font("Helvetica-Bold")
+            .text("Email: ", { continued: true })
+            .font("Helvetica")
+            .fillColor("blue")
+            .text(contactInfo.email, {
+              link: `mailto:${contactInfo.email}`,
+            })
+            .fillColor("black");
+        }
+
+        if (contactInfo.phone) {
+          doc
+            .fontSize(11)
+            .font("Helvetica-Bold")
+            .text("Phone: ", { continued: true })
+            .font("Helvetica")
+            .text(contactInfo.phone);
+        }
+
+        if (contactInfo.address) {
+          doc
+            .fontSize(11)
+            .font("Helvetica-Bold")
+            .text("Address: ", { continued: true })
+            .font("Helvetica")
+            .text(contactInfo.address);
+        }
+
+        doc.moveDown(1.5);
+      }
+    }
+
+    // Social Media - from Json field (if it exists in contactInfo)
+    if (contactInfo && (contactInfo.linkedin || contactInfo.twitter)) {
+      doc.fontSize(16).font("Helvetica-Bold").text("Social Media");
+      doc.moveDown(0.5);
+
+      if (contactInfo.linkedin) {
+        doc
+          .fontSize(11)
+          .font("Helvetica-Bold")
+          .text("LinkedIn: ", { continued: true })
+          .font("Helvetica")
+          .fillColor("blue")
+          .text(contactInfo.linkedin, {
+            link: contactInfo.linkedin,
+          })
+          .fillColor("black");
+      }
+
+      if (contactInfo.twitter) {
+        doc
+          .fontSize(11)
+          .font("Helvetica-Bold")
+          .text("Twitter: ", { continued: true })
+          .font("Helvetica")
+          .fillColor("blue")
+          .text(contactInfo.twitter, {
+            link: contactInfo.twitter,
+          })
+          .fillColor("black");
+      }
+    }
+
+    // Footer
+    doc.moveDown(2);
+    doc
+      .fontSize(10)
+      .font("Helvetica-Oblique")
+      .fillColor("gray")
+      .text("Generated by JobBuddy - Your AI Job Application Assistant", {
+        align: "center",
+      });
+
+    doc.end();
+  });
+}
+
+function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[^a-z0-9]/gi, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase();
+}
