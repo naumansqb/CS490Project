@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import QuestionResponseModal from './interviewPrep/QuestionResponseModal';
 import { Button } from '../ui/button';
+import { analyzeInterviewResponse, ResponseAnalysis } from '@/lib/interviews.api';
 
 // Type definitions matching the backend schema
 export interface InterviewInsightsData {
@@ -101,14 +102,47 @@ export default function InterviewPrepDashboard({
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [responseModalOpen, setResponseModalOpen] = useState(false);
 
-  const handleSubmitResponse = async (response: string) => {
-    console.log('User response:', response);
-    console.log('Question:', selectedQuestion);
-    
-    // TODO: This is where we'll call the AI API next
-    // For now, just show a success message
-    alert('Response submitted! AI feedback will be shown here.');
-  };
+  const handleSubmitResponse = async (response: string): Promise<ResponseAnalysis> => {
+  if (!selectedQuestion) {
+    // must return a valid ResponseAnalysis — never undefined
+    return {
+      score: 0,
+      strengths: [],
+      improvements: [],
+      starFrameworkUsed: false,
+      detailedFeedback: "No question was selected for analysis.",
+      alternativeApproaches: []
+    };
+  }
+
+  try {
+    const result = await analyzeInterviewResponse({
+      question: selectedQuestion.question,
+      questionCategory: selectedQuestion.category,
+      response: response,
+      jobTitle: jobTitle,
+      companyName: companyName,
+    });
+
+    if (!result.success || !result.data) {
+      throw new Error(result.error || "Invalid response from analysis API");
+    }
+
+    //console.log('[Interview Response] Analysis Result:', result.data);
+    return result.data;   // valid ResponseAnalysis
+  } catch (error) {
+    console.error('[Interview Response] Error:', error);
+
+    return {
+      score: 0,
+      strengths: [],
+      improvements: [],
+      starFrameworkUsed: false,
+      detailedFeedback: "An error occurred while analyzing the response.",
+      alternativeApproaches: []
+    };
+  }
+};
 
   // Loading state
   if (loading) {
@@ -698,17 +732,19 @@ export default function InterviewPrepDashboard({
           </p>
         </div>
       </CardContent>
-      {/* Add this before the final </Card> closing tag */}
+
       {selectedQuestion && (
-        <QuestionResponseModal
-          isOpen={responseModalOpen}
-          onClose={() => {
-            setResponseModalOpen(false);
-            setSelectedQuestion(null);
-          }}
-          question={selectedQuestion}
-          onSubmit={handleSubmitResponse}
-        />
+       <QuestionResponseModal
+        isOpen={responseModalOpen}
+        onClose={() => {
+          setResponseModalOpen(false);
+          setSelectedQuestion(null);
+        }}
+        question={selectedQuestion}
+        jobTitle={jobTitle}
+        companyName={companyName}
+        onSubmit={handleSubmitResponse}
+      />
       )}
     </Card>
   );
