@@ -19,8 +19,12 @@ import {
   TrendingUp,
   Shield,
   Info,
-  HelpCircle
+  HelpCircle,
+  Edit3
 } from 'lucide-react';
+import QuestionResponseModal from './interviewPrep/QuestionResponseModal';
+import { Button } from '../ui/button';
+import { analyzeInterviewResponse, ResponseAnalysis } from '@/lib/interviews.api';
 
 // Type definitions matching the backend schema
 export interface InterviewInsightsData {
@@ -95,6 +99,50 @@ export default function InterviewPrepDashboard({
 }: InterviewPrepDashboardProps) {
   const [activeTab, setActiveTab] = useState('process');
   const [selectedQuestionCategory, setSelectedQuestionCategory] = useState<string | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  const [responseModalOpen, setResponseModalOpen] = useState(false);
+
+  const handleSubmitResponse = async (response: string): Promise<ResponseAnalysis> => {
+  if (!selectedQuestion) {
+    // must return a valid ResponseAnalysis — never undefined
+    return {
+      score: 0,
+      strengths: [],
+      improvements: [],
+      starFrameworkUsed: false,
+      detailedFeedback: "No question was selected for analysis.",
+      alternativeApproaches: []
+    };
+  }
+
+  try {
+    const result = await analyzeInterviewResponse({
+      question: selectedQuestion.question,
+      questionCategory: selectedQuestion.category,
+      response: response,
+      jobTitle: jobTitle,
+      companyName: companyName,
+    });
+
+    if (!result.success || !result.data) {
+      throw new Error(result.error || "Invalid response from analysis API");
+    }
+
+    //console.log('[Interview Response] Analysis Result:', result.data);
+    return result.data;   // valid ResponseAnalysis
+  } catch (error) {
+    console.error('[Interview Response] Error:', error);
+
+    return {
+      score: 0,
+      strengths: [],
+      improvements: [],
+      starFrameworkUsed: false,
+      detailedFeedback: "An error occurred while analyzing the response.",
+      alternativeApproaches: []
+    };
+  }
+};
 
   // Loading state
   if (loading) {
@@ -425,7 +473,7 @@ export default function InterviewPrepDashboard({
                         </Badge>
                       </div>
                       <h4 className="font-medium text-gray-900 mb-2">{question.question}</h4>
-                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
                         <div className="flex items-start gap-2">
                           <Lightbulb size={16} className="text-yellow-600 shrink-0 mt-0.5" />
                           <div>
@@ -434,6 +482,18 @@ export default function InterviewPrepDashboard({
                           </div>
                         </div>
                       </div>
+                      {/* ADD THIS NEW BUTTON */}
+                      <Button
+                        onClick={() => {
+                          setSelectedQuestion(question);
+                          setResponseModalOpen(true);
+                        }}
+                        size="sm"
+                        className="bg-[#3bafba] hover:bg-[#34a0ab] flex items-center gap-2"
+                      >
+                        <Edit3 size={16} />
+                        Practice Response
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -672,6 +732,20 @@ export default function InterviewPrepDashboard({
           </p>
         </div>
       </CardContent>
+
+      {selectedQuestion && (
+       <QuestionResponseModal
+        isOpen={responseModalOpen}
+        onClose={() => {
+          setResponseModalOpen(false);
+          setSelectedQuestion(null);
+        }}
+        question={selectedQuestion}
+        jobTitle={jobTitle}
+        companyName={companyName}
+        onSubmit={handleSubmitResponse}
+      />
+      )}
     </Card>
   );
 }

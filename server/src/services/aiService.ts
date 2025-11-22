@@ -60,6 +60,7 @@ import {
   interviewInsightsSystemPrompt,
 } from "./llm/prompts/interviewInsights.prompts";
 import { interviewInsightsSchema } from "./llm/schemas/interviewInsights.schema";
+import { buildAnalysisPrompt } from "./llm/prompts/interviewPrep.prompts";
 
 export class AIService {
   private llmProvider: GeminiProvider;
@@ -641,6 +642,59 @@ GUIDELINES:
       throw new Error(`Failed to extract job from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  /**
+ * Analyze a candidate's response to an interview question
+ */
+async analyzeInterviewResponse(input: {
+  question: string;
+  questionCategory: string;
+  response: string;
+  jobTitle?: string;
+  companyName?: string;
+}): Promise<any> {
+  try {
+    const { question, questionCategory, response, jobTitle, companyName } = input;
+
+    const prompt = buildAnalysisPrompt(
+      question,
+      questionCategory,
+      response,
+      jobTitle,
+      companyName
+    );
+
+    // 1. Define the schema to match your Interface
+    // This triggers the Provider to use JSON mode + Parsing + Repair logic
+    const analysisSchema = {
+      type: "object",
+      properties: {
+        score: { type: "number" },
+        strengths: { type: "array", items: { type: "string" } },
+        improvements: { type: "array", items: { type: "string" } },
+        starFrameworkUsed: { type: "boolean" },
+        detailedFeedback: { type: "string" },
+        alternativeApproaches: { type: "array", items: { type: "string" } }
+      },
+      required: ["score", "strengths", "improvements", "detailedFeedback"]
+    };
+
+    const aiResponse = await this.llmProvider.generate({
+      prompt,
+      systemPrompt: "You are an expert interview coach who provides structured JSON feedback.",
+      temperature: 0.3,
+      maxTokens: 4000,
+      jsonSchema: analysisSchema // <--- ADDING THIS FIXES EVERYTHING
+    });
+
+    // Now aiResponse.content is guaranteed to be an Object, not a String
+    return aiResponse.content;
+    
+  } catch (error) {
+    console.error("[AI Service - Interview Response Analysis Error]", error);
+    throw new Error("Failed to analyze interview response");
+  }
+}
 
 }
 

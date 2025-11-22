@@ -123,3 +123,49 @@ export const cancelInterview = async (id: string): Promise<Interview> => {
     method: "PATCH",
   }) as Promise<Interview>;
 };
+
+// Types for interview response analysis
+export interface AnalyzeResponseInput {
+  question: string;
+  questionCategory: 'technical' | 'behavioral' | 'cultural' | 'situational';
+  response: string;
+  jobTitle?: string;
+  companyName?: string;
+}
+
+export interface ResponseAnalysis {
+  score: number; // 0-100
+  strengths: string[];
+  improvements: string[];
+  starFrameworkUsed: boolean;
+  detailedFeedback: string;
+  alternativeApproaches?: string[];
+}
+
+export interface AnalyzeResponseResponse {
+  success: boolean;
+  data: ResponseAnalysis;
+  error?: string;
+}
+
+/**
+ * Analyze a user's interview response using AI
+ */
+export async function analyzeInterviewResponse(
+  input: AnalyzeResponseInput
+): Promise<AnalyzeResponseResponse> {
+  try {
+    const response = await apiClient.fetch<AnalyzeResponseResponse>(
+      '/ai/interview/analyze',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    );
+
+    return response;
+  } catch (error: any) {
+    console.error('[Interview API] Failed to analyze response:', error);
+    throw error;
+  }
+}
