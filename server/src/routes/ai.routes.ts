@@ -49,5 +49,20 @@ router.get("/skills-gap/trends", authMiddleware, aiController.getSkillsGapTrends
 router.post("/interview-insights/analyze", authMiddleware, aiController.getInterviewInsights);
 router.post("/interview/analyze", analyzeInterviewResponse);
 
+router.post(
+  "/mock-interview/generate-questions",
+  aiController.generateMockInterviewQuestions
+);
+
+router.post(
+  "/mock-interview/evaluate-response",
+  aiController.evaluateMockInterviewResponse
+);
+
+router.post(
+  "/mock-interview/generate-summary",
+  aiController.generateMockInterviewSummary
+);
+
 
 export default router;

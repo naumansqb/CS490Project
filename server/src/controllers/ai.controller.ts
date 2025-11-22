@@ -2260,3 +2260,178 @@ export const analyzeInterviewResponse = async (req: Request, res: Response) => {
 };
 
 
+/**
+ * Generate mock interview questions
+ * POST /api/ai/mock-interview/generate-questions
+ */
+export const generateMockInterviewQuestions = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { jobTitle, companyName, jobDescription, insightsData, numberOfQuestions } = req.body;
+
+    if (!jobTitle || !companyName) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "Job title and company name are required",
+        [
+          { field: "jobTitle", message: "Job title is required" },
+          { field: "companyName", message: "Company name is required" }
+        ]
+      );
+      return;
+    }
+
+    console.log(`[Mock Interview] Generating questions for ${jobTitle} at ${companyName}`);
+
+    const questions = await aiService.generateMockInterviewQuestions({
+      jobTitle,
+      companyName,
+      jobDescription,
+      insightsData,
+      numberOfQuestions: numberOfQuestions || 5
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { questions }
+    });
+  } catch (error: any) {
+    console.error("[Generate Mock Interview Questions Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate interview questions"
+    );
+  }
+};
+
+/**
+ * Evaluate a mock interview response
+ * POST /api/ai/mock-interview/evaluate-response
+ */
+export const evaluateMockInterviewResponse = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const {
+      question,
+      category,
+      difficulty,
+      expectedPoints,
+      userResponse,
+      jobTitle,
+      companyName
+    } = req.body;
+
+
+    if (!question || !category || !userResponse || !jobTitle || !companyName) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "Missing required fields",
+        [
+          { field: "question", message: "Question is required" },
+          { field: "category", message: "Category is required" },
+          { field: "userResponse", message: "User response is required" },
+          { field: "jobTitle", message: "Job title is required" },
+          { field: "companyName", message: "Company name is required" }
+        ]
+      );
+      return;
+    }
+
+    console.log(`[Mock Interview] Evaluating response for question: ${question.substring(0, 50)}...`);
+
+    const feedback = await aiService.evaluateMockInterviewResponse({
+      question,
+      category,
+      difficulty: difficulty || 'medium',
+      expectedPoints,
+      userResponse,
+      jobTitle,
+      companyName
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { feedback }
+    });
+  } catch (error: any) {
+    console.error("[Evaluate Mock Interview Response Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to evaluate response"
+    );
+  }
+};
+
+/**
+ * Generate mock interview performance summary
+ * POST /api/ai/mock-interview/generate-summary
+ */
+export const generateMockInterviewSummary = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { jobTitle, companyName, responses } = req.body;
+
+    if (!jobTitle || !companyName || !responses || !Array.isArray(responses)) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "Missing required fields",
+        [
+          { field: "jobTitle", message: "Job title is required" },
+          { field: "companyName", message: "Company name is required" },
+          { field: "responses", message: "Responses array is required" }
+        ]
+      );
+      return;
+    }
+
+    if (responses.length === 0) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "At least one response is required"
+      );
+      return;
+    }
+
+    console.log(`[Mock Interview] Generating summary for ${responses.length} responses`);
+
+    const summary = await aiService.generateMockInterviewSummary({
+      jobTitle,
+      companyName,
+      responses
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { summary }
+    });
+  } catch (error: any) {
+    console.error("[Generate Mock Interview Summary Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate performance summary"
+    );
+  }
+};

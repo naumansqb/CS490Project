@@ -17,6 +17,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { InterviewInsightsData } from '../InterviewPrepDashboard';
+import { evaluateMockInterviewResponse, generateMockInterviewQuestions, generateMockInterviewSummary } from '@/lib/mockInterviews.api';
 
 interface MockInterviewSessionProps {
   companyName: string;
@@ -81,123 +82,92 @@ export default function MockInterviewSession({
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
   const startInterview = async () => {
-    setGeneratingQuestions(true);
-    try {
-      // TODO: Call API to generate questions based on insights and job details
-      // For now, we'll create a placeholder
-      const mockQuestions: InterviewQuestion[] = [
-        {
-          id: '1',
-          question: 'Tell me about yourself and your background.',
-          category: 'behavioral',
-          difficulty: 'easy',
-          expectedPoints: ['Professional background', 'Key achievements', 'Career goals']
-        },
-        {
-          id: '2',
-          question: `Why do you want to work at ${companyName}?`,
-          category: 'cultural',
-          difficulty: 'medium',
-          expectedPoints: ['Company research', 'Alignment with values', 'Genuine interest']
-        },
-        {
-          id: '3',
-          question: `What relevant experience do you have for the ${jobTitle} position?`,
-          category: 'technical',
-          difficulty: 'medium',
-          expectedPoints: ['Relevant skills', 'Past projects', 'Impact']
-        }
-      ];
+  setGeneratingQuestions(true);
+  try {
+    // Call API to generate questions
+    const generatedQuestions = await generateMockInterviewQuestions({
+      jobTitle,
+      companyName,
+      jobDescription: undefined, // Can be added if you have it
+      insightsData: insightsData || undefined,
+      numberOfQuestions: 5
+    });
 
-      setQuestions(mockQuestions);
-      setSessionState('active');
-    } catch (error) {
-      console.error('[Mock Interview] Failed to generate questions:', error);
-      alert('Failed to start interview. Please try again.');
-    } finally {
-      setGeneratingQuestions(false);
-    }
-  };
+    setQuestions(generatedQuestions);
+    setSessionState('active');
+  } catch (error: any) {
+    console.error('[Mock Interview] Failed to generate questions:', error);
+    alert(error.message || 'Failed to start interview. Please try again.');
+  } finally {
+    setGeneratingQuestions(false);
+  }
+};
 
   const submitResponse = async () => {
-    if (!currentResponse.trim() || !currentQuestion) return;
+  if (!currentResponse.trim() || !currentQuestion) return;
 
-    setLoading(true);
-    try {
-      // TODO: Call API to evaluate response
-      // For now, create placeholder feedback
-      const mockFeedback = {
-        strengths: ['Clear communication', 'Relevant examples'],
-        improvements: ['Add more specific metrics', 'Expand on impact'],
-        score: 75,
-        detailedFeedback: 'Good response overall. Consider adding more quantifiable achievements.'
-      };
+  setLoading(true);
+  try {
+    // Call API to evaluate response
+    const feedback = await evaluateMockInterviewResponse({
+      question: currentQuestion.question,
+      category: currentQuestion.category,
+      difficulty: currentQuestion.difficulty,
+      expectedPoints: currentQuestion.expectedPoints,
+      userResponse: currentResponse,
+      jobTitle,
+      companyName
+    });
 
-      const newResponse: InterviewResponse = {
-        questionId: currentQuestion.id,
-        question: currentQuestion.question,
-        response: currentResponse,
-        feedback: mockFeedback
-      };
+    const newResponse: InterviewResponse = {
+      questionId: currentQuestion.id,
+      question: currentQuestion.question,
+      response: currentResponse,
+      feedback
+    };
 
-      setResponses([...responses, newResponse]);
-      setCurrentResponse('');
+    setResponses([...responses, newResponse]);
+    setCurrentResponse('');
 
-      // Move to next question or finish
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      } else {
-        // Generate summary
-        await generateSummary([...responses, newResponse]);
-      }
-    } catch (error) {
-      console.error('[Mock Interview] Failed to submit response:', error);
-      alert('Failed to submit response. Please try again.');
-    } finally {
-      setLoading(false);
+    // Move to next question or finish
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Generate summary
+      await generateSummary([...responses, newResponse]);
     }
-  };
+  } catch (error: any) {
+    console.error('[Mock Interview] Failed to submit response:', error);
+    alert(error.message || 'Failed to submit response. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const generateSummary = async (allResponses: InterviewResponse[]) => {
-    setLoading(true);
-    try {
-      // TODO: Call API to generate performance summary
-      // For now, create placeholder summary
-      const mockSummary: PerformanceSummary = {
-        overallScore: 78,
-        categoryScores: {
-          behavioral: 80,
-          cultural: 75,
-          technical: 78
-        },
-        strengths: [
-          'Strong communication skills',
-          'Good examples from past experience',
-          'Enthusiasm for the role'
-        ],
-        areasForImprovement: [
-          'Provide more quantifiable metrics',
-          'Elaborate on technical implementations',
-          'Connect experience more directly to job requirements'
-        ],
-        confidenceTips: [
-          'Practice STAR method for behavioral questions',
-          'Research company values more deeply',
-          'Prepare 3-5 detailed project examples'
-        ],
-        readinessLevel: 'good',
-        detailedAnalysis: 'You demonstrated solid interview skills with clear communication and relevant examples. Focus on adding more specific metrics and technical depth to strengthen your responses.'
-      };
+  setLoading(true);
+  try {
+    // Call API to generate performance summary
+    const summaryData = await generateMockInterviewSummary({
+      jobTitle,
+      companyName,
+      responses: allResponses.map(r => ({
+        question: r.question,
+        category: questions.find(q => q.id === r.questionId)?.category || 'behavioral',
+        response: r.response,
+        feedback: r.feedback!
+      }))
+    });
 
-      setSummary(mockSummary);
-      setSessionState('summary');
-    } catch (error) {
-      console.error('[Mock Interview] Failed to generate summary:', error);
-      alert('Failed to generate summary. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setSummary(summaryData);
+    setSessionState('summary');
+  } catch (error: any) {
+    console.error('[Mock Interview] Failed to generate summary:', error);
+    alert(error.message || 'Failed to generate summary. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getCategoryColor = (category: string) => {
     switch (category) {
