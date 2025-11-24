@@ -9,14 +9,19 @@ import { getJobOpportunitiesByUserId } from '@/lib/jobs.api';
 import { Job } from '@/types/jobs.types';
 import UpcomingDeadlines from './UpComingDeadlines';
 import { getUserInterviews, InterviewWithJob } from '@/lib/interviews.api';
+import { getFollowUpReminders, type ProfessionalContact } from '@/lib/contacts.api';
+import { Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function JobDeadlinesCalendar() {
   const { user } = useAuth(); 
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]); 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); 
   const [interviews, setInterviews] = useState<InterviewWithJob[]>([]);
+  const [contactReminders, setContactReminders] = useState<ProfessionalContact[]>([]);
 
   useEffect(() => {
   const loadData = async () => {
@@ -34,6 +39,14 @@ export default function JobDeadlinesCalendar() {
       // Load interviews
       const interviewsData = await getUserInterviews();
       setInterviews(interviewsData);
+      
+      // Load contact reminders (get all reminders, not just next 7 days, so calendar can show them all)
+      try {
+        const remindersData = await getFollowUpReminders(365); // Get reminders for the next year
+        setContactReminders(remindersData);
+      } catch (error) {
+        console.error('Failed to load contact reminders:', error);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -109,6 +122,26 @@ const interviewsByDate = useMemo(() => {
   return map;
 }, [interviews]);
 
+const contactRemindersByDate = useMemo(() => {
+  const map = new Map<string, ProfessionalContact[]>();
+  contactReminders.forEach(contact => {
+    if (contact.nextFollowUpDate) {
+      const reminderDate = new Date(contact.nextFollowUpDate);
+      const year = reminderDate.getFullYear();
+      const month = String(reminderDate.getMonth() + 1).padStart(2, '0');
+      const day = String(reminderDate.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
+      
+      if (!map.has(dateKey)) {
+        map.set(dateKey, []);
+      }
+      map.get(dateKey)!.push(contact);
+    }
+  });
+  
+  return map;
+}, [contactReminders]);
+
 
 
   // Get jobs for a specific date
@@ -117,17 +150,19 @@ const interviewsByDate = useMemo(() => {
   return {
     jobs: jobsByDate.get(dateStr) || [],
     interviews: interviewsByDate.get(dateStr) || [],
+    contactReminders: contactRemindersByDate.get(dateStr) || [],
   };
 };
 
   // Get jobs for selected date
   const selectedDateData = useMemo(() => {
-  if (!selectedDate) return { jobs: [], interviews: [] };
+  if (!selectedDate) return { jobs: [], interviews: [], contactReminders: [] };
   return {
     jobs: jobsByDate.get(selectedDate) || [],
     interviews: interviewsByDate.get(selectedDate) || [],
+    contactReminders: contactRemindersByDate.get(selectedDate) || [],
   };
-}, [selectedDate, jobsByDate, interviewsByDate]);
+}, [selectedDate, jobsByDate, interviewsByDate, contactRemindersByDate]);
 
   // Check if date is today
   const isToday = (day: number) => {
@@ -216,12 +251,13 @@ const interviewsByDate = useMemo(() => {
               {calendarDays.map((day, index) => {
                   if (typeof day !== 'number') return day;
 
-                  const { jobs: dayJobs, interviews: dayInterviews } = getDataForDate(day);
+                  const { jobs: dayJobs, interviews: dayInterviews, contactReminders: dayReminders } = getDataForDate(day);
                   const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isSelected = selectedDate === dateStr;
                   const hasDeadlines = dayJobs.length > 0;
                   const hasInterviews = dayInterviews.length > 0;
-                  const hasEvents = hasDeadlines || hasInterviews;
+                  const hasContactReminders = dayReminders.length > 0;
+                  const hasEvents = hasDeadlines || hasInterviews || hasContactReminders;
                   const todayDate = isToday(day);
                   const pastDate = isPast(day);
 
@@ -259,6 +295,15 @@ const interviewsByDate = useMemo(() => {
                               }`}
                             />
                           ))}
+                          {/* Show contact reminder dots */}
+                          {dayReminders.slice(0, 2).map((_, i) => (
+                            <div
+                              key={`reminder-${i}`}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                pastDate ? 'bg-cyan-400' : 'bg-cyan-500'
+                              }`}
+                            />
+                          ))}
                         </div>
                       )}
                     </button>
@@ -284,19 +329,27 @@ const interviewsByDate = useMemo(() => {
     <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
     <span>Interview</span>
   </div>
+  <div className="flex items-center gap-2">
+    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
+    <span>Contact Follow-up</span>
+  </div>
 </div>
           </CardContent>
         </Card>
 
         {/* Selected Date Details */}
-        <CardContent>
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Events</CardTitle>
+          </CardHeader>
+          <CardContent>
   {!selectedDate ? (
     <p className="text-gray-500 text-sm text-center py-8">
       Click on a date to view deadlines and interviews
     </p>
-  ) : selectedDateData.jobs.length === 0 && selectedDateData.interviews.length === 0 ? (
+  ) : selectedDateData.jobs.length === 0 && selectedDateData.interviews.length === 0 && selectedDateData.contactReminders.length === 0 ? (
     <p className="text-gray-500 text-sm text-center py-8">
-      No deadlines or interviews on this date
+      No events on this date
     </p>
   ) : (
     <div className="space-y-4">
@@ -375,9 +428,42 @@ const interviewsByDate = useMemo(() => {
           </div>
         </div>
       )}
+
+      {/* Contact Follow-up Reminders Section */}
+      {selectedDateData.contactReminders.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+            Contact Follow-ups ({selectedDateData.contactReminders.length})
+          </h4>
+          <div className="space-y-2">
+            {selectedDateData.contactReminders.map(contact => (
+              <div
+                key={contact.id}
+                onClick={() => router.push(`/dashboard/contacts?contactId=${contact.id}`)}
+                className="p-3 border border-cyan-200 rounded-lg hover:border-cyan-300 hover:shadow-sm transition-all bg-cyan-50 cursor-pointer"
+              >
+                <h5 className="font-semibold text-gray-900 mb-1">{contact.fullName}</h5>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <Users size={14} />
+                  <span>{contact.jobTitle || 'Contact'}{contact.company ? ` at ${contact.company}` : ''}</span>
+                </div>
+                {contact.relationshipType && (
+                  <div className="flex gap-2">
+                    <span className="px-2 py-0.5 bg-cyan-100 text-cyan-800 text-xs rounded-full capitalize">
+                      {contact.relationshipType}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )}
 </CardContent>
+        </Card>
       </div>
 
       {/* Upcoming Deadlines List */}
