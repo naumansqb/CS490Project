@@ -39,6 +39,7 @@ model UserProfile {
   createdAt                   DateTime?                     @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt                   DateTime?                     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   certifications              Certification[]
+  companyFollows              CompanyFollows[]
   education                   Education[]
   job_match_analysis          job_match_analysis[]
   job_match_preferences       job_match_preferences?
@@ -48,7 +49,7 @@ model UserProfile {
   skills_gap_analysis_history skills_gap_analysis_history[]
   specialProjects             SpecialProject[]
   workExperiences             WorkExperience[]
-  companyFollows              CompanyFollows[]
+  professionalContacts        ProfessionalContact[]
 
   @@index([userId], map: "idx_user_profiles_user_id")
   @@map("user_profiles")
@@ -302,9 +303,10 @@ model Company {
   leadership            Json?
   products_and_services Json?
   competitive_landscape String?
+  companyFollows        CompanyFollows[]
   company_news          company_news[]
   jobOpportunities      JobOpportunity[]
-  companyFollows        CompanyFollows[]
+  professionalContacts  ProfessionalContact[]
 
   @@index([industry], map: "idx_companies_industry")
   @@index([name], map: "idx_companies_name")
@@ -370,10 +372,10 @@ model job_match_analysis {
   improvement_suggestions Json
   matched_skills          Json
   missing_skills          Json
-  weights_used            Json?
   analysis_date           DateTime?      @default(now()) @db.Timestamp(6)
   created_at              DateTime?      @default(now()) @db.Timestamp(6)
   updated_at              DateTime?      @default(now()) @db.Timestamp(6)
+  weights_used            Json?
   job_opportunity         JobOpportunity @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user_profiles           UserProfile    @relation(fields: [user_id], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
@@ -459,18 +461,91 @@ model interviews {
 }
 
 model CompanyFollows {
-  id        String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId    String      @map("user_id")
-  companyId String      @map("company_id") @db.Uuid
-  createdAt DateTime?   @default(now()) @map("created_at") @db.Timestamp(6)
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String      @map("user_id")
+  companyId   String      @map("company_id") @db.Uuid
+  createdAt   DateTime?   @default(now()) @map("created_at") @db.Timestamp(6)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
-  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, companyId])
   @@index([userId], map: "idx_company_follows_user_id")
   @@index([companyId], map: "idx_company_follows_company_id")
   @@index([createdAt], map: "idx_company_follows_created_at")
   @@map("company_follows")
+}
+
+model ProfessionalContact {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()"))
+  userId              String                @map("user_id")
+  
+  firstName           String?               @map("first_name") @db.VarChar(100)
+  lastName            String?               @map("last_name") @db.VarChar(100)
+  fullName            String                @map("full_name") @db.VarChar(255)
+  email               String?               @db.VarChar(255)
+  phone               String?               @db.VarChar(50)
+  linkedinUrl         String?               @map("linkedin_url") @db.VarChar(500)
+  websiteUrl          String?               @map("website_url") @db.VarChar(500)
+  profilePhotoUrl     String?               @map("profile_photo_url") @db.VarChar(500)
+  
+  company             String?               @db.VarChar(255)
+  jobTitle            String?               @map("job_title") @db.VarChar(255)
+  industry            String?               @db.VarChar(100)
+  locationCity        String?               @map("location_city") @db.VarChar(100)
+  locationState       String?               @map("location_state") @db.VarChar(100)
+  locationCountry     String?               @map("location_country") @db.VarChar(100)
+  
+  relationshipType    String?               @map("relationship_type") @db.VarChar(50)
+  relationshipStrength Int?                 @map("relationship_strength") @default(50)
+  category            String?               @db.VarChar(50)
+  tags                String[]
+  
+  personalNotes       String?               @map("personal_notes")
+  professionalNotes   String?               @map("professional_notes")
+  
+  mutualConnections   String[]              @map("mutual_connections") @db.VarChar(255)
+  linkedCompanyId     String?               @map("linked_company_id") @db.Uuid
+  linkedJobIds        String[]              @map("linked_job_ids")
+  
+  lastContactDate     DateTime?             @map("last_contact_date") @db.Date
+  nextFollowUpDate    DateTime?             @map("next_follow_up_date") @db.Date
+  followUpFrequency   String?               @map("follow_up_frequency") @db.VarChar(50)
+  
+  source              String?               @db.VarChar(50)
+  createdAt           DateTime?             @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  
+  userProfile         UserProfile           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  companyRef          Company?              @relation(fields: [linkedCompanyId], references: [id], onUpdate: NoAction)
+  interactions        ContactInteraction[]
+  
+  @@index([userId], map: "idx_professional_contacts_user_id")
+  @@index([email], map: "idx_professional_contacts_email")
+  @@index([company], map: "idx_professional_contacts_company")
+  @@index([industry], map: "idx_professional_contacts_industry")
+  @@index([relationshipType], map: "idx_professional_contacts_relationship_type")
+  @@index([nextFollowUpDate], map: "idx_professional_contacts_follow_up")
+  @@index([linkedCompanyId], map: "idx_professional_contacts_company_id")
+  @@map("professional_contacts")
+}
+
+model ContactInteraction {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()"))
+  contactId           String                @map("contact_id")
+  interactionType     String                @map("interaction_type") @db.VarChar(50)
+  interactionDate     DateTime              @map("interaction_date") @db.Timestamp(6)
+  notes               String?
+  outcome             String?               @db.VarChar(255)
+  relationshipChange  Int?                  @map("relationship_change")
+  createdAt           DateTime?             @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  
+  contact             ProfessionalContact   @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  
+  @@index([contactId], map: "idx_contact_interactions_contact_id")
+  @@index([interactionDate], map: "idx_contact_interactions_date")
+  @@index([interactionType], map: "idx_contact_interactions_type")
+  @@map("contact_interactions")
 }
 
 enum application_status {
