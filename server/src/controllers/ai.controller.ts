@@ -2235,3 +2235,28 @@ export const extractJobFromUrl = async (
     );
   }
 };
+
+export const analyzeInterviewResponse = async (req: Request, res: Response) => {
+  try {
+    const { question, questionCategory, response, jobTitle, companyName } = req.body;
+
+    if (!question || !questionCategory || !response) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await aiService.analyzeInterviewResponse({
+      question,
+      questionCategory,
+      response,
+      jobTitle,
+      companyName
+    });
+
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("[Interview Analysis Controller Error]", error);
+    return res.status(500).json({ error: "Failed to analyze interview response" });
+  }
+};
+
+

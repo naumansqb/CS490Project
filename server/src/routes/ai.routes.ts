@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as aiController from "../controllers/ai.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { analyzeInterviewResponse } from "../controllers/ai.controller";
 
 const router = Router();
 
@@ -46,5 +47,7 @@ router.post("/skills-gap/analyze", authMiddleware, aiController.analyzeSkillsGap
 router.get("/skills-gap/progress/:jobId", authMiddleware, aiController.getSkillsGapProgress);
 router.get("/skills-gap/trends", authMiddleware, aiController.getSkillsGapTrends);
 router.post("/interview-insights/analyze", authMiddleware, aiController.getInterviewInsights);
+router.post("/interview/analyze", analyzeInterviewResponse);
+
 
 export default router;

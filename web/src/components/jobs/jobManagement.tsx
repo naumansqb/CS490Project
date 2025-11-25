@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,7 @@ import {
 import { CompanyNewsArticle } from './CompanyNewsFeed';
 
 
+
 const INDUSTRIES = [
   "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
   "Retail", "Consulting", "Marketing", "Real Estate", "Other"
@@ -92,9 +93,11 @@ const BASE_WEIGHT_FIELDS: Array<"skills" | "experience" | "education" | "require
 export default function JobOpportunitiesManager() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
+  
 
     useEffect(() => {
     if (user?.uid) {
@@ -123,6 +126,17 @@ export default function JobOpportunitiesManager() {
       setHasCustomMatchPreferences(false);
     }
   }, [user]);
+
+  // Read job ID from URL on mount
+  useEffect(() => {
+    const jobIdFromUrl = searchParams.get('jobId');
+    if (jobIdFromUrl && jobs.length > 0) {
+      const jobExists = jobs.find(j => j.id === jobIdFromUrl);
+      if (jobExists) {
+        viewJobDetails(jobIdFromUrl);
+      }
+    }
+  }, [searchParams, jobs]);
 
   const loadJobs = async () => {
     if (!user?.uid) return;
@@ -518,19 +532,23 @@ const [exportingComparison, setExportingComparison] = useState(false);
   };
 
   const viewJobDetails = (jobId: string) => {
-    setSelectedJobId(jobId);
-    setViewMode('detail');
-    // Trigger company research and news when viewing job details
-    const job = jobs.find(j => j.id === jobId);
-    if (job) {
-      setHistoryEntries([]);
-      loadCompanyResearch(job.company, jobId);
-      loadCompanyNews(job.company, jobId);
-      loadJobMatch(jobId);
-      loadSkillsGap(jobId);
-      loadInterviewInsights(jobId);
-    }
-  };
+  setSelectedJobId(jobId);
+  setViewMode('detail');
+  
+  // Update URL with job ID
+  router.push(`/jobs/${user?.uid}?jobId=${jobId}`, { scroll: false });
+  
+  // Trigger company research and news when viewing job details
+  const job = jobs.find(j => j.id === jobId);
+  if (job) {
+    setHistoryEntries([]);
+    loadCompanyResearch(job.company, jobId);
+    loadCompanyNews(job.company, jobId);
+    loadJobMatch(jobId);
+    loadSkillsGap(jobId);
+    loadInterviewInsights(jobId);
+  }
+};
 
   // Load company research data
   const loadCompanyResearch = async (companyName: string, jobId?: string, forceRefresh: boolean = false) => {
@@ -1033,26 +1051,30 @@ const [exportingComparison, setExportingComparison] = useState(false);
   };
 
   const backToList = () => {
-    setViewMode('list');
-    setSelectedJobId(null);
-    // Clear company data when going back to list
-    setCompanyData(null);
-    setCompanyError(null);
-    setCompanyNews([]);
-    setNewsError(null);
-    setMatchData(null);
-    setMatchError(null);
-    setMatchWeightsUsed(null);
-    setMatchAnalysisDate(null);
-    setMatchCached(false);
-    setHistoryEntries([]);
-    setGapData(null);
-    setGapError(null);
-    setInsightsData(null);
-    setInsightsError(null);
-    setComparisonData([]);
-    setComparisonModalOpen(false);
-  };
+  setViewMode('list');
+  setSelectedJobId(null);
+  
+  // Remove jobId from URL
+  router.push(`/jobs/${user?.uid}`, { scroll: false });
+  
+  // Clear company data when going back to list
+  setCompanyData(null);
+  setCompanyError(null);
+  setCompanyNews([]);
+  setNewsError(null);
+  setMatchData(null);
+  setMatchError(null);
+  setMatchWeightsUsed(null);
+  setMatchAnalysisDate(null);
+  setMatchCached(false);
+  setHistoryEntries([]);
+  setGapData(null);
+  setGapError(null);
+  setInsightsData(null);
+  setInsightsError(null);
+  setComparisonData([]);
+  setComparisonModalOpen(false);
+};
 
   const handleDelete = (id: string) => {
     setDeleteConfirm(id);

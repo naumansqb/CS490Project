@@ -5,6 +5,7 @@ import { CompanyNewsArticle } from "@/components/jobs/CompanyNewsFeed";
 import { JobMatchScoreData } from "@/components/jobs/JobMatchScore";
 import { SkillsGapData } from "@/components/jobs/SkillsGapAnalysis";
 import { InterviewInsightsData } from "@/components/jobs/InterviewPrepDashboard";
+import { getAuth } from 'firebase/auth';
 
 // ============================================
 // COMPANY RESEARCH API
@@ -789,3 +790,28 @@ export const getNewsAlerts = async (): Promise<NewsAlertsResponse> => {
   });
 };
 
+export async function exportCompanyProfile(
+  companyId: string
+): Promise<void> {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const endpoint = `${API_BASE_URL}/companies/${companyId}/research/export`;
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    credentials: "include", // This is the key - it sends the auth cookie
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to export company profile");
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `company-research-${new Date().toISOString().split("T")[0]}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
