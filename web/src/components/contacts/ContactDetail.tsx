@@ -128,7 +128,7 @@ export default function ContactDetail({
         setLoadingJobs(true);
         try {
             const jobsList = await getJobOpportunitiesByUserId(user.uid);
-            setJobs(jobsList || []);
+            setJobs(Array.isArray(jobsList) ? jobsList : []);
         } catch (error) {
         } finally {
             setLoadingJobs(false);
@@ -141,21 +141,21 @@ export default function ContactDetail({
             if (currentLinkedJobIds.includes(jobId)) {
                 return;
             }
-            
+
             const updatedLinkedJobIds = [...currentLinkedJobIds, jobId];
-            
+
             setContact({
                 ...contact,
                 linkedJobIds: updatedLinkedJobIds,
             });
-            
+
             const updatedContact = await updateProfessionalContact(contact.id, { linkedJobIds: updatedLinkedJobIds });
-            
+
             setContact(updatedContact);
             if (onContactUpdate) {
                 onContactUpdate(updatedContact);
             }
-            
+
             await loadContactData();
             setShowLinkJob(false);
             onUpdate();
@@ -169,19 +169,19 @@ export default function ContactDetail({
         try {
             const currentLinkedJobIds = contact.linkedJobIds || [];
             const updatedLinkedJobIds = currentLinkedJobIds.filter(id => id !== jobId);
-            
+
             setContact({
                 ...contact,
                 linkedJobIds: updatedLinkedJobIds,
             });
-            
+
             const updatedContact = await updateProfessionalContact(contact.id, { linkedJobIds: updatedLinkedJobIds });
-            
+
             setContact(updatedContact);
             if (onContactUpdate) {
                 onContactUpdate(updatedContact);
             }
-            
+
             await loadContactData();
             onUpdate();
         } catch (error: any) {
@@ -692,13 +692,13 @@ export default function ContactDetail({
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm font-medium">Strength</span>
                                     <span className="text-sm text-muted-foreground">
-                                        {contact.relationshipStrength || 50}/100
+                                        {contact.relationshipStrength ?? 50}/100
                                     </span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-4">
                                     <div
                                         className="h-4 rounded-full bg-cyan-500"
-                                        style={{ width: `${contact.relationshipStrength || 50}%` }}
+                                        style={{ width: `${contact.relationshipStrength ?? 50}%` }}
                                     ></div>
                                 </div>
                             </div>

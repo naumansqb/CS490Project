@@ -399,7 +399,6 @@ export default function ContactForm({ contact, onSave, onCancel }: ContactFormPr
                                                     {ind}
                                                 </SelectItem>
                                             ))}
-                                            <SelectItem value="Other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {showCustomIndustry && (
@@ -499,7 +498,6 @@ export default function ContactForm({ contact, onSave, onCancel }: ContactFormPr
                                                         type.slice(1)}
                                                 </SelectItem>
                                             ))}
-                                            <SelectItem value="other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {showCustomRelationshipType && (

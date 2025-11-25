@@ -3,14 +3,13 @@
 import React, { useState, useMemo, useEffect  } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Building2, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getJobOpportunitiesByUserId } from '@/lib/jobs.api';
 import { Job } from '@/types/jobs.types';
 import UpcomingDeadlines from './UpComingDeadlines';
 import { getUserInterviews, InterviewWithJob } from '@/lib/interviews.api';
 import { getFollowUpReminders, type ProfessionalContact } from '@/lib/contacts.api';
-import { Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function JobDeadlinesCalendar() {
@@ -396,7 +395,8 @@ const contactRemindersByDate = useMemo(() => {
             {selectedDateData.interviews.map(interview => (
               <div
                 key={interview.id}
-                className="p-3 border border-green-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all bg-green-50"
+                className="p-3 border border-green-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all bg-green-50 cursor-pointer"
+                onClick={() => router.push(`/jobs/${user?.uid}?jobId=${interview.job_opportunity.id}`)}
               >
                 <h5 className="font-semibold text-gray-900 mb-1">
                   {interview.job_opportunity.title}
