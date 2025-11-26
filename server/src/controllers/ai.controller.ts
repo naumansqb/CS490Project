@@ -1751,8 +1751,8 @@ export const getInterviewInsights = async (
       return;
     }
 
-    // Check for cached insights (within last 7 days - interview insights change less frequently)
-    const cacheExpiryDays = 7;
+    // Check for cached insights (within last 60 days - interview insights change less frequently)
+    const cacheExpiryDays = 60;
     const cacheExpiryDate = new Date();
     cacheExpiryDate.setDate(cacheExpiryDate.getDate() - cacheExpiryDays);
 
@@ -1764,7 +1764,7 @@ export const getInterviewInsights = async (
 
     // Return cached result if it exists and is fresh (skip if forceRefresh is true)
     if (!forceRefresh && cachedInsights && cachedInsights.research_date) {
-      const researchDate = new Date(cachedInsights.research_date);
+      const researchDate = new Date((cachedInsights.updated_at ?? cachedInsights.created_at) as Date);
       if (researchDate >= cacheExpiryDate) {
         // Cache is fresh, return cached result
         const cachedData = {
