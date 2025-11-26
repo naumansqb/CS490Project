@@ -46,7 +46,7 @@ export interface InterviewInsightsData {
   };
   commonQuestions: Array<{
     question: string;
-    category: 'technical' | 'behavioral' | 'cultural' | 'situational';
+    category: 'technical' | 'behavioral' | 'cultural' | 'situational' |'coding-challenges' | 'system-design';
     difficulty: 'easy' | 'medium' | 'hard';
     tips: string;
     frequency: 'very-common' | 'common' | 'occasional';
@@ -267,9 +267,11 @@ export default function InterviewPrepDashboard({
     }
   };
 
-  const getCategoryBadgeColor = (category: 'technical' | 'behavioral' | 'cultural' | 'situational') => {
+  const getCategoryBadgeColor = (category: 'technical' | 'behavioral' | 'cultural' | 'situational' | 'coding-challenges' | 'system-design') => {
     switch (category) {
       case 'technical':
+      case 'coding-challenges':
+      case 'system-design':
         return 'bg-blue-100 text-blue-800';
       case 'behavioral':
         return 'bg-purple-100 text-purple-800';
@@ -503,7 +505,7 @@ export default function InterviewPrepDashboard({
                           </div>
                         </div>
                       </div>
-                      {/* ADD THIS NEW BUTTON */}
+
                       <Button
                         onClick={() => {
                           setSelectedQuestion(question);

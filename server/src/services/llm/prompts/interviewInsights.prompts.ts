@@ -40,18 +40,20 @@ ${jobDescription ? `**Job Description:**\n${jobDescription}` : ""}
 2. **Common Interview Questions**:
    - Research common interview questions for this company and role
    - Include questions from different categories:
-     * **Technical**: Technical skills, problem-solving, coding challenges, technical knowledge
+     * **Technical**: Technical knowledge
      * **Behavioral**: Past experiences, situations, actions, results (STAR method)
      * **Cultural**: Company culture fit, values, work style
      * **Situational**: Hypothetical scenarios, how you would handle situations
+     * **Coding Challenges**: (if applicable) coding problems, algorithms, data structures
+     * **System Design**: (if applicable) system architecture, design patterns, scalability
    - For each question, provide:
      * Question text (the actual question)
      * Category: 'technical', 'behavioral', 'cultural', or 'situational'
      * Difficulty: 'easy', 'medium', or 'hard'
      * Tips: How to answer the question effectively
      * Frequency: 'very-common' (asked in most interviews), 'common' (asked frequently), 'occasional' (asked sometimes)
-   - **IMPORTANT: Include EXACTLY 5 questions maximum** - prioritize the most important and commonly asked questions
-   - Prioritize questions that are specific to this company and role
+   - **IMPORTANT: INCLUDE EXACTLY 10 QUESTIONS** - prioritize the most important and commonly asked questions and include at least one coding challenge and one system design question if relevant
+   - Make sure there are 10 quesitons in total
 
 3. **Interviewer Information**:
    - Research typical interviewer roles and backgrounds for this company and role
@@ -107,10 +109,11 @@ ${jobDescription ? `**Job Description:**\n${jobDescription}` : ""}
 - Include questions that are actually asked in interviews (don't fabricate)
 - Make preparation recommendations realistic and achievable
 - Consider the role level (entry, mid, senior) when providing insights
-- Provide diverse question types (technical, behavioral, cultural, situational)
+- Provide diverse question types (technical, behavioral, cultural, situational, coding challenges, system design)
 - Include company-specific insights when available
 - Be honest about confidence level (use 'low' if information is limited)
 - All dates must be in ISO format (YYYY-MM-DD)
+- 10 common interview questions exact
 
 **Output Format:**
 Return a structured JSON object with:
