@@ -76,23 +76,119 @@ ${jobDescription ? `**Job Description:**\n${jobDescription}` : ""}
    - Base insights on the company's known interview practices and culture
 
 5. **Preparation Recommendations**:
-   - Provide comprehensive preparation recommendations
-   - Include:
-     * **Study Topics**: Topics to study/prepare for
-       - For each topic, provide:
-         * Topic name (e.g., "Data structures and algorithms", "System design", "Company products")
-         * Importance: 'critical' (must know), 'important' (should know), 'nice-to-have' (good to know)
-         * Resources: Learning resources for this topic (array of resource names/URLs)
-       - **IMPORTANT: Include EXACTLY 4 study topics maximum** - prioritize the most critical topics
-     * **Key Areas to Review**: Important areas to review (array of 5-10 key areas)
-     * **Preparation Checklist**: Actionable checklist items
-       - For each item, provide:
-         * Item description (e.g., "Research company products", "Practice coding problems", "Prepare STAR stories")
-         * Category: 'research' (company research), 'practice' (skill practice), 'preparation' (interview prep), 'logistics' (logistical prep)
-       - **IMPORTANT: Include EXACTLY 5 checklist items maximum** - prioritize the most essential preparation tasks
-     * **Estimated Preparation Time**: Total time needed to prepare (e.g., "10-15 hours", "20-30 hours")
-   - Make recommendations specific to this role and company
-   - Prioritize the most important preparation areas
+   - Provide comprehensive, actionable preparation recommendations customized for this specific role and company
+   - Structure as a complete interview preparation checklist with the following sections:
+   
+   **A. Study Topics** (Technical/Domain Knowledge):
+      - For each topic, provide:
+        * topic: Topic name (e.g., "Data structures and algorithms", "React and TypeScript", "Company products and ecosystem")
+        * importance: 'critical' (must know), 'important' (should know), 'nice-to-have' (good to know)
+        * timeEstimate: Estimated study time (e.g., "3-4 hours", "1-2 days")
+        * resources: Array of learning resources with { name: string, url?: string, type: 'documentation' | 'course' | 'article' | 'video' | 'book' }
+      - **IMPORTANT: Include EXACTLY 4-6 study topics** - prioritize the most critical topics for this role
+   
+   **B. Interview Preparation Checklist** (Actionable Tasks):
+      - Organize checklist items into categories for better workflow
+      - For each item, provide:
+        * task: Clear, actionable task description
+        * category: 'company-research' | 'technical-practice' | 'behavioral-prep' | 'logistics' | 'materials' | 'follow-up'
+        * priority: 'high' (must complete), 'medium' (should complete), 'low' (nice to complete)
+        * estimatedTime: Time needed to complete (e.g., "30 minutes", "1-2 hours")
+        * dueDate: When to complete relative to interview (e.g., "3 days before", "1 day before", "morning of interview", "within 24 hours after")
+        * completed: false (always false initially)
+        * notes?: Optional tips or details about the task
+      
+      **Required Categories and Examples:**
+      
+      1. **Company Research** (3-5 tasks):
+         - Research company mission, values, and culture
+         - Review recent company news and press releases
+         - Study company products/services in depth
+         - Research the team/department you're interviewing with
+         - Identify potential challenges or opportunities for the company
+      
+      2. **Technical Practice** (3-5 tasks, if technical role):
+         - Practice coding problems on LeetCode/HackerRank (specific difficulty/topics)
+         - Review system design patterns and best practices
+         - Practice explaining technical concepts clearly
+         - Build a small project demonstrating relevant skills
+         - Review the technology stack mentioned in job description
+      
+      3. **Behavioral Preparation** (3-4 tasks):
+         - Prepare 5-7 STAR method stories covering different competencies
+         - Practice answering common behavioral questions out loud
+         - Prepare examples of failures/challenges and lessons learned
+         - Review your resume and be ready to discuss every point
+      
+      4. **Questions to Ask Interviewer** (2-3 tasks):
+         - Prepare 5-8 thoughtful questions about the role, team, and company
+         - Prepare questions specific to the interviewer's background (if known)
+         - Prepare questions about growth opportunities and success metrics
+      
+      5. **Materials Preparation** (2-4 tasks):
+         - Update and tailor resume for this specific role
+         - Prepare portfolio/work samples if applicable
+         - Print multiple copies of resume
+         - Prepare reference list with contact information
+         - Bring notebook and pen for notes
+      
+      6. **Logistics Verification** (4-6 tasks):
+         - Confirm interview date, time, and timezone
+         - Verify interview location/address or video call link
+         - Test video conferencing software and equipment (camera, mic, internet)
+         - Plan travel route and timing (arrive 10-15 minutes early)
+         - Prepare professional outfit and grooming
+         - Set up quiet, well-lit space for video interview
+         - Silence phone and close unnecessary applications
+      
+      7. **Day-of Preparation** (3-4 tasks):
+         - Review company research notes and your prepared answers
+         - Review your STAR stories and questions to ask
+         - Do a mock interview or practice session
+         - Get good rest the night before
+         - Eat a good meal before interview
+      
+      8. **Post-Interview Follow-up** (3-4 tasks):
+         - Send personalized thank-you email within 24 hours
+         - Connect with interviewer(s) on LinkedIn
+         - Document interview questions and your answers for future reference
+         - Note any action items or next steps discussed
+         - Follow up if no response within stated timeframe
+      
+      **IMPORTANT: Include 25-35 total checklist items across all categories**
+      - Prioritize tasks based on role type (technical vs non-technical)
+      - Include specific, measurable tasks (not vague like "prepare well")
+      - Set realistic time estimates and due dates
+      - Mix of high, medium, and low priority tasks
+   
+   **C. Key Areas to Review**:
+      - Array of 8-12 specific areas to review or refresh
+      - Examples: "REST API design principles", "Team leadership experience", "Conflict resolution strategies"
+      - Make them specific to the role and company
+   
+   **D. Questions to Prepare For Interviewer**:
+      - Provide 6-10 thoughtful questions the candidate should prepare to ask
+      - Categorize questions:
+        * roleQuestions: About the specific role (3-4 questions)
+        * teamQuestions: About the team and collaboration (2-3 questions)
+        * companyQuestions: About company direction and culture (2-3 questions)
+        * growthQuestions: About career development (1-2 questions)
+      - Make questions specific to this company and role
+      - Avoid generic questions (e.g., avoid "What's the culture like?" - be more specific)
+   
+   **E. Overall Preparation Timeline**:
+      - totalEstimatedTime: Total preparation time needed (e.g., "15-20 hours over 1-2 weeks")
+      - recommendedStartDate: How far in advance to start (e.g., "2 weeks before interview", "1 week before interview")
+      - criticalDeadlines: Array of key milestones (e.g., "Complete company research 3 days before", "Finish technical practice 2 days before")
+   
+   **F. Interview Day Tips**:
+      - Array of 5-8 tips for the actual interview day
+      - Examples: "Arrive 10 minutes early", "Bring extra copies of resume", "Take notes during interview", "Ask for business cards"
+   
+   **G. Red Flags to Watch For**:
+      - Array of 3-5 red flags the candidate should watch for during interview
+      - Examples: "Unclear job responsibilities", "High turnover mentioned", "Lack of growth opportunities"
+      - Help candidate evaluate if this is the right opportunity
 
 6. **Research Date and Confidence**:
    - Research date: Current date in ISO format (YYYY-MM-DD)
