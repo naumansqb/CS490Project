@@ -53,7 +53,6 @@ export const createReferralRequest = async (
             return;
         }
 
-        // Clean up the data - remove undefined values and set defaults
         const referralData: any = {
             userId,
             jobId: body.jobId,
@@ -61,7 +60,6 @@ export const createReferralRequest = async (
             status: body.status || 'draft',
         };
 
-        // Only include optional fields if they're provided
         if (body.requestMessage) referralData.requestMessage = body.requestMessage;
         if (body.templateUsed) referralData.templateUsed = body.templateUsed;
         if (body.requestDate) referralData.requestDate = new Date(body.requestDate);
@@ -91,8 +89,8 @@ export const createReferralRequest = async (
         }
         console.error('[Create Referral Request Error]', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorDetails = error instanceof Prisma.PrismaClientKnownRequestError 
-            ? `Prisma Error ${error.code}: ${error.message}` 
+        const errorDetails = error instanceof Prisma.PrismaClientKnownRequestError
+            ? `Prisma Error ${error.code}: ${error.message}`
             : errorMessage;
         sendErrorResponse(
             res,
@@ -257,6 +255,44 @@ export const updateReferralRequest = async (
             },
         });
 
+        if (body.relationshipImpact !== undefined && body.relationshipImpact !== null) {
+            const previousImpact = existing.relationshipImpact ?? 0;
+            const newImpact = body.relationshipImpact;
+            const deltaImpact = newImpact - previousImpact;
+
+            if (deltaImpact !== 0) {
+                try {
+                    const contact = await prisma.professionalContact.findFirst({
+                        where: {
+                            id: existing.contactId,
+                            userId,
+                        },
+                    });
+
+                    if (contact) {
+                        const currentStrength = contact.relationshipStrength ?? 50;
+                        const newStrength = Math.max(
+                            0,
+                            Math.min(100, currentStrength + deltaImpact)
+                        );
+
+                        await prisma.professionalContact.update({
+                            where: { id: contact.id },
+                            data: {
+                                relationshipStrength: newStrength,
+                            },
+                        });
+                    }
+                } catch (contactUpdateError) {
+                    console.error(
+                        '[Update Referral Request] Failed to sync relationshipStrength to contact',
+                        contactUpdateError
+                    );
+                }
+            }
+
+        }
+
         res.status(200).json(referralRequest);
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -294,6 +330,39 @@ export const deleteReferralRequest = async (
         if (!existing) {
             sendErrorResponse(res, 404, 'NOT_FOUND', 'Referral request not found');
             return;
+        }
+
+        // If this referral had a relationshipImpact, reverse it on the contact when deleting
+        if (existing.relationshipImpact !== null && existing.relationshipImpact !== undefined) {
+            try {
+                const contact = await prisma.professionalContact.findFirst({
+                    where: {
+                        id: existing.contactId,
+                        userId,
+                    },
+                });
+
+                if (contact) {
+                    const currentStrength = contact.relationshipStrength ?? 50;
+                    // Reverse the original impact
+                    const newStrength = Math.max(
+                        0,
+                        Math.min(100, currentStrength - existing.relationshipImpact)
+                    );
+
+                    await prisma.professionalContact.update({
+                        where: { id: contact.id },
+                        data: {
+                            relationshipStrength: newStrength,
+                        },
+                    });
+                }
+            } catch (contactUpdateError) {
+                console.error(
+                    '[Delete Referral Request] Failed to reverse relationshipStrength on contact',
+                    contactUpdateError
+                );
+            }
         }
 
         await prisma.referralRequest.delete({
@@ -371,9 +440,9 @@ export const getPotentialReferralSources = async (
                 // 3. Existing referral requests to this contact
                 const daysSinceLastContact = contact.lastContactDate
                     ? Math.floor(
-                          (Date.now() - new Date(contact.lastContactDate).getTime()) /
-                              (1000 * 60 * 60 * 24)
-                      )
+                        (Date.now() - new Date(contact.lastContactDate).getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    )
                     : 365;
 
                 if (daysSinceLastContact < 30) {
@@ -536,20 +605,20 @@ export const getReferralAnalytics = async (
         }, {} as Record<string, number>);
 
         // Count successful referrals: accepted or completed status, or success=true
-        const successful = allRequests.filter((r) => 
-            r.status === 'accepted' || 
-            r.status === 'completed' || 
+        const successful = allRequests.filter((r) =>
+            r.status === 'accepted' ||
+            r.status === 'completed' ||
             r.success === true
         ).length;
-        
+
         // Only count referrals that have been responded to (accepted, declined, or completed)
-        const respondedRequests = allRequests.filter((r) => 
-            r.status === 'accepted' || 
-            r.status === 'declined' || 
+        const respondedRequests = allRequests.filter((r) =>
+            r.status === 'accepted' ||
+            r.status === 'declined' ||
             r.status === 'completed'
         );
         const respondedCount = respondedRequests.length;
-        
+
         // Calculate success rate based on responded requests only
         const successRate = respondedCount > 0 ? (successful / respondedCount) * 100 : 0;
 
@@ -569,12 +638,12 @@ export const getReferralAnalytics = async (
         }, {} as Record<string, { total: number; successful: number }>);
 
         // Calculate average relationship impact only from requests that have been responded to
-        const respondedRequestsWithImpact = allRequests.filter((r) => 
+        const respondedRequestsWithImpact = allRequests.filter((r) =>
             (r.status === 'accepted' || r.status === 'declined' || r.status === 'completed') &&
             r.relationshipImpact !== null &&
             r.relationshipImpact !== undefined
         );
-        
+
         const avgRelationshipImpact = respondedRequestsWithImpact.length > 0
             ? respondedRequestsWithImpact.reduce((sum, r) => sum + (r.relationshipImpact || 0), 0) / respondedRequestsWithImpact.length
             : 0;
