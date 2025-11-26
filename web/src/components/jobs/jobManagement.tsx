@@ -41,6 +41,10 @@ import {
 import { FieldDescription } from '../ui/field';
 import { apiClient } from '@/lib/api';
 import InterviewManagement from './interviewManagement';
+import ReferralSourcesSelector from './ReferralSourcesSelector';
+import ReferralRequestForm from './ReferralRequestForm';
+import ReferralTracking from './ReferralTracking';
+import ReferralAnalytics from './ReferralAnalytics';
 import {
   researchCompany,
   researchAndSaveCompany,
@@ -253,6 +257,12 @@ const [exportingComparison, setExportingComparison] = useState(false);
   const [jobsAccordionOpen, setJobsAccordionOpen] = useState(true);
   const [skillsGapAccordionOpen, setSkillsGapAccordionOpen] = useState(false);
   const [navigatingToCoverLetter, setNavigatingToCoverLetter] = useState(false);
+
+  // Referral state
+  const [showReferralSources, setShowReferralSources] = useState(false);
+  const [selectedContactForReferral, setSelectedContactForReferral] = useState<any>(null);
+  const [showReferralForm, setShowReferralForm] = useState(false);
+  const [referralRefreshTrigger, setReferralRefreshTrigger] = useState(0);
 
   const handleExtractFromUrl = async () => {
   if (!jobUrl.trim()) {
@@ -1302,10 +1312,11 @@ const [exportingComparison, setExportingComparison] = useState(false);
                 }
               }}
             >
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="match">Job Match</TabsTrigger>
                 <TabsTrigger value="skills">Skills Gap</TabsTrigger>
                 <TabsTrigger value="interview">Interview Prep</TabsTrigger>
+                <TabsTrigger value="referral">Referrals</TabsTrigger>
               </TabsList>
 
           <TabsContent value="match" className="mt-6 space-y-6">
@@ -1471,6 +1482,46 @@ const [exportingComparison, setExportingComparison] = useState(false);
               error={insightsError}
               onRefresh={() => loadInterviewInsights(selectedJob.id, true)}
             />
+          </TabsContent>
+
+          <TabsContent value="referral" className="mt-6 space-y-6">
+            {showReferralSources && selectedJob && (
+              <ReferralSourcesSelector
+                jobId={selectedJob.id}
+                onSelectContact={(contact) => {
+                  setSelectedContactForReferral(contact);
+                  setShowReferralSources(false);
+                  setShowReferralForm(true);
+                }}
+                onClose={() => setShowReferralSources(false)}
+              />
+            )}
+            {showReferralForm && selectedContactForReferral && selectedJob && (
+              <ReferralRequestForm
+                contact={selectedContactForReferral}
+                jobId={selectedJob.id}
+                onSuccess={() => {
+                  setShowReferralForm(false);
+                  setSelectedContactForReferral(null);
+                  setReferralRefreshTrigger(prev => prev + 1);
+                }}
+                onCancel={() => {
+                  setShowReferralForm(false);
+                  setSelectedContactForReferral(null);
+                }}
+                onUpdate={() => setReferralRefreshTrigger(prev => prev + 1)}
+              />
+            )}
+            {!showReferralSources && !showReferralForm && selectedJob && (
+              <>
+                <ReferralTracking
+                  jobId={selectedJob.id}
+                  onRequestReferral={() => setShowReferralSources(true)}
+                  onUpdate={() => setReferralRefreshTrigger(prev => prev + 1)}
+                />
+                <ReferralAnalytics refreshTrigger={referralRefreshTrigger} />
+              </>
+            )}
           </TabsContent>
             </Tabs>
           </CardContent>

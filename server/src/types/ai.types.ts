@@ -322,6 +322,35 @@ export interface InterviewInsightsInput {
   companyWebsite?: string;
 }
 
+export interface ReferralTemplateInput {
+  userProfile: {
+    fullName?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    bio?: string;
+    headline?: string;
+    locationCity?: string;
+    locationState?: string;
+    location?: string;
+  };
+  contactName: string;
+  contactCompany?: string;
+  contactJobTitle?: string;
+  relationshipStrength?: number;
+  relationshipType?: string;
+  jobTitle: string;
+  companyName: string;
+  jobDescription?: string;
+  templateStyle?: 'professional' | 'casual' | 'warm' | 'direct';
+}
+
+export interface ReferralTemplateOutput {
+  message: string;
+  subject: string;
+  keyPoints?: string[];
+}
+
 export interface InterviewInsightsOutput {
   companyName: string;
   jobTitle: string;

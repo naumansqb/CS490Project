@@ -168,6 +168,21 @@ export default function ContactForm({ contact, onSave, onCancel }: ContactFormPr
         setLoading(true);
         setError('');
 
+        // Validate email is required
+        if (!formData.email || formData.email.trim() === '') {
+            setError('Email is required');
+            setLoading(false);
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setError('Please enter a valid email address');
+            setLoading(false);
+            return;
+        }
+
         try {
             const finalIndustry =
                 showCustomIndustry && customIndustry ? customIndustry : formData.industry || '';
@@ -286,13 +301,16 @@ export default function ContactForm({ contact, onSave, onCancel }: ContactFormPr
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="email">
+                                        Email <span className="text-red-500">*</span>
+                                    </Label>
                                     <Input
                                         id="email"
                                         type="email"
                                         value={formData.email || ''}
                                         onChange={(e) => handleChange('email', e.target.value)}
                                         placeholder="contact@example.com"
+                                        required
                                     />
                                 </div>
                                 <div>

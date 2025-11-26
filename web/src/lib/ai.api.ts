@@ -91,3 +91,34 @@ export const aiApi = {
   },
 };
 
+export interface ReferralTemplateRequest {
+  contactName: string;
+  contactCompany?: string;
+  contactJobTitle?: string;
+  relationshipStrength?: number;
+  relationshipType?: string;
+  jobTitle: string;
+  companyName: string;
+  jobDescription?: string;
+  templateStyle?: 'professional' | 'casual' | 'warm' | 'direct';
+}
+
+export interface ReferralTemplateResponse {
+  message: string;
+  subject: string;
+  keyPoints?: string[];
+}
+
+export const generateReferralTemplate = async (
+  input: ReferralTemplateRequest
+): Promise<ReferralTemplateResponse> => {
+  const response = await apiClient.fetch<{ success: boolean; data: ReferralTemplateResponse }>(
+    "/ai/referral-template/generate",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+};
+

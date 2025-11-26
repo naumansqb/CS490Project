@@ -48,6 +48,7 @@ router.get("/skills-gap/progress/:jobId", authMiddleware, aiController.getSkills
 router.get("/skills-gap/trends", authMiddleware, aiController.getSkillsGapTrends);
 router.post("/interview-insights/analyze", authMiddleware, aiController.getInterviewInsights);
 router.post("/interview/analyze", analyzeInterviewResponse);
+router.post("/referral-template/generate", authMiddleware, aiController.generateReferralTemplate);
 
 
 export default router;

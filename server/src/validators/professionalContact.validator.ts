@@ -30,10 +30,20 @@ export const validateProfessionalContact = (
         });
     }
 
-    if (data.email && data.email.length > 255) {
+    if (!data.email || typeof data.email !== 'string' || data.email.trim() === '') {
+        errors.push({
+            field: 'email',
+            message: 'Email is required',
+        });
+    } else if (data.email.length > 255) {
         errors.push({
             field: 'email',
             message: 'Email must be less than 255 characters',
+        });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        errors.push({
+            field: 'email',
+            message: 'Email must be a valid email address',
         });
     }
 
