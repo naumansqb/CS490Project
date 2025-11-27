@@ -10,6 +10,7 @@ import {
   JobMatchingInput,
   JobMatchPreferences as JobMatchPreferencesType,
   SkillsGapInput,
+  ReferralTemplateInput,
 } from "../types/ai.types";
 import { Prisma } from "@prisma/client";
 
@@ -2256,6 +2257,72 @@ export const analyzeInterviewResponse = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("[Interview Analysis Controller Error]", error);
     return res.status(500).json({ error: "Failed to analyze interview response" });
+  }
+};
+
+export const generateReferralTemplate = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: ReferralTemplateInput = req.body;
+
+    if (!input.contactName || !input.jobTitle || !input.companyName) {
+      sendErrorResponse(
+        res,
+        400,
+        "BAD_REQUEST",
+        "Missing required fields: contactName, jobTitle, companyName"
+      );
+      return;
+    }
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const templateInput: ReferralTemplateInput = {
+      ...input,
+      userProfile: {
+        fullName: userProfile.fullName || undefined,
+        firstName: userProfile.firstName || undefined,
+        lastName: userProfile.lastName || undefined,
+        name: userProfile.fullName || undefined,
+        bio: userProfile.bio || undefined,
+        headline: userProfile.headline || undefined,
+        locationCity: userProfile.locationCity || undefined,
+        locationState: userProfile.locationState || undefined,
+        location: userProfile.locationCity && userProfile.locationState
+          ? `${userProfile.locationCity}, ${userProfile.locationState}`
+          : undefined,
+      },
+    };
+
+    const result = await aiService.generateReferralTemplate(templateInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate Referral Template Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate referral template"
+    );
   }
 };
 

@@ -61,6 +61,15 @@ import {
 } from "./llm/prompts/interviewInsights.prompts";
 import { interviewInsightsSchema } from "./llm/schemas/interviewInsights.schema";
 import { buildAnalysisPrompt } from "./llm/prompts/interviewPrep.prompts";
+import {
+  buildReferralTemplatePrompt,
+  referralTemplateSystemPrompt,
+} from "./llm/prompts/referralTemplate.prompts";
+import { referralTemplateSchema } from "./llm/schemas/referralTemplate.schema";
+import {
+  ReferralTemplateInput,
+  ReferralTemplateOutput,
+} from "../types/ai.types";
 
 interface GenerateQuestionsInput {
   jobTitle: string;
@@ -756,6 +765,26 @@ async analyzeInterviewResponse(input: {
 }
 
   /**
+   * Generate a personalized referral request template
+   */
+  async generateReferralTemplate(
+    input: ReferralTemplateInput
+  ): Promise<ReferralTemplateOutput> {
+    try {
+      const prompt = buildReferralTemplatePrompt(input);
+
+      const response = await this.llmProvider.generate<ReferralTemplateOutput>({
+        prompt,
+        systemPrompt: referralTemplateSystemPrompt,
+        jsonSchema: referralTemplateSchema,
+        temperature: 0.8,
+        maxTokens: 1500,
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error("[AI Service - Referral Template Generation Error]", error);
+      throw new Error("Failed to generate referral template");
    * Generate mock interview questions
    */
   async generateMockInterviewQuestions(input: GenerateQuestionsInput): Promise<InterviewQuestion[]> {

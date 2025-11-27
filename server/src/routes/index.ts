@@ -18,6 +18,7 @@ import coverLetterRoutes from "./coverLetter.routes";
 import companyRoutes from "./company.routes";
 import interviewRoutes from "./interview.routes";
 import professionalContactRoutes from "./professionalContact.routes";
+import referralRequestRoutes from "./referralRequest.routes";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -42,6 +43,7 @@ router.use("/cover-letters", coverLetterRoutes);
 router.use("/companies", companyRoutes);
 router.use("/interviews", authMiddleware, interviewRoutes);
 router.use("/professional-contacts", professionalContactRoutes);
+router.use("/referral-requests", referralRequestRoutes);
 
 export default router;
 

@@ -828,7 +828,11 @@ export default function ContactDetail({
                                             >
                                                 <div
                                                     className="flex-1 cursor-pointer"
-                                                    onClick={() => router.push(`/dashboard/jobs/${jobId}`)}
+                                                    onClick={() => {
+                                                        if (user?.uid) {
+                                                            router.push(`/jobs/${user.uid}?jobId=${jobId}`);
+                                                        }
+                                                    }}
                                                 >
                                                     {job ? (
                                                         <>
