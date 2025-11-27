@@ -47,6 +47,17 @@ router.post("/skills-gap/analyze", authMiddleware, aiController.analyzeSkillsGap
 router.get("/skills-gap/progress/:jobId", authMiddleware, aiController.getSkillsGapProgress);
 router.get("/skills-gap/trends", authMiddleware, aiController.getSkillsGapTrends);
 router.post("/interview-insights/analyze", authMiddleware, aiController.getInterviewInsights);
+router.put(
+  '/interview-insights/checklist',
+  authMiddleware,
+  aiController.updateChecklistItem
+);
+
+router.put(
+  '/interview-insights/checklist/bulk',
+  authMiddleware,
+  aiController.updateChecklistBulk
+);
 router.post("/interview/analyze", analyzeInterviewResponse);
 
 router.post(

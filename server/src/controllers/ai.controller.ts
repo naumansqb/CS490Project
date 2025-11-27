@@ -1888,6 +1888,255 @@ export const getInterviewInsights = async (
 };
 
 /**
+ * Update interview preparation checklist item completion status
+ * PUT /api/ai/interview-insights/checklist
+ */
+export const updateChecklistItem = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { jobId, taskIndex, completed } = req.body;
+    console.log(" [Job Id]", jobId);
+
+    if (!userId) {
+      sendErrorResponse(res, 401, "UNAUTHORIZED", "Authentication required");
+      return;
+    }
+
+    if (!jobId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Job ID is required", [
+        { field: "jobId", message: "Job ID is required" },
+      ]);
+      return;
+    }
+
+    if (taskIndex === undefined || taskIndex === null) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Task index is required", [
+        { field: "taskIndex", message: "Task index is required" },
+      ]);
+      return;
+    }
+
+    if (typeof completed !== "boolean") {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Completed must be a boolean", [
+        { field: "completed", message: "Completed must be a boolean" },
+      ]);
+      return;
+    }
+
+    // Verify job belongs to user
+    const job = await prisma.jobOpportunity.findUnique({
+      where: { id: jobId },
+      select: { userId: true },
+    });
+
+    if (!job) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Job opportunity not found");
+      return;
+    }
+
+    if (job.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this job"
+      );
+      return;
+    }
+
+    // Get existing insights - using job_id to find the record
+    const insights = await prisma.interview_insights.findFirst({
+      where: { job_id: jobId },
+    });
+
+    if (!insights) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "Interview insights not found. Please analyze the job first."
+      );
+      return;
+    }
+
+    // Update the specific checklist item
+    const prepRecs = insights.preparation_recommendations as any;
+    
+    if (!prepRecs?.preparationChecklist || !Array.isArray(prepRecs.preparationChecklist)) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "No checklist items found"
+      );
+      return;
+    }
+
+    if (taskIndex < 0 || taskIndex >= prepRecs.preparationChecklist.length) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "Invalid task index"
+      );
+      return;
+    }
+
+    // Update the completion status
+    prepRecs.preparationChecklist[taskIndex].completed = completed;
+
+    // Save back to database - using the record's id
+    await prisma.interview_insights.update({
+      where: { id: insights.id },
+      data: {
+        preparation_recommendations: prepRecs as any,
+        updated_at: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        taskIndex,
+        completed,
+        updatedItem: prepRecs.preparationChecklist[taskIndex],
+      },
+    });
+  } catch (error) {
+    console.error("[Update Checklist Item Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      "Failed to update checklist item"
+    );
+  }
+};
+
+/**
+ * Bulk update interview preparation checklist items
+ * PUT /api/ai/interview-insights/checklist/bulk
+ */
+export const updateChecklistBulk = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    const { jobId, updates } = req.body;
+
+    if (!userId) {
+      sendErrorResponse(res, 401, "UNAUTHORIZED", "Authentication required");
+      return;
+    }
+
+    if (!jobId) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Job ID is required", [
+        { field: "jobId", message: "Job ID is required" },
+      ]);
+      return;
+    }
+
+    if (!updates || !Array.isArray(updates)) {
+      sendErrorResponse(res, 400, "VALIDATION_ERROR", "Updates must be an array", [
+        { field: "updates", message: "Updates must be an array" },
+      ]);
+      return;
+    }
+
+    // Verify job belongs to user
+    const job = await prisma.jobOpportunity.findUnique({
+      where: { id: jobId },
+      select: { userId: true },
+    });
+
+    if (!job) {
+      sendErrorResponse(res, 404, "NOT_FOUND", "Job opportunity not found");
+      return;
+    }
+
+    if (job.userId !== userId) {
+      sendErrorResponse(
+        res,
+        403,
+        "FORBIDDEN",
+        "Not authorized to access this job"
+      );
+      return;
+    }
+
+    // Get existing insights - using job_id to find the record
+    const insights = await prisma.interview_insights.findFirst({
+      where: { job_id: jobId },
+    });
+
+    if (!insights) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "Interview insights not found. Please analyze the job first."
+      );
+      return;
+    }
+
+    // Update multiple checklist items
+    const prepRecs = insights.preparation_recommendations as any;
+    
+    if (!prepRecs?.preparationChecklist || !Array.isArray(prepRecs.preparationChecklist)) {
+      sendErrorResponse(
+        res,
+        400,
+        "VALIDATION_ERROR",
+        "No checklist items found"
+      );
+      return;
+    }
+
+    // Apply all updates
+    for (const update of updates) {
+      const { taskIndex, completed } = update;
+      
+      if (
+        taskIndex >= 0 && 
+        taskIndex < prepRecs.preparationChecklist.length &&
+        typeof completed === "boolean"
+      ) {
+        prepRecs.preparationChecklist[taskIndex].completed = completed;
+      }
+    }
+
+    // Save back to database - using the record's id
+    await prisma.interview_insights.update({
+      where: { id: insights.id },
+      data: {
+        preparation_recommendations: prepRecs as any,
+        updated_at: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        updatedCount: updates.length,
+        preparationChecklist: prepRecs.preparationChecklist,
+      },
+    });
+  } catch (error) {
+    console.error("[Update Checklist Bulk Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      "Failed to update checklist items"
+    );
+  }
+};
+
+/**
  * Get skills gap progress tracking for a specific job
  * Returns historical snapshots showing how gap scores and skills have changed over time
  * GET /api/ai/skills-gap/progress/:jobId

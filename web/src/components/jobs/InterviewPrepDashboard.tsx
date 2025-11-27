@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import QuestionResponseModal from './interviewPrep/QuestionResponseModal';
 import { Button } from '../ui/button';
-import { analyzeInterviewResponse, ResponseAnalysis } from '@/lib/interviews.api';
+import { analyzeInterviewResponse, ResponseAnalysis, updateChecklistItem } from '@/lib/interviews.api';
 import MockInterviewSession from './interviewPrep/MockInterviewSession';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -112,7 +112,10 @@ export interface InterviewInsightsData {
   confidence: 'high' | 'medium' | 'low';
 }
 
+
+
 interface InterviewPrepDashboardProps {
+  jobId: string;
   companyName: string;
   jobTitle: string;
   insightsData?: InterviewInsightsData | null;
@@ -122,6 +125,7 @@ interface InterviewPrepDashboardProps {
 }
 
 export default function InterviewPrepDashboard({
+  jobId,
   companyName,
   jobTitle,
   insightsData,
@@ -144,12 +148,47 @@ export default function InterviewPrepDashboard({
     'follow-up': true,
   });
 
-  const toggleChecklistItem = (taskId: string) => {
+  const toggleChecklistItem = async (taskId: string) => {
+  const taskIndex = parseInt(taskId.replace('task-', ''));
+  const newState = !checklistState[taskId];
+  
+  // Optimistic update
   setChecklistState(prev => ({
-    ...prev,
-    [taskId]: !prev[taskId]
-  }));
-};
+      ...prev,
+      [taskId]: newState
+    }));
+
+    // Call API to persist
+    try {
+      const result = await updateChecklistItem(jobId, taskIndex, newState);
+      
+      if (!result.success) {
+        // Revert on failure
+        setChecklistState(prev => ({
+          ...prev,
+          [taskId]: !newState
+        }));
+        console.error('Failed to update checklist item:', result.error);
+      }
+    } catch (error) {
+      // Revert on error
+      setChecklistState(prev => ({
+        ...prev,
+        [taskId]: !newState
+      }));
+      console.error('Error updating checklist item:', error);
+    }
+  };
+
+  useEffect(() => {
+  if (insightsData?.preparationRecommendations?.preparationChecklist) {
+    const initialState: Record<string, boolean> = {};
+    insightsData.preparationRecommendations.preparationChecklist.forEach((item, index) => {
+      initialState[`task-${index}`] = item.completed || false;
+    });
+    setChecklistState(initialState);
+  }
+}, [insightsData]);
 
 const toggleCategory = (category: string) => {
   setExpandedCategories(prev => ({
