@@ -17,7 +17,7 @@ import {
   BookOpen,
   Calendar,
   TrendingUp,
-  Shield,
+  Play,
   Info,
   HelpCircle,
   Edit3
@@ -25,6 +25,7 @@ import {
 import QuestionResponseModal from './interviewPrep/QuestionResponseModal';
 import { Button } from '../ui/button';
 import { analyzeInterviewResponse, ResponseAnalysis } from '@/lib/interviews.api';
+import MockInterviewSession from './interviewPrep/MockInterviewSession';
 
 // Type definitions matching the backend schema
 export interface InterviewInsightsData {
@@ -99,6 +100,7 @@ export default function InterviewPrepDashboard({
 }: InterviewPrepDashboardProps) {
   const [activeTab, setActiveTab] = useState('process');
   const [selectedQuestionCategory, setSelectedQuestionCategory] = useState<string | null>(null);
+  const [showMockInterview, setShowMockInterview] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [responseModalOpen, setResponseModalOpen] = useState(false);
 
@@ -143,6 +145,17 @@ export default function InterviewPrepDashboard({
     };
   }
 };
+
+  if (showMockInterview) {
+  return (
+    <MockInterviewSession
+      companyName={companyName}
+      jobTitle={jobTitle}
+      insightsData={insightsData}
+      onClose={() => setShowMockInterview(false)}
+    />
+  );
+}
 
   // Loading state
   if (loading) {
@@ -330,6 +343,14 @@ export default function InterviewPrepDashboard({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowMockInterview(true)}
+              className="bg-[#3bafba] hover:bg-[#34a0ab] flex items-center gap-2"
+              disabled={loading}
+            >
+              <Play size={16} />
+              Practice Interview
+            </Button>
             <Badge className={getConfidenceBadgeColor(insightsData.confidence)}>
               {insightsData.confidence} confidence
             </Badge>

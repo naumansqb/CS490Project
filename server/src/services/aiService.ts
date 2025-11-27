@@ -22,7 +22,7 @@ import { resumeSchema } from "./llm/schemas/resume.schema";
 import { coverLetterSchema } from "./llm/schemas/coverLetter.schema";
 import { resumeParserSchema } from "./llm/schemas/resumeParser.schema";
 import { cleanHtmlForExtraction, generateJobExtractionPrompt, validateExtractedData } from "./llm/prompts/url.prompts";
-
+import { mockInterviewPrompts } from "./llm/prompts/mockInterview.prompts";
 import {
   CompanyResearchInput,
   CompanyResearchResult,
@@ -70,6 +70,65 @@ import {
   ReferralTemplateInput,
   ReferralTemplateOutput,
 } from "../types/ai.types";
+
+interface GenerateQuestionsInput {
+  jobTitle: string;
+  companyName: string;
+  jobDescription?: string;
+  insightsData?: any;
+  numberOfQuestions?: number;
+}
+
+interface InterviewQuestion {
+  id: string;
+  question: string;
+  category: 'technical' | 'behavioral' | 'cultural' | 'situational';
+  difficulty: 'easy' | 'medium' | 'hard';
+  expectedPoints?: string[];
+}
+
+interface EvaluateResponseInput {
+  question: string;
+  category: string;
+  difficulty: string;
+  expectedPoints?: string[];
+  userResponse: string;
+  jobTitle: string;
+  companyName: string;
+}
+
+interface ResponseFeedback {
+  strengths: string[];
+  improvements: string[];
+  score: number;
+  detailedFeedback: string;
+}
+
+interface GenerateSummaryInput {
+  jobTitle: string;
+  companyName: string;
+  responses: Array<{
+    question: string;
+    category: string;
+    response: string;
+    feedback: ResponseFeedback;
+  }>;
+}
+
+interface PerformanceSummary {
+  overallScore: number;
+  categoryScores: {
+    technical?: number;
+    behavioral?: number;
+    cultural?: number;
+    situational?: number;
+  };
+  strengths: string[];
+  areasForImprovement: string[];
+  confidenceTips: string[];
+  readinessLevel: 'needs-practice' | 'good' | 'excellent';
+  detailedAnalysis: string;
+}
 
 export class AIService {
   private llmProvider: GeminiProvider;
@@ -726,6 +785,202 @@ async analyzeInterviewResponse(input: {
     } catch (error) {
       console.error("[AI Service - Referral Template Generation Error]", error);
       throw new Error("Failed to generate referral template");
+   * Generate mock interview questions
+   */
+  async generateMockInterviewQuestions(input: GenerateQuestionsInput): Promise<InterviewQuestion[]> {
+    const {
+      jobTitle,
+      companyName,
+      jobDescription,
+      insightsData,
+      numberOfQuestions = 5
+    } = input;
+
+    // Build context from insights if available
+    let insightsContext = '';
+    if (insightsData) {
+      insightsContext = `
+COMPANY INTERVIEW INSIGHTS:
+- Interview Culture: ${insightsData.companySpecificInsights?.interviewCulture || 'Not available'}
+- Valued Traits: ${insightsData.companySpecificInsights?.valuedTraits?.join(', ') || 'Not available'}
+- Common Interview Formats: ${insightsData.companySpecificInsights?.interviewFormats?.join(', ') || 'Not available'}
+
+COMMON QUESTIONS AT THIS COMPANY:
+${insightsData.commonQuestions?.slice(0, 5).map((q: any) => `- ${q.question} (${q.category})`).join('\n') || 'Not available'}
+`;
+    }
+
+    const prompt = mockInterviewPrompts.generateQuestions({
+      jobTitle,
+      companyName,
+      jobDescription,
+      insightsContext,
+      numberOfQuestions
+    });
+
+    try {
+      const response = await this.llmProvider.generate<{ questions: InterviewQuestion[] }>({
+        prompt,
+        temperature: 0.8,
+        maxTokens: 2048,
+        jsonSchema: {
+          type: "object",
+          properties: {
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  question: { type: "string" },
+                  category: { 
+                    type: "string",
+                    enum: ["behavioral", "technical", "cultural", "situational"]
+                  },
+                  difficulty: {
+                    type: "string",
+                    enum: ["easy", "medium", "hard"]
+                  },
+                  expectedPoints: {
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                },
+                required: ["id", "question", "category", "difficulty"]
+              }
+            }
+          },
+          required: ["questions"]
+        }
+      });
+
+      return response.content.questions || [];
+    } catch (error) {
+      console.error('[AI Service] Error generating mock interview questions:', error);
+      throw new Error('Failed to generate interview questions');
+    }
+  }
+
+  /**
+   * Evaluate a mock interview response
+   */
+  async evaluateMockInterviewResponse(input: EvaluateResponseInput): Promise<ResponseFeedback> {
+    const prompt = mockInterviewPrompts.evaluateResponse(input);
+
+    try {
+      const response = await this.llmProvider.generate<ResponseFeedback>({
+        prompt,
+        temperature: 0.7,
+        maxTokens: 1024,
+        jsonSchema: {
+          type: "object",
+          properties: {
+            score: { type: "number", minimum: 0, maximum: 100 },
+            strengths: {
+              type: "array",
+              items: { type: "string" }
+            },
+            improvements: {
+              type: "array",
+              items: { type: "string" }
+            },
+            detailedFeedback: { type: "string" }
+          },
+          required: ["score", "strengths", "improvements", "detailedFeedback"]
+        }
+      });
+
+      return {
+        score: response.content.score || 0,
+        strengths: response.content.strengths || [],
+        improvements: response.content.improvements || [],
+        detailedFeedback: response.content.detailedFeedback || ''
+      };
+    } catch (error) {
+      console.error('[AI Service] Error evaluating mock interview response:', error);
+      throw new Error('Failed to evaluate interview response');
+    }
+  }
+
+  /**
+   * Generate mock interview performance summary
+   */
+  async generateMockInterviewSummary(input: GenerateSummaryInput): Promise<PerformanceSummary> {
+    const { jobTitle, companyName, responses } = input;
+
+    const responsesText = responses.map((r, i) => `
+QUESTION ${i + 1} (${r.category}):
+${r.question}
+
+CANDIDATE'S RESPONSE:
+${r.response}
+
+FEEDBACK RECEIVED:
+- Score: ${r.feedback.score}/100
+- Strengths: ${r.feedback.strengths.join(', ')}
+- Improvements: ${r.feedback.improvements.join(', ')}
+- Detailed: ${r.feedback.detailedFeedback}
+`).join('\n---\n');
+
+    const prompt = mockInterviewPrompts.generateSummary({
+      jobTitle,
+      companyName,
+      responsesText,
+      totalQuestions: responses.length
+    });
+
+    try {
+      const response = await this.llmProvider.generate<PerformanceSummary>({
+        prompt,
+        temperature: 0.7,
+        maxTokens: 2048,
+        jsonSchema: {
+          type: "object",
+          properties: {
+            overallScore: { type: "number", minimum: 0, maximum: 100 },
+            categoryScores: {
+              type: "object",
+              properties: {
+                technical: { type: "number", minimum: 0, maximum: 100 },
+                behavioral: { type: "number", minimum: 0, maximum: 100 },
+                cultural: { type: "number", minimum: 0, maximum: 100 },
+                situational: { type: "number", minimum: 0, maximum: 100 }
+              }
+            },
+            strengths: {
+              type: "array",
+              items: { type: "string" }
+            },
+            areasForImprovement: {
+              type: "array",
+              items: { type: "string" }
+            },
+            confidenceTips: {
+              type: "array",
+              items: { type: "string" }
+            },
+            readinessLevel: {
+              type: "string",
+              enum: ["needs-practice", "good", "excellent"]
+            },
+            detailedAnalysis: { type: "string" }
+          },
+          required: ["overallScore", "categoryScores", "strengths", "areasForImprovement", "confidenceTips", "readinessLevel", "detailedAnalysis"]
+        }
+      });
+
+      return {
+        overallScore: response.content.overallScore || 0,
+        categoryScores: response.content.categoryScores || {},
+        strengths: response.content.strengths || [],
+        areasForImprovement: response.content.areasForImprovement || [],
+        confidenceTips: response.content.confidenceTips || [],
+        readinessLevel: response.content.readinessLevel || 'needs-practice',
+        detailedAnalysis: response.content.detailedAnalysis || ''
+      };
+    } catch (error) {
+      console.error('[AI Service] Error generating mock interview summary:', error);
+      throw new Error('Failed to generate performance summary');
     }
   }
 

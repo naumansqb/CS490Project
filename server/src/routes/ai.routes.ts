@@ -50,5 +50,20 @@ router.post("/interview-insights/analyze", authMiddleware, aiController.getInter
 router.post("/interview/analyze", analyzeInterviewResponse);
 router.post("/referral-template/generate", authMiddleware, aiController.generateReferralTemplate);
 
+router.post(
+  "/mock-interview/generate-questions",
+  aiController.generateMockInterviewQuestions
+);
+
+router.post(
+  "/mock-interview/evaluate-response",
+  aiController.evaluateMockInterviewResponse
+);
+
+router.post(
+  "/mock-interview/generate-summary",
+  aiController.generateMockInterviewSummary
+);
+
 
 export default router;
