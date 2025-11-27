@@ -285,8 +285,8 @@ Provide detailed, useful information while keeping companySize under 50 characte
               email: { type: "string", description: "Company email address" },
               phone: { type: "string", description: "Company phone number" },
               address: { type: "string", description: "Company address" }
-          }
-        },
+            }
+          },
           socialMedia: {
             type: "object",
             properties: {
@@ -651,20 +651,20 @@ GUIDELINES:
 
       if (!response.ok) {
         // Provide more detailed error information
-        const errorText = response.status === 400 
+        const errorText = response.status === 400
           ? `Bad Request - The server rejected the request. This might be due to: 1) Invalid URL, 2) Missing required parameters, 3) Anti-scraping protection. URL: ${url}`
           : `Failed to fetch URL: ${response.status} ${response.statusText}. URL: ${url}`;
         throw new Error(errorText);
       }
 
       const html = await response.text();
-      
+
       // Clean the HTML to reduce token usage
       const cleanedHtml = cleanHtmlForExtraction(html);
-      
+
       // Generate prompt for extraction
       const prompt = generateJobExtractionPrompt(cleanedHtml);
-      
+
       // Use LLM to extract job data (without strict schema, as the prompt handles structure)
       const llmResponse = await this.llmProvider.generate({
         prompt,
@@ -677,21 +677,21 @@ GUIDELINES:
       let extractedData;
       try {
         // Try to parse as JSON
-        extractedData = typeof llmResponse.content === 'string' 
-          ? JSON.parse(llmResponse.content) 
+        extractedData = typeof llmResponse.content === 'string'
+          ? JSON.parse(llmResponse.content)
           : llmResponse.content;
       } catch (parseError) {
         // If parsing fails, try to extract JSON from the response
-        const content = typeof llmResponse.content === 'string' 
-          ? llmResponse.content 
+        const content = typeof llmResponse.content === 'string'
+          ? llmResponse.content
           : JSON.stringify(llmResponse.content);
-        
+
         // Remove markdown code blocks if present
         let cleaned = content.trim();
         cleaned = cleaned.replace(/```json\n?/g, '');
         cleaned = cleaned.replace(/```\n?/g, '');
         cleaned = cleaned.trim();
-        
+
         // Try to find JSON object in the response
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -703,7 +703,7 @@ GUIDELINES:
 
       // Validate and sanitize the extracted data
       const validatedData = validateExtractedData(extractedData);
-      
+
       return validatedData;
     } catch (error) {
       console.error("[AI Service - Extract Job From URL Error]", error);
@@ -714,55 +714,55 @@ GUIDELINES:
   /**
  * Analyze a candidate's response to an interview question
  */
-async analyzeInterviewResponse(input: {
-  question: string;
-  questionCategory: string;
-  response: string;
-  jobTitle?: string;
-  companyName?: string;
-}): Promise<any> {
-  try {
-    const { question, questionCategory, response, jobTitle, companyName } = input;
+  async analyzeInterviewResponse(input: {
+    question: string;
+    questionCategory: string;
+    response: string;
+    jobTitle?: string;
+    companyName?: string;
+  }): Promise<any> {
+    try {
+      const { question, questionCategory, response, jobTitle, companyName } = input;
 
-    const prompt = buildAnalysisPrompt(
-      question,
-      questionCategory,
-      response,
-      jobTitle,
-      companyName
-    );
+      const prompt = buildAnalysisPrompt(
+        question,
+        questionCategory,
+        response,
+        jobTitle,
+        companyName
+      );
 
-    // 1. Define the schema to match your Interface
-    // This triggers the Provider to use JSON mode + Parsing + Repair logic
-    const analysisSchema = {
-      type: "object",
-      properties: {
-        score: { type: "number" },
-        strengths: { type: "array", items: { type: "string" } },
-        improvements: { type: "array", items: { type: "string" } },
-        starFrameworkUsed: { type: "boolean" },
-        detailedFeedback: { type: "string" },
-        alternativeApproaches: { type: "array", items: { type: "string" } }
-      },
-      required: ["score", "strengths", "improvements", "detailedFeedback"]
-    };
+      // 1. Define the schema to match your Interface
+      // This triggers the Provider to use JSON mode + Parsing + Repair logic
+      const analysisSchema = {
+        type: "object",
+        properties: {
+          score: { type: "number" },
+          strengths: { type: "array", items: { type: "string" } },
+          improvements: { type: "array", items: { type: "string" } },
+          starFrameworkUsed: { type: "boolean" },
+          detailedFeedback: { type: "string" },
+          alternativeApproaches: { type: "array", items: { type: "string" } }
+        },
+        required: ["score", "strengths", "improvements", "detailedFeedback"]
+      };
 
-    const aiResponse = await this.llmProvider.generate({
-      prompt,
-      systemPrompt: "You are an expert interview coach who provides structured JSON feedback.",
-      temperature: 0.3,
-      maxTokens: 4000,
-      jsonSchema: analysisSchema // <--- ADDING THIS FIXES EVERYTHING
-    });
+      const aiResponse = await this.llmProvider.generate({
+        prompt,
+        systemPrompt: "You are an expert interview coach who provides structured JSON feedback.",
+        temperature: 0.3,
+        maxTokens: 4000,
+        jsonSchema: analysisSchema // <--- ADDING THIS FIXES EVERYTHING
+      });
 
-    // Now aiResponse.content is guaranteed to be an Object, not a String
-    return aiResponse.content;
-    
-  } catch (error) {
-    console.error("[AI Service - Interview Response Analysis Error]", error);
-    throw new Error("Failed to analyze interview response");
+      // Now aiResponse.content is guaranteed to be an Object, not a String
+      return aiResponse.content;
+
+    } catch (error) {
+      console.error("[AI Service - Interview Response Analysis Error]", error);
+      throw new Error("Failed to analyze interview response");
+    }
   }
-}
 
   /**
    * Generate a personalized referral request template
@@ -785,6 +785,10 @@ async analyzeInterviewResponse(input: {
     } catch (error) {
       console.error("[AI Service - Referral Template Generation Error]", error);
       throw new Error("Failed to generate referral template");
+    }
+  }
+
+  /**
    * Generate mock interview questions
    */
   async generateMockInterviewQuestions(input: GenerateQuestionsInput): Promise<InterviewQuestion[]> {
@@ -833,7 +837,7 @@ ${insightsData.commonQuestions?.slice(0, 5).map((q: any) => `- ${q.question} (${
                 properties: {
                   id: { type: "string" },
                   question: { type: "string" },
-                  category: { 
+                  category: {
                     type: "string",
                     enum: ["behavioral", "technical", "cultural", "situational"]
                   },
