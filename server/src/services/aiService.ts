@@ -7,6 +7,18 @@ import {
   GeneratedCoverLetter,
 } from "../types/ai.types";
 import {
+  LinkedInMessageInput,
+  LinkedInMessageOutput,
+  LinkedInProfileOptimizationInput,
+  LinkedInProfileOptimizationOutput,
+  NetworkingStrategyInput,
+  NetworkingStrategyOutput,
+  ContentSharingStrategyInput,
+  ContentSharingStrategyOutput,
+  NetworkingCampaignInput,
+  NetworkingCampaignOutput,
+} from "../types/linkedin.types";
+import {
   buildResumeTailoringPrompt,
   resumeSystemPrompt,
 } from "./llm/prompts/resume.prompts";
@@ -21,8 +33,27 @@ import {
 import { resumeSchema } from "./llm/schemas/resume.schema";
 import { coverLetterSchema } from "./llm/schemas/coverLetter.schema";
 import { resumeParserSchema } from "./llm/schemas/resumeParser.schema";
+import {
+  linkedinMessageSchema,
+  linkedinOptimizationSchema,
+  networkingStrategySchema,
+  contentSharingStrategySchema,
+  networkingCampaignSchema,
+} from "./llm/schemas/linkedin.schema";
 import { cleanHtmlForExtraction, generateJobExtractionPrompt, validateExtractedData } from "./llm/prompts/url.prompts";
 import { mockInterviewPrompts } from "./llm/prompts/mockInterview.prompts";
+import {
+  buildLinkedInMessagePrompt,
+  linkedinMessageSystemPrompt,
+  buildLinkedInOptimizationPrompt,
+  linkedinOptimizationSystemPrompt,
+  buildNetworkingStrategyPrompt,
+  networkingStrategySystemPrompt,
+  buildContentSharingStrategyPrompt,
+  contentSharingSystemPrompt,
+  buildNetworkingCampaignPrompt,
+  networkingCampaignSystemPrompt,
+} from "./llm/prompts/linkedin.prompts";
 import {
   CompanyResearchInput,
   CompanyResearchResult,
@@ -985,6 +1016,116 @@ FEEDBACK RECEIVED:
     } catch (error) {
       console.error('[AI Service] Error generating mock interview summary:', error);
       throw new Error('Failed to generate performance summary');
+    }
+  }
+
+  /**
+   * Generate LinkedIn message template
+   */
+  async generateLinkedInMessage(
+    input: LinkedInMessageInput
+  ): Promise<LinkedInMessageOutput> {
+    try {
+      const prompt = buildLinkedInMessagePrompt(input);
+      const response = await this.llmProvider.generate<LinkedInMessageOutput>({
+        prompt,
+        systemPrompt: linkedinMessageSystemPrompt,
+        jsonSchema: linkedinMessageSchema,
+        temperature: 0.8,
+        maxTokens: 1000,
+      });
+      return response.content;
+    } catch (error) {
+      console.error('[AI Service] Error generating LinkedIn message:', error);
+      throw new Error('Failed to generate LinkedIn message');
+    }
+  }
+
+  /**
+   * Generate LinkedIn profile optimization suggestions
+   */
+  async generateLinkedInOptimization(
+    input: LinkedInProfileOptimizationInput
+  ): Promise<LinkedInProfileOptimizationOutput> {
+    try {
+      const prompt = buildLinkedInOptimizationPrompt(input);
+      const response = await this.llmProvider.generate<LinkedInProfileOptimizationOutput>({
+        prompt,
+        systemPrompt: linkedinOptimizationSystemPrompt,
+        jsonSchema: linkedinOptimizationSchema,
+        temperature: 0.7,
+        maxTokens: 2000,
+      });
+      return response.content;
+    } catch (error) {
+      console.error('[AI Service] Error generating LinkedIn optimization:', error);
+      throw new Error('Failed to generate LinkedIn optimization suggestions');
+    }
+  }
+
+  /**
+   * Generate networking strategy
+   */
+  async generateNetworkingStrategy(
+    input: NetworkingStrategyInput
+  ): Promise<NetworkingStrategyOutput> {
+    try {
+      const prompt = buildNetworkingStrategyPrompt(input);
+      const response = await this.llmProvider.generate<NetworkingStrategyOutput>({
+        prompt,
+        systemPrompt: networkingStrategySystemPrompt,
+        jsonSchema: networkingStrategySchema,
+        temperature: 0.8,
+        maxTokens: 2500,
+      });
+      return response.content;
+    } catch (error) {
+      console.error('[AI Service] Error generating networking strategy:', error);
+      throw new Error('Failed to generate networking strategy');
+    }
+  }
+
+  /**
+   * Generate content sharing strategy
+   */
+  async generateContentSharingStrategy(
+    input: ContentSharingStrategyInput
+  ): Promise<ContentSharingStrategyOutput> {
+    try {
+      const prompt = buildContentSharingStrategyPrompt(input);
+      const response = await this.llmProvider.generate<ContentSharingStrategyOutput>({
+        prompt,
+        systemPrompt: contentSharingSystemPrompt,
+        jsonSchema: contentSharingStrategySchema,
+        temperature: 0.7,
+        maxTokens: 2000,
+      });
+      return response.content;
+    } catch (error) {
+      console.error('[AI Service] Error generating content sharing strategy:', error);
+      throw new Error('Failed to generate content sharing strategy');
+    }
+  }
+
+  /**
+   * Generate networking campaign
+   */
+  async generateNetworkingCampaign(
+    input: NetworkingCampaignInput
+  ): Promise<NetworkingCampaignOutput> {
+    try {
+      const prompt = buildNetworkingCampaignPrompt(input);
+      const response = await this.llmProvider.generate<NetworkingCampaignOutput>({
+        prompt,
+        systemPrompt: networkingCampaignSystemPrompt,
+        jsonSchema: networkingCampaignSchema,
+        temperature: 0.8,
+        maxTokens: 3000,
+      });
+      return response.content;
+    } catch (error) {
+      console.error('[AI Service] Error generating networking campaign:', error);
+      throw new Error('Failed to generate networking campaign');
     }
   }
 

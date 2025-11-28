@@ -15,7 +15,6 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   reauthenticateWithPopup,
-  OAuthProvider,
 } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 
@@ -224,6 +223,25 @@ export async function signInWithGithub(): Promise<AuthResult> {
 }
 
 /**
+ * Sign in with LinkedIn OAuth (direct OAuth flow)
+ */
+export async function signInWithLinkedIn(): Promise<AuthResult> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    window.location.href = `${apiUrl}/auth/linkedin`;
+    return {
+      success: true,
+    };
+  } catch (error) {
+    const authError = error as AuthError;
+    return {
+      success: false,
+      error: new AuthenticationError(authError),
+    };
+  }
+}
+
+/**
  * Generic sign in with OAuth provider
  */
 /**
@@ -250,6 +268,9 @@ async function signInWithProvider(provider: AuthProvider): Promise<AuthResult> {
     );
 
     if (response.status === 404) {
+      const providerData = result.user.providerData.find(p => p.providerId === 'oidc.linkedin.com');
+      const linkedinUrl = providerData ? `https://www.linkedin.com/in/${providerData.uid}/` : null;
+
       const registerResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/register`,
         {
@@ -261,7 +282,9 @@ async function signInWithProvider(provider: AuthProvider): Promise<AuthResult> {
           body: JSON.stringify({
             idToken,
             firstName: result.user.displayName?.split(' ')[0] || '',
-            lastName: result.user.displayName?.split(' ').slice(1).join(' ') || ''
+            lastName: result.user.displayName?.split(' ').slice(1).join(' ') || '',
+            profilePhotoUrl: result.user.photoURL || null,
+            linkedinUrl: linkedinUrl,
           }),
         }
       );
@@ -284,10 +307,10 @@ async function signInWithProvider(provider: AuthProvider): Promise<AuthResult> {
       user: result.user,
     };
   } catch (error) {
-    console.error("OAuth sign in error:", error);
+    const authError = error as AuthError;
     return {
       success: false,
-      error: new AuthenticationError(error as AuthError),
+      error: new AuthenticationError(authError),
     };
   }
 }
@@ -432,6 +455,37 @@ export const deleteUserAccount = async (password?: string) => {
       }
     }
 
+    // Check if user is LinkedIn user (created via custom token)
+    // LinkedIn users have UID starting with "linkedin_" or no providerData
+    const isLinkedInUser = user.uid.startsWith('linkedin_') ||
+      (user.providerData.length === 0) ||
+      (!user.providerData.some(p => p.providerId === 'password' || p.providerId === 'google.com' || p.providerId === 'github.com'));
+
+    // For LinkedIn users, delete via backend (no re-authentication needed)
+    if (isLinkedInUser) {
+      const idToken = await user.getIdToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/users/me`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete account");
+      }
+
+      await auth.signOut();
+      return { success: true };
+    }
+
+    // For other users, use Firebase re-authentication
     const isOAuthUser = user.providerData.some(
       provider => provider.providerId !== 'password'
     )
@@ -445,7 +499,7 @@ export const deleteUserAccount = async (password?: string) => {
       } else if (providerId === 'github.com') {
         provider = new GithubAuthProvider()
       } else {
-        provider = new OAuthProvider(providerId)
+        throw new Error(`Unsupported OAuth provider: ${providerId}`)
       }
 
       await reauthenticateWithPopup(user, provider)
@@ -464,8 +518,26 @@ export const deleteUserAccount = async (password?: string) => {
       await reauthenticateWithCredential(user, credential)
     }
 
-    await user.delete()
+    // Delete via backend to ensure database cleanup
+    const idToken = await user.getIdToken();
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/users/me`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        credentials: "include",
+      }
+    );
 
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete account");
+    }
+
+    await auth.signOut();
     return { success: true }
   } catch (error: any) {
     console.error("Error deleting user account:", error)

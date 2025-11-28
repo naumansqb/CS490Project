@@ -17,6 +17,7 @@ import {
   signUpWithEmail,
   signInWithGoogle,
   signInWithGithub,
+  signInWithLinkedIn,
   validatePassword,
   validateEmail,
   AuthenticationError,
@@ -28,6 +29,7 @@ interface FormErrors {
   confirmPassword: string;
   google: string;
   github: string;
+  linkedin: string;
 }
 
 const initialErrors: FormErrors = {
@@ -36,6 +38,7 @@ const initialErrors: FormErrors = {
   confirmPassword: "",
   google: "",
   github: "",
+  linkedin: "",
 };
 
 export function SignupForm({
@@ -52,7 +55,8 @@ export function SignupForm({
   const [oAuthLoading, setOAuthLoading] = useState<{
     google: boolean;
     github: boolean;
-  }>({ google: false, github: false });
+    linkedin: boolean;
+  }>({ google: false, github: false, linkedin: false });
 
   const router = useRouter();
 
@@ -241,6 +245,44 @@ export function SignupForm({
     }
   };
 
+  /**
+   * Handle LinkedIn OAuth sign in
+   */
+  const handleLinkedInSignIn = async () => {
+    clearErrors("linkedin");
+    setOAuthLoading((prev) => ({ ...prev, linkedin: true }));
+
+    try {
+      const result = await signInWithLinkedIn();
+
+      if (result.success && result.user) {
+        router.push("/dashboard");
+      } else if (result.error) {
+        // Check if popup was cancelled - don't show error
+        if (
+          result.error.code === "auth/popup-closed-by-user" ||
+          result.error.code === "auth/cancelled-popup-request"
+        ) {
+          // User cancelled - silently return without error
+          return;
+        }
+
+        setErrors((prev) => ({
+          ...prev,
+          linkedin: result.error!.message,
+        }));
+      }
+    } catch (error) {
+      console.error("Unexpected error during LinkedIn sign in:", error);
+      setErrors((prev) => ({
+        ...prev,
+        linkedin: "An unexpected error occurred. Please try again.",
+      }));
+    } finally {
+      setOAuthLoading((prev) => ({ ...prev, linkedin: false }));
+    }
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -367,7 +409,7 @@ export function SignupForm({
           <Button
             type="submit"
             className="w-full text-white cursor-pointer bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
+            disabled={isLoading || oAuthLoading.google || oAuthLoading.github || oAuthLoading.linkedin}
           >
             {isLoading ? "Creating Account..." : "Create Account"}
           </Button>
@@ -385,7 +427,7 @@ export function SignupForm({
                 ? "border-destructive cursor-pointer"
                 : "cursor-pointer"
             }
-            disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
+            disabled={isLoading || oAuthLoading.google || oAuthLoading.github || oAuthLoading.linkedin}
           >
             <Image src="/Google.svg" alt="Google icon" width={20} height={20} />
             {oAuthLoading.google ? "Signing in..." : "Sign up with Google"}
@@ -405,7 +447,7 @@ export function SignupForm({
                 ? "border-destructive cursor-pointer"
                 : "cursor-pointer"
             }
-            disabled={isLoading || oAuthLoading.google || oAuthLoading.github}
+            disabled={isLoading || oAuthLoading.google || oAuthLoading.github || oAuthLoading.linkedin}
           >
             <Image src="/github.svg" alt="Github Logo" width={20} height={20} />
             {oAuthLoading.github ? "Signing in..." : "Sign up with GitHub"}
@@ -413,6 +455,28 @@ export function SignupForm({
           {errors.github && (
             <FieldDescription className="text-destructive">
               {errors.github}
+            </FieldDescription>
+          )}
+
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleLinkedInSignIn}
+            className={
+              errors.linkedin
+                ? "border-destructive cursor-pointer"
+                : "cursor-pointer"
+            }
+            disabled={isLoading || oAuthLoading.google || oAuthLoading.github || oAuthLoading.linkedin}
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            {oAuthLoading.linkedin ? "Signing in..." : "Sign up with LinkedIn"}
+          </Button>
+          {errors.linkedin && (
+            <FieldDescription className="text-destructive">
+              {errors.linkedin}
             </FieldDescription>
           )}
 

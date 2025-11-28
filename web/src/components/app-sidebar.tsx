@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, FileText, Briefcase, Calendar, Bookmark, Mail, Users, Network } from "lucide-react"
+import { Home, FileText, Briefcase, Calendar, Bookmark, Mail, Users, Network, Linkedin } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext';
 
 import {
@@ -60,6 +60,11 @@ export function SideBar() {
       title: 'Networking Events',
       url: '/dashboard/networking',
       icon: Network,
+    },
+    {
+      title: 'LinkedIn Tools',
+      url: '/dashboard/linkedin',
+      icon: Linkedin,
     }
   ]
 

@@ -12,6 +12,13 @@ import {
   SkillsGapInput,
   ReferralTemplateInput,
 } from "../types/ai.types";
+import {
+  LinkedInMessageInput,
+  LinkedInProfileOptimizationInput,
+  NetworkingStrategyInput,
+  ContentSharingStrategyInput,
+  NetworkingCampaignInput,
+} from "../types/linkedin.types";
 import { Prisma } from "@prisma/client";
 
 // Configure multer for file uploads (DOCX/DOC/TXT only - no PDF)
@@ -2499,6 +2506,351 @@ export const generateMockInterviewSummary = async (
       500,
       "INTERNAL_ERROR",
       error.message || "Failed to generate performance summary"
+    );
+  }
+};
+
+/**
+ * Generate LinkedIn message template
+ * POST /api/ai/linkedin/message
+ */
+export const generateLinkedInMessage = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: LinkedInMessageInput = req.body;
+
+    if (!input.contactName || !input.messagePurpose) {
+      sendErrorResponse(
+        res,
+        400,
+        "BAD_REQUEST",
+        "Missing required fields: contactName, messagePurpose"
+      );
+      return;
+    }
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: true,
+        skills: true,
+        education: true,
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const messageInput: LinkedInMessageInput = {
+      ...input,
+      userProfile: {
+        firstName: userProfile.firstName || undefined,
+        lastName: userProfile.lastName || undefined,
+        headline: userProfile.headline || undefined,
+        bio: userProfile.bio || undefined,
+        industry: userProfile.industry || undefined,
+        linkedinUrl: userProfile.linkedinUrl || undefined,
+      },
+    };
+
+    const result = await aiService.generateLinkedInMessage(messageInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate LinkedIn Message Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate LinkedIn message"
+    );
+  }
+};
+
+/**
+ * Generate LinkedIn profile optimization suggestions
+ * POST /api/ai/linkedin/optimization
+ */
+export const generateLinkedInOptimization = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: LinkedInProfileOptimizationInput = req.body;
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        workExperiences: {
+          orderBy: { startDate: 'desc' },
+        },
+        skills: true,
+        education: true,
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const optimizationInput: LinkedInProfileOptimizationInput = {
+      ...input,
+      userProfile: {
+        firstName: userProfile.firstName || undefined,
+        lastName: userProfile.lastName || undefined,
+        headline: userProfile.headline || undefined,
+        bio: userProfile.bio || undefined,
+        industry: userProfile.industry || undefined,
+        workExperiences: userProfile.workExperiences.map(exp => ({
+          companyName: exp.companyName,
+          positionTitle: exp.positionTitle,
+          description: exp.description || undefined,
+        })),
+        skills: userProfile.skills.map(s => ({
+          skillName: s.skillName,
+        })),
+        education: userProfile.education.map(edu => ({
+          institutionName: edu.institutionName,
+          degreeType: edu.degreeType,
+          major: edu.major || undefined,
+        })),
+      },
+    };
+
+    const result = await aiService.generateLinkedInOptimization(optimizationInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate LinkedIn Optimization Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate LinkedIn optimization suggestions"
+    );
+  }
+};
+
+/**
+ * Generate networking strategy
+ * POST /api/ai/linkedin/networking-strategy
+ */
+export const generateNetworkingStrategy = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: NetworkingStrategyInput = req.body;
+
+    if (!input.networkingGoals || input.networkingGoals.length === 0) {
+      sendErrorResponse(
+        res,
+        400,
+        "BAD_REQUEST",
+        "Missing required field: networkingGoals"
+      );
+      return;
+    }
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        skills: true,
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const strategyInput: NetworkingStrategyInput = {
+      ...input,
+      userProfile: {
+        industry: userProfile.industry || undefined,
+        headline: userProfile.headline || undefined,
+        skills: userProfile.skills.map(s => ({
+          skillName: s.skillName,
+        })),
+      },
+    };
+
+    const result = await aiService.generateNetworkingStrategy(strategyInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate Networking Strategy Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate networking strategy"
+    );
+  }
+};
+
+/**
+ * Generate content sharing strategy
+ * POST /api/ai/linkedin/content-strategy
+ */
+export const generateContentSharingStrategy = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: ContentSharingStrategyInput = req.body;
+
+    if (!input.goals || input.goals.length === 0 || !input.targetAudience) {
+      sendErrorResponse(
+        res,
+        400,
+        "BAD_REQUEST",
+        "Missing required fields: goals, targetAudience"
+      );
+      return;
+    }
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        skills: true,
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const strategyInput: ContentSharingStrategyInput = {
+      ...input,
+      userProfile: {
+        industry: userProfile.industry || undefined,
+        headline: userProfile.headline || undefined,
+        skills: userProfile.skills.map(s => ({
+          skillName: s.skillName,
+        })),
+      },
+    };
+
+    const result = await aiService.generateContentSharingStrategy(strategyInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate Content Sharing Strategy Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate content sharing strategy"
+    );
+  }
+};
+
+/**
+ * Generate networking campaign
+ * POST /api/ai/linkedin/networking-campaign
+ */
+export const generateNetworkingCampaign = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId!;
+    const input: NetworkingCampaignInput = req.body;
+
+    if (!input.campaignName || !input.targetCompanies || !input.targetRoles || !input.goals || !input.timeline) {
+      sendErrorResponse(
+        res,
+        400,
+        "BAD_REQUEST",
+        "Missing required fields: campaignName, targetCompanies, targetRoles, goals, timeline"
+      );
+      return;
+    }
+
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        skills: true,
+      },
+    });
+
+    if (!userProfile) {
+      sendErrorResponse(
+        res,
+        404,
+        "NOT_FOUND",
+        "User profile not found"
+      );
+      return;
+    }
+
+    const campaignInput: NetworkingCampaignInput = {
+      ...input,
+      userProfile: {
+        industry: userProfile.industry || undefined,
+        headline: userProfile.headline || undefined,
+        skills: userProfile.skills.map(s => ({
+          skillName: s.skillName,
+        })),
+      },
+    };
+
+    const result = await aiService.generateNetworkingCampaign(campaignInput);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("[Generate Networking Campaign Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      error.message || "Failed to generate networking campaign"
     );
   }
 };
