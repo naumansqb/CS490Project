@@ -19,6 +19,7 @@ import companyRoutes from "./company.routes";
 import interviewRoutes from "./interview.routes";
 import professionalContactRoutes from "./professionalContact.routes";
 import referralRequestRoutes from "./referralRequest.routes";
+import networkingEventRoutes from "./networkingEvent.routes";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -44,6 +45,7 @@ router.use("/companies", companyRoutes);
 router.use("/interviews", authMiddleware, interviewRoutes);
 router.use("/professional-contacts", professionalContactRoutes);
 router.use("/referral-requests", referralRequestRoutes);
+router.use("/networking-events", networkingEventRoutes);
 
 export default router;
 

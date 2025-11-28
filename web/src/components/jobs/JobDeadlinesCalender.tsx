@@ -11,6 +11,7 @@ import UpcomingDeadlines from './UpComingDeadlines';
 import { getUserInterviews, InterviewWithJob } from '@/lib/interviews.api';
 import { getFollowUpReminders, type ProfessionalContact } from '@/lib/contacts.api';
 import { getReferralRequests, type ReferralRequest } from '@/lib/referralRequests.api';
+import { networkingEventsApi, type NetworkingEvent } from '@/lib/networkingEvents.api';
 import { useRouter } from 'next/navigation';
 
 export default function JobDeadlinesCalendar() {
@@ -23,6 +24,7 @@ export default function JobDeadlinesCalendar() {
   const [interviews, setInterviews] = useState<InterviewWithJob[]>([]);
   const [contactReminders, setContactReminders] = useState<ProfessionalContact[]>([]);
   const [referralFollowUps, setReferralFollowUps] = useState<ReferralRequest[]>([]);
+  const [networkingEvents, setNetworkingEvents] = useState<NetworkingEvent[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -54,6 +56,13 @@ export default function JobDeadlinesCalendar() {
           setReferralFollowUps(followUps);
         } catch (error) {
           console.error('Failed to load referral follow-ups:', error);
+        }
+
+        try {
+          const eventsData = await networkingEventsApi.listEvents({});
+          setNetworkingEvents(eventsData);
+        } catch (error) {
+          console.error('Failed to load networking events:', error);
         }
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -171,6 +180,26 @@ export default function JobDeadlinesCalendar() {
     return map;
   }, [referralFollowUps]);
 
+  const networkingEventsByDate = useMemo(() => {
+    const map = new Map<string, NetworkingEvent[]>();
+    networkingEvents.forEach(event => {
+      if (event.eventDate) {
+        const eventDate = new Date(event.eventDate);
+        const year = eventDate.getFullYear();
+        const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+        const day = String(eventDate.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${day}`;
+
+        if (!map.has(dateKey)) {
+          map.set(dateKey, []);
+        }
+        map.get(dateKey)!.push(event);
+      }
+    });
+
+    return map;
+  }, [networkingEvents]);
+
 
 
   // Get jobs for a specific date
@@ -181,19 +210,21 @@ export default function JobDeadlinesCalendar() {
       interviews: interviewsByDate.get(dateStr) || [],
       contactReminders: contactRemindersByDate.get(dateStr) || [],
       referralFollowUps: referralFollowUpsByDate.get(dateStr) || [],
+      networkingEvents: networkingEventsByDate.get(dateStr) || [],
     };
   };
 
   // Get jobs for selected date
   const selectedDateData = useMemo(() => {
-    if (!selectedDate) return { jobs: [], interviews: [], contactReminders: [], referralFollowUps: [] };
+    if (!selectedDate) return { jobs: [], interviews: [], contactReminders: [], referralFollowUps: [], networkingEvents: [] };
     return {
       jobs: jobsByDate.get(selectedDate) || [],
       interviews: interviewsByDate.get(selectedDate) || [],
       contactReminders: contactRemindersByDate.get(selectedDate) || [],
       referralFollowUps: referralFollowUpsByDate.get(selectedDate) || [],
+      networkingEvents: networkingEventsByDate.get(selectedDate) || [],
     };
-  }, [selectedDate, jobsByDate, interviewsByDate, contactRemindersByDate, referralFollowUpsByDate]);
+  }, [selectedDate, jobsByDate, interviewsByDate, contactRemindersByDate, referralFollowUpsByDate, networkingEventsByDate]);
 
   // Check if date is today
   const isToday = (day: number) => {
@@ -282,14 +313,15 @@ export default function JobDeadlinesCalendar() {
               {calendarDays.map((day, index) => {
                 if (typeof day !== 'number') return day;
 
-                const { jobs: dayJobs, interviews: dayInterviews, contactReminders: dayReminders, referralFollowUps: dayReferralFollowUps } = getDataForDate(day);
+                const { jobs: dayJobs, interviews: dayInterviews, contactReminders: dayReminders, referralFollowUps: dayReferralFollowUps, networkingEvents: dayNetworkingEvents } = getDataForDate(day);
                 const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const isSelected = selectedDate === dateStr;
                 const hasDeadlines = dayJobs.length > 0;
                 const hasInterviews = dayInterviews.length > 0;
                 const hasContactReminders = dayReminders.length > 0;
                 const hasReferralFollowUps = dayReferralFollowUps.length > 0;
-                const hasEvents = hasDeadlines || hasInterviews || hasContactReminders || hasReferralFollowUps;
+                const hasNetworkingEvents = dayNetworkingEvents.length > 0;
+                const hasEvents = hasDeadlines || hasInterviews || hasContactReminders || hasReferralFollowUps || hasNetworkingEvents;
                 const todayDate = isToday(day);
                 const pastDate = isPast(day);
 
@@ -341,6 +373,14 @@ export default function JobDeadlinesCalendar() {
                               }`}
                           />
                         ))}
+                        {/* Show networking event dots */}
+                        {dayNetworkingEvents.slice(0, 2).map((_, i) => (
+                          <div
+                            key={`networking-${i}`}
+                            className={`w-1.5 h-1.5 rounded-full ${pastDate ? 'bg-yellow-400' : 'bg-yellow-500'
+                              }`}
+                          />
+                        ))}
                       </div>
                     )}
                   </button>
@@ -374,6 +414,10 @@ export default function JobDeadlinesCalendar() {
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                 <span>Referral Follow-up</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                <span>Networking Event</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -388,7 +432,7 @@ export default function JobDeadlinesCalendar() {
               <p className="text-gray-500 text-sm text-center py-8">
                 Click on a date to view deadlines and interviews
               </p>
-            ) : selectedDateData.jobs.length === 0 && selectedDateData.interviews.length === 0 && selectedDateData.contactReminders.length === 0 && selectedDateData.referralFollowUps.length === 0 ? (
+            ) : selectedDateData.jobs.length === 0 && selectedDateData.interviews.length === 0 && selectedDateData.contactReminders.length === 0 && selectedDateData.referralFollowUps.length === 0 && selectedDateData.networkingEvents.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-8">
                 No events on this date
               </p>
@@ -530,6 +574,50 @@ export default function JobDeadlinesCalendar() {
                           <div className="flex gap-2">
                             <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full capitalize">
                               {referral.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Networking Events Section */}
+                {selectedDateData.networkingEvents.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                      Networking Events ({selectedDateData.networkingEvents.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedDateData.networkingEvents.map(event => (
+                        <div
+                          key={event.id}
+                          onClick={() => router.push(`/dashboard/networking?eventId=${event.id}`)}
+                          className="p-3 border border-yellow-200 rounded-lg hover:border-yellow-300 hover:shadow-sm transition-all bg-yellow-50 cursor-pointer"
+                        >
+                          <h5 className="font-semibold text-gray-900 mb-1">{event.eventName}</h5>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                            <Calendar size={14} />
+                            <span>
+                              {new Date(event.eventDate).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                            {event.location && (
+                              <>
+                                <span className="text-gray-400">•</span>
+                                <span>{event.location}</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full capitalize">
+                              {event.eventType}
+                            </span>
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full capitalize">
+                              {event.status}
                             </span>
                           </div>
                         </div>
