@@ -21,6 +21,7 @@ import professionalContactRoutes from "./professionalContact.routes";
 import referralRequestRoutes from "./referralRequest.routes";
 import { authMiddleware } from "../middleware/auth.middleware";
 
+import materialsRoutes from "./materials.routes";
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -38,6 +39,7 @@ router.use('/resume-templates', resumeTemplateRoutes);
 router.use("/job-opportunities", jobOpportunityRoutes);
 router.use("/job-contacts", jobContactRoutes);
 router.use("/application-history", applicationHistoryRoutes);
+router.use("/", materialsRoutes);
 router.use("/ai", aiRoutes);
 router.use("/cover-letters", coverLetterRoutes);
 router.use("/companies", companyRoutes);
