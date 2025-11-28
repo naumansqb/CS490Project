@@ -1475,6 +1475,7 @@ const [exportingComparison, setExportingComparison] = useState(false);
 
           <TabsContent value="interview" className="mt-6">
             <InterviewPrepDashboard
+              jobId={selectedJob.id}
               companyName={selectedJob.company}
               jobTitle={selectedJob.title}
               insightsData={insightsData}

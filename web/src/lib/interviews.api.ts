@@ -169,3 +169,57 @@ export async function analyzeInterviewResponse(
     throw error;
   }
 }
+
+/**
+ * Update a single checklist item completion status
+ */
+export const updateChecklistItem = async (
+  jobId: string,
+  taskIndex: number,
+  completed: boolean
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    console.log(" [API Job Id]", jobId);
+    const response = await apiClient.fetch<{ success: boolean; data: any }>(
+      '/ai/interview-insights/checklist',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ jobId, taskIndex, completed }),
+      }
+    );
+
+    return response;
+  } catch (error: any) {
+    console.error('[Update Checklist Item Error]', error);
+    return {
+      success: false,
+      error: error?.message || 'Failed to update checklist item',
+    };
+  }
+};
+
+/**
+ * Bulk update multiple checklist items
+ */
+export const updateChecklistBulk = async (
+  jobId: string,
+  updates: Array<{ taskIndex: number; completed: boolean }>
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const response = await apiClient.fetch<{ success: boolean; data: any }>(
+      '/ai/interview-insights/checklist/bulk',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ jobId, updates }),
+      }
+    );
+
+    return response;
+  } catch (error: any) {
+    console.error('[Update Checklist Bulk Error]', error);
+    return {
+      success: false,
+      error: error?.message || 'Failed to update checklist items',
+    };
+  }
+};
