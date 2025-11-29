@@ -24,12 +24,15 @@ export default function DeleteAccountModal({
 
     if (!isOpen) return null;
 
-    // Check if user is OAuth user
+    // Check if user is OAuth user or LinkedIn user
     const user = auth.currentUser;
-    const isOAuthUser = user?.providerData.some(
+    const isLinkedInUser = user?.uid.startsWith('linkedin_') ||
+        (user?.providerData.length === 0) ||
+        (!user?.providerData.some(p => p.providerId === 'password' || p.providerId === 'google.com' || p.providerId === 'github.com'));
+    const isOAuthUser = !isLinkedInUser && user?.providerData.some(
         provider => provider.providerId !== 'password'
     );
-    const providerName = user?.providerData[0]?.providerId?.replace('.com', '') || 'provider';
+    const providerName = isLinkedInUser ? 'LinkedIn' : (user?.providerData[0]?.providerId?.replace('.com', '') || 'provider');
 
     const handleDelete = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,13 +54,13 @@ export default function DeleteAccountModal({
                 return;
             }
 
-            if (!isOAuthUser && !password) {
+            if (!isLinkedInUser && !isOAuthUser && !password) {
                 setError('Password is required');
                 setIsDeleting(false);
                 return;
             }
 
-            const result = await deleteUserAccount(isOAuthUser ? undefined : password);
+            const result = await deleteUserAccount((isLinkedInUser || isOAuthUser) ? undefined : password);
 
             if (!result.success) {
                 setError(result.error?.message || "Failed to delete account");
@@ -66,7 +69,7 @@ export default function DeleteAccountModal({
             }
 
             try {
-                const emailResponse = await fetch('http://localhost:5000/api/users/send-deletion-email', {
+                const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/users/send-deletion-email`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -84,25 +87,8 @@ export default function DeleteAccountModal({
                 console.warn('Email send failed:', emailError);
             }
 
-            try {
-                const dbResponse = await fetch('http://localhost:5000/api/users/delete-user-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: user.uid
-                    })
-                });
-
-                if (!dbResponse.ok) {
-                    console.warn('Failed to delete database data');
-                }
-            } catch (dbError) {
-                console.warn('Database deletion failed:', dbError);
-            }
-
-            await auth.signOut();
+            // Account deletion is handled by deleteUserAccount function
+            // It will delete both Firebase user and database records
             router.push("/signin");
 
         } catch (err: any) {
@@ -138,8 +124,8 @@ export default function DeleteAccountModal({
                 </div>
 
                 <form onSubmit={handleDelete} className="space-y-4">
-                    {/* Password field - only for non-OAuth users */}
-                    {!isOAuthUser && (
+                    {/* Password field - only for email/password users */}
+                    {!isLinkedInUser && !isOAuthUser && (
                         <div>
                             <Label htmlFor="confirm-password">
                                 Enter your password to confirm
@@ -158,11 +144,14 @@ export default function DeleteAccountModal({
                     )}
 
                     {/* OAuth users see different message */}
-                    {isOAuthUser && (
+                    {(isLinkedInUser || isOAuthUser) && (
                         <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
                             <p className="text-sm text-blue-800">
                                 You signed in with <strong>{providerName}</strong>.
-                                You'll need to sign in again with {providerName} to confirm deletion.
+                                {isLinkedInUser
+                                    ? " Your account will be deleted immediately after confirmation."
+                                    : ` You'll need to sign in again with ${providerName} to confirm deletion.`
+                                }
                             </p>
                         </div>
                     )}

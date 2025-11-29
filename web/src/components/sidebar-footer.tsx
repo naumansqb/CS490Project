@@ -6,11 +6,11 @@ import { Button } from "./ui/button";
 import Image from "next/image";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LogOut, User, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation";
@@ -22,30 +22,27 @@ export default function UserFooter() {
     const [user, setUser] = useState<Record<string, any> | null>(null);
     const { user: firebase } = useAuth();
 
-    console.log('Auth user in UserFooter:', firebase);
-
     useEffect(() => {
         const fetchProfile = async () => {
             if (!firebase?.uid) return;
 
             try {
-              const token = await firebase.getIdToken?.();
-              const headers: Record<string, string> = {};
-              if (token) headers.Authorization = `Bearer ${token}`;
+                const token = await firebase.getIdToken?.();
+                const headers: Record<string, string> = {};
+                if (token) headers.Authorization = `Bearer ${token}`;
 
-              const data = await apiClient.fetch(`/user-profiles/${firebase.uid}`, {
-                headers,
-              }) as Record<string, any>;
+                const data = await apiClient.fetch(`/user-profiles/${firebase.uid}`, {
+                    headers,
+                }) as Record<string, any>;
 
-              setUser(data);
-              console.log("Fetched profile data:", data);
+                setUser(data);
             } catch (error: any) {
-              console.error("Failed to load profile:", {
-                message: error?.message,
-                body: typeof error === "object" ? JSON.stringify(error) : String(error),
-              });
+                console.error("Failed to load profile:", {
+                    message: error?.message,
+                    body: typeof error === "object" ? JSON.stringify(error) : String(error),
+                });
             }
-          };
+        };
 
         fetchProfile();
     }, []);
@@ -55,22 +52,22 @@ export default function UserFooter() {
             await signOutUser();
             router.push('/');
         } catch (error) {
-        console.error("Error signing out:", error);
+            console.error("Error signing out:", error);
         }
 
     }
-    
+
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button 
+                <Button
                     variant="ghost"
                     className="w-full h-auto flex items-center gap-2 justify-start p-2 hover:bg-accent"
                 >
                     <Image
                         className="rounded-lg"
-                        src={firebase?.photoURL || "/default_profile.png"}
+                        src={user?.profilePhotoUrl || firebase?.photoURL || "/default_profile.png"}
                         alt="User Profile"
                         width={40}
                         height={40}

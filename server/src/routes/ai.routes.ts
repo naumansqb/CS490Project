@@ -76,5 +76,12 @@ router.post(
   aiController.generateMockInterviewSummary
 );
 
+// LinkedIn integration routes
+router.post("/linkedin/message", authMiddleware, aiController.generateLinkedInMessage);
+router.post("/linkedin/optimization", authMiddleware, aiController.generateLinkedInOptimization);
+router.post("/linkedin/networking-strategy", authMiddleware, aiController.generateNetworkingStrategy);
+router.post("/linkedin/content-strategy", authMiddleware, aiController.generateContentSharingStrategy);
+router.post("/linkedin/networking-campaign", authMiddleware, aiController.generateNetworkingCampaign);
+
 
 export default router;

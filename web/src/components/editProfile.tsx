@@ -24,7 +24,6 @@ import { getCurrentUser } from "@/lib/firebase/firebase-auth-service"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
 import { useAuth } from '@/contexts/AuthContext'
-import { AvatarUpload } from "@/components/profile/avatar-upload"
 
 const industries = [
   "Technology",
@@ -83,28 +82,26 @@ export default function ProfileForm() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-          const data = await apiClient.fetch(`/users/me`) as any;
-          setUser(data);
-          setFormData({
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            email: data?.email || "",
-            phone: data.phone_number || "",
-            city: data.locationCity || "",
-            state: data.locationState || "",
-            headline: data.headline || "",
-            bio: data.bio || "",
-            industry: data.industry || "",
-            experienceLevel: data.careerLevel || ""
-          });
-          console.log('Fetched profile data:', data);
-          console.log('phone number', data.phone_number);
+        const data = await apiClient.fetch(`/users/me`) as any;
+        setUser(data);
+        setFormData({
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          email: data?.email || "",
+          phone: data.phone_number || "",
+          city: data.locationCity || "",
+          state: data.locationState || "",
+          headline: data.headline || "",
+          bio: data.bio || "",
+          industry: data.industry || "",
+          experienceLevel: data.careerLevel || ""
+        });
       } catch (error) {
-          console.error('Failed to load profile:', error);
+        console.error('Failed to load profile:', error);
       } finally {
       }
     };
-    
+
     fetchProfile();
   }, []);
 
@@ -112,7 +109,6 @@ export default function ProfileForm() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
   const bioLength = formData.bio.length
   const bioLimit = 500
 
@@ -190,22 +186,19 @@ export default function ProfileForm() {
           careerLevel: formData.experienceLevel,
           industry: formData.industry,
           email: formData.email,
-          phone_number: formData.phone
+          phone_number: formData.phone,
+          profilePhotoUrl: user?.profilePhotoUrl
         }
-        const updatedData = await updateUserProfile(firebaseUser?.uid!, updateForm);
-    
-    console.log('Profile updated:', updatedData);
-    // Update your state or show success message
-  } catch (error) {
-    console.error('Failed to update profile:', error);
-  }
+        await updateUserProfile(firebaseUser?.uid!, updateForm);
+      } catch (error) {
+        console.error('Failed to update profile:', error);
+      }
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
       router.push(`/profile/${firebaseUser?.uid}`)
     }
     else {
       setShowSuccess(false)
-      console.log("Form has errors:", errors)
     }
   }
 
@@ -227,16 +220,6 @@ export default function ProfileForm() {
     router.push(`/profile/${firebaseUser?.uid}`)
   }
 
-  const handleAvatarUpload = async (file: File) => {
-    // Simulate upload and create a preview URL
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Create a preview URL for the uploaded file
-    const imageUrl = URL.createObjectURL(file);
-    setProfileImage(imageUrl);
-    
-    console.log("Avatar uploaded:", file.name);
-  }
 
   return (
     <div className="min-h-screen p-6">
@@ -256,14 +239,26 @@ export default function ProfileForm() {
             </Alert>
           )}
 
-          {/* Profile Picture Upload */}
+          {/* Profile Picture Display */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Profile Picture</h2>
-            <AvatarUpload 
-              onUpload={handleAvatarUpload}
-              currentImage={profileImage || undefined}
-              className="w-full"
-            />
+            <div className="flex justify-center">
+              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-border">
+                {user?.profilePhotoUrl ? (
+                  <img
+                    src={user.profilePhotoUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src="/default_profile.png"
+                    alt="Default profile"
+                    className="w-full h-full object-cover opacity-50"
+                  />
+                )}
+              </div>
+            </div>
           </div>
 
           <FieldGroup onSubmit={handleSubmit} className="space-y-6">

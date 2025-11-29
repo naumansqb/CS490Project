@@ -18,9 +18,9 @@ export default function signUpPage() {
           </div>
         </div>
       </div>
-        <div className="relative hidden lg:flex items-center justify-center bg-gradient-to-br from-[#E0F7F7] to-[#CDE4FF]">
-         <img src="/Logo/Logo.svg" alt="JobBuddy" className="w-3/4 max-w-[520px] object-contain" />
-        </div>
+      <div className="relative hidden lg:flex items-center justify-center bg-gradient-to-br from-[#E0F7F7] to-[#CDE4FF]">
+        <img src="/Logo/Logo.svg" alt="JobBuddy" className="w-3/4 max-w-[520px] object-contain" />
+      </div>
     </div>
   );
 }
