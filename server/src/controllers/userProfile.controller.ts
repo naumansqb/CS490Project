@@ -7,6 +7,7 @@ import {
 } from "../validators/userProfile.validator";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { getAuth } from "../config/firebase";
 
 export const createUserProfile = async (
   req: AuthRequest,
@@ -150,6 +151,18 @@ export const updateUserProfile = async (
       where: { userId },
       data: req.body,
     });
+
+    if (req.body.profilePhotoUrl !== undefined) {
+      try {
+        const firebaseAuth = getAuth();
+        await firebaseAuth.updateUser(userId, {
+          photoURL: req.body.profilePhotoUrl || undefined,
+        });
+      } catch (error) {
+        // Non-critical, continue anyway
+      }
+    }
+
     res.json(userProfile);
   } catch (error) {
     sendErrorResponse(

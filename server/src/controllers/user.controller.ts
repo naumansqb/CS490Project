@@ -4,6 +4,7 @@ import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { validateUserProfileUpdate } from "../validators/userProfile.validator";
 import { sendAccountDeletionEmail } from '../services/email';
+import { getAuth } from "../config/firebase";
 
 
 export const getCurrentUser = async (
@@ -94,6 +95,17 @@ export const updateCurrentUser = async (
       data: req.body,
     });
 
+    if (req.body.profilePhotoUrl !== undefined) {
+      try {
+        const firebaseAuth = getAuth();
+        await firebaseAuth.updateUser(userId, {
+          photoURL: req.body.profilePhotoUrl || undefined,
+        });
+      } catch (error) {
+        // Non-critical, continue anyway
+      }
+    }
+
     res.status(200).json(updatedProfile);
   } catch (error) {
     console.error("[Update Current User Error]", error);
@@ -102,6 +114,55 @@ export const updateCurrentUser = async (
       500,
       "INTERNAL_ERROR",
       "Failed to update user profile"
+    );
+  }
+};
+
+/**
+ * Delete user account and all associated data
+ */
+export const deleteUserAccount = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      sendErrorResponse(res, 401, "UNAUTHORIZED", "Authentication required");
+      return;
+    }
+
+    // Delete user profile and all related data
+    try {
+      await prisma.userProfile.delete({
+        where: { userId },
+      });
+    } catch (error: any) {
+      if (error.code !== 'P2025') { // P2025 = record not found
+        throw error;
+      }
+    }
+
+    // Delete Firebase user
+    try {
+      const firebaseAuth = getAuth();
+      await firebaseAuth.deleteUser(userId);
+    } catch (error: any) {
+      console.error("[Firebase Delete User Error]", error);
+      // Continue even if Firebase deletion fails - database is already cleaned
+    }
+
+    res.status(200).json({
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("[Delete User Account Error]", error);
+    sendErrorResponse(
+      res,
+      500,
+      "INTERNAL_ERROR",
+      "Failed to delete user account"
     );
   }
 };

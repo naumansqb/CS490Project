@@ -112,6 +112,20 @@ export default function ContactDetail({
         }
     }, [user, contact.id]);
 
+    // Refresh contact data when component becomes visible or contact prop changes
+    useEffect(() => {
+        loadContactData();
+    }, [contact.id, initialContact.relationshipStrength]);
+
+    // Refresh contact data when window gains focus (user returns to tab)
+    useEffect(() => {
+        const handleFocus = () => {
+            loadContactData();
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [contact.id]);
+
     const loadContactData = async () => {
         try {
             const updatedContact = await getProfessionalContact(contact.id);

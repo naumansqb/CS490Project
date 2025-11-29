@@ -51,6 +51,7 @@ router.use("/companies", companyRoutes);
 router.use("/interviews", authMiddleware, interviewRoutes);
 router.use("/professional-contacts", professionalContactRoutes);
 router.use("/referral-requests", referralRequestRoutes);
+router.use("/networking-events", networkingEventRoutes);
 
 // Team collaboration routes
 router.use("/teams", teamRoutes);

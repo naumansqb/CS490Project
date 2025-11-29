@@ -20,7 +20,6 @@ export default function ProfileHeader() {
       try {
         const data = await apiClient.fetch(`/user-profiles/${urlUid}`) as Record<string, any>;
         setUser(data);
-        console.log('Fetched profile data:', data);
       } catch (error) {
         console.error('Failed to load profile:', error);
       } finally {
@@ -36,7 +35,7 @@ export default function ProfileHeader() {
         <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
           <div className="relative">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={firebaseUser?.photoURL || "/default_profile.png"} alt="Profile" />
+              <AvatarImage src={user?.profilePhotoUrl || firebaseUser?.photoURL || "/default_profile.png"} alt="Profile" />
             </Avatar>
           </div>
           <div className="flex-1 space-y-2">
@@ -73,7 +72,7 @@ export default function ProfileHeader() {
             </div>
           </div>
           <div></div>
-          <Button variant="default" className="bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed"onClick={() => router.push(`/profile/${firebaseUser?.uid}/edit`)}>Edit Profile</Button>
+          <Button variant="default" className="bg-[#3bafba] hover:bg-[#34a0ab] disabled:opacity-60 disabled:cursor-not-allowed" onClick={() => router.push(`/profile/${firebaseUser?.uid}/edit`)}>Edit Profile</Button>
         </div>
       </CardContent>
       <CardContent>

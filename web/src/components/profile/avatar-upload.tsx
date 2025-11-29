@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -9,18 +9,24 @@ import Image from "next/image";
 
 interface AvatarUploadProps {
   onUpload: (file: File) => Promise<void>;
+  onRemove?: () => void;
   currentImage?: string;
   className?: string;
 }
 
-export function AvatarUpload({ onUpload, currentImage, className }: AvatarUploadProps) {
+export function AvatarUpload({ onUpload, onRemove, currentImage, className }: AvatarUploadProps) {
   const [preview, setPreview] = useState<string | null>(currentImage || null);
+
+  // Update preview when currentImage changes
+  useEffect(() => {
+    setPreview(currentImage || null);
+  }, [currentImage]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -40,13 +46,24 @@ export function AvatarUpload({ onUpload, currentImage, className }: AvatarUpload
 
     setError(null);
     setSelectedFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
+
+    // Automatically upload when file is selected
+    try {
+      setIsUploading(true);
+      await onUpload(file);
+      setSelectedFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -66,11 +83,15 @@ export function AvatarUpload({ onUpload, currentImage, className }: AvatarUpload
   };
 
   const handleRemove = () => {
-    setPreview(currentImage || null); // Reset to current image or null
+    setPreview(null);
     setSelectedFile(null);
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    // Notify parent component to remove the image
+    if (onRemove) {
+      onRemove();
     }
   };
 
@@ -128,37 +149,10 @@ export function AvatarUpload({ onUpload, currentImage, className }: AvatarUpload
               </Button>
             )}
 
-            {/* File selected but not uploaded yet */}
-            {selectedFile && (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleReplace}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={isUploading}
-                  >
-                    Replace
-                  </Button>
-                  <Button
-                    onClick={handleRemove}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={isUploading}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <Button
-                  onClick={handleUpload}
-                  loading={isUploading}
-                  className="w-full"
-                  disabled={isUploading}
-                >
-                  {isUploading ? "Uploading..." : "Confirm Upload"}
-                </Button>
+            {/* File selected but uploading */}
+            {selectedFile && isUploading && (
+              <div className="text-sm text-muted-foreground text-center">
+                Processing image...
               </div>
             )}
 
