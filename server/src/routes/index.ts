@@ -19,6 +19,13 @@ import companyRoutes from "./company.routes";
 import interviewRoutes from "./interview.routes";
 import professionalContactRoutes from "./professionalContact.routes";
 import referralRequestRoutes from "./referralRequest.routes";
+import teamRoutes from "./team.routes";
+import teamInvitationRoutes from "./teamInvitation.routes";
+import sharedJobRoutes from "./sharedJob.routes";
+import teamTaskRoutes from "./teamTask.routes";
+import teamFeedbackRoutes from "./teamFeedback.routes";
+import teamActivityRoutes from "./teamActivity.routes";
+import teamAnalyticsRoutes from "./teamAnalytics.routes";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -44,6 +51,16 @@ router.use("/companies", companyRoutes);
 router.use("/interviews", authMiddleware, interviewRoutes);
 router.use("/professional-contacts", professionalContactRoutes);
 router.use("/referral-requests", referralRequestRoutes);
+
+// Team collaboration routes
+router.use("/teams", teamRoutes);
+router.use("/teams", teamInvitationRoutes);
+router.use("/teams", sharedJobRoutes);
+router.use("/teams", teamTaskRoutes);
+router.use("/teams", teamFeedbackRoutes);
+router.use("/teams", teamActivityRoutes);
+router.use("/teams", teamAnalyticsRoutes);
+router.use("/team-invitations", teamInvitationRoutes);
 
 export default router;
 
